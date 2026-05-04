@@ -27,13 +27,24 @@ final class HotkeyService {
     }
 
     func setKeyCode(_ code: UInt16) {
+        isHeld = false
         keyCode = code
+    }
+
+    static func flagMask(for keyCode: UInt16) -> CGEventFlags {
+        switch Int(keyCode) {
+        case kVK_Command, kVK_RightCommand:   return .maskCommand
+        case kVK_Option, kVK_RightOption:     return .maskAlternate
+        case kVK_Control, kVK_RightControl:   return .maskControl
+        case kVK_Shift, kVK_RightShift:       return .maskShift
+        default:                               return .maskCommand
+        }
     }
 
     private func startTap() {
         stopTap()
 
-        let mask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
+        let mask: CGEventMask = 1 << CGEventType.flagsChanged.rawValue
 
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -76,20 +87,18 @@ private func hotkeyCallback(
     let service = Unmanaged<HotkeyService>.fromOpaque(userInfo).takeUnretainedValue()
 
     if type == .flagsChanged {
-        let flags = event.flags
-        let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+        let eventKeyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+        guard eventKeyCode == service.keyCode else { return Unmanaged.passRetained(event) }
 
-        if keyCode == Int64(service.keyCode) {
-            // Right Command: check if flag is set (key down) or cleared (key up)
-            let rightCmdDown = flags.contains(.maskCommand) && keyCode == Int64(kVK_RightCommand)
+        let mask = HotkeyService.flagMask(for: service.keyCode)
+        let isDown = event.flags.contains(mask)
 
-            if rightCmdDown && !service.isHeld {
-                service.isHeld = true
-                DispatchQueue.main.async { service.onKeyDown?() }
-            } else if !rightCmdDown && service.isHeld {
-                service.isHeld = false
-                DispatchQueue.main.async { service.onKeyUp?() }
-            }
+        if isDown && !service.isHeld {
+            service.isHeld = true
+            DispatchQueue.main.async { service.onKeyDown?() }
+        } else if !isDown && service.isHeld {
+            service.isHeld = false
+            DispatchQueue.main.async { service.onKeyUp?() }
         }
     }
 
