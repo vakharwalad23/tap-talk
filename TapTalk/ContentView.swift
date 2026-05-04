@@ -19,6 +19,10 @@ struct ContentView: View {
             modelsTab
                 .tabItem { Label("Models", systemImage: "arrow.down.circle") }
                 .tag("models")
+
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gear") }
+                .tag("settings")
         }
         .frame(minWidth: 500, minHeight: 400)
     }

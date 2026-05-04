@@ -1,4 +1,5 @@
 import SwiftUI
+import Carbon.HIToolbox
 
 final class RecordingState: ObservableObject {
     @Published var recording = false
@@ -23,16 +24,15 @@ struct MainView: View {
     let manager: ModelManager
 
     @StateObject private var state = RecordingState()
-    @State private var selectedTier: UInt8 = 1
-    @State private var selectedLanguage: String? = nil
+    @ObservedObject private var settings = SettingsStore.shared
     @State private var installedTiers: [UInt8] = []
     @State private var transcribeTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 20) {
             HStack(spacing: 12) {
-                ModelTierPicker(selectedTier: $selectedTier, installedTiers: installedTiers)
-                LanguagePicker(selectedLanguage: $selectedLanguage)
+                ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: installedTiers)
+                LanguagePicker(selectedLanguage: $settings.selectedLanguage)
             }
             .disabled(state.recording || state.loadingModel || state.transcribing)
 
@@ -75,7 +75,9 @@ struct MainView: View {
 
             HStack(spacing: 4) {
                 Image(systemName: state.hotkeyActive ? "keyboard.fill" : "keyboard")
-                Text(state.hotkeyActive ? "Hotkey active (Right ⌘)" : "Right ⌘ push-to-talk")
+                Text(state.hotkeyActive
+                     ? "Hotkey active (\(keyLabel))"
+                     : "\(keyLabel) push-to-talk")
             }
             .font(.caption)
             .foregroundColor(state.hotkeyActive ? .green : .gray)
@@ -88,13 +90,15 @@ struct MainView: View {
         .onDisappear {
             HotkeyService.shared.unregister()
         }
-        .onChange(of: selectedTier, perform: { _ in loadSelectedTier() })
+        .onChange(of: settings.selectedTier, perform: { _ in loadSelectedTier() })
     }
 
     private func refresh() {
         installedTiers = manager.installedTiers().sorted()
         if let first = installedTiers.first {
-            selectedTier = first
+            if !installedTiers.contains(settings.selectedTier) {
+                settings.selectedTier = first
+            }
             loadSelectedTier()
         } else {
             state.status = "No models installed"
@@ -103,15 +107,16 @@ struct MainView: View {
     }
 
     private func loadSelectedTier() {
-        guard installedTiers.contains(selectedTier) else { return }
+        let tier = settings.selectedTier
+        guard installedTiers.contains(tier) else { return }
         state.loadingModel = true
         state.modelReady = false
-        let tierName = availableTiers().first(where: { $0.id == selectedTier })?.name ?? ""
+        let tierName = availableTiers().first(where: { $0.id == tier })?.name ?? ""
         state.status = "Loading \(tierName)..."
 
         Task.detached {
             do {
-                try transcriber.loadModel(tier: selectedTier, modelsDir: ContentView.modelsDirectory())
+                try transcriber.loadModel(tier: tier, modelsDir: ContentView.modelsDirectory())
                 await MainActor.run {
                     state.loadingModel = false
                     state.modelReady = true
@@ -173,7 +178,7 @@ struct MainView: View {
         state.cancelled = false
         state.status = "Transcribing..."
 
-        let lang = selectedLanguage
+        let lang = settings.selectedLanguage
         transcribeTask = Task.detached {
             do {
                 let audio = try recorder.stop()
@@ -217,12 +222,27 @@ struct MainView: View {
         }
     }
 
+    private var keyLabel: String {
+        switch Int(settings.hotkeyCode) {
+        case kVK_RightCommand: return "Right ⌘"
+        case kVK_RightOption:  return "Right ⌥"
+        case kVK_RightControl: return "Right ⌃"
+        case kVK_RightShift:   return "Right ⇧"
+        case kVK_Command:      return "Left ⌘"
+        case kVK_Option:       return "Left ⌥"
+        case kVK_Control:      return "Left ⌃"
+        case kVK_Shift:        return "Left ⇧"
+        default:               return "Key \(settings.hotkeyCode)"
+        }
+    }
+
     private func registerHotkey() {
         guard AccessibilityService.hasPermission else {
             AccessibilityService.requestPermission()
             return
         }
 
+        HotkeyService.shared.setKeyCode(settings.hotkeyCode)
         let st = state
         HotkeyService.shared.register(
             keyDown: {
