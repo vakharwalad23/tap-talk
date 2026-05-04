@@ -150,6 +150,38 @@ impl Transcriber {
     }
 }
 
+/// Validate an OpenAI API key by calling the models endpoint.
+#[uniffi::export]
+pub fn test_cloud_connection(api_key: String) -> Result<String, CoreError> {
+    transcribe::test_cloud_connection(&api_key)
+        .map_err(|msg| CoreError::Transcription { msg })
+}
+
+/// Transcribe audio via OpenAI Whisper API. Blocks until response arrives.
+#[uniffi::export]
+pub fn transcribe_cloud(
+    samples: Vec<f32>,
+    language: Option<String>,
+    model: String,
+    api_key: String,
+) -> Result<TranscriptionResult, CoreError> {
+    if samples.len() < 1600 {
+        return Ok(TranscriptionResult {
+            text: String::new(),
+            language: "unknown".into(),
+            duration_ms: 0,
+        });
+    }
+
+    transcribe::transcribe_cloud(&samples, language.as_deref(), &model, &api_key)
+        .map(|r| TranscriptionResult {
+            text: r.text,
+            language: r.language,
+            duration_ms: r.duration_ms,
+        })
+        .map_err(|msg| CoreError::Transcription { msg })
+}
+
 // --- Model Manager ---
 
 #[derive(uniffi::Record)]
