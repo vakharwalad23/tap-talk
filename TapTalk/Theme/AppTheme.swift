@@ -9,8 +9,8 @@ enum AppTheme {
 
     // Text
     static let primary   = Color(hex: "1a1917")
-    static let secondary = Color(hex: "1a1917").opacity(0.5)
-    static let tertiary  = Color(hex: "1a1917").opacity(0.3)
+    static let secondary = Color(hex: "1a1917").opacity(0.6)
+    static let tertiary  = Color(hex: "1a1917").opacity(0.4)
 
     // Accent / states
     static let accent    = Color(hex: "1a1917")

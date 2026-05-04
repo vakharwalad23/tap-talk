@@ -2,7 +2,7 @@ name: TapTalk
 options:
   bundleIdPrefix: talk.tap
   deploymentTarget:
-    macOS: "13.0"
+    macOS: "14.0"
   createIntermediateGroups: true
 
 targets:
