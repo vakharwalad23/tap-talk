@@ -124,6 +124,15 @@ impl Transcriber {
     }
 
     pub fn transcribe(&self, samples: Vec<f32>, language: Option<String>) -> Result<TranscriptionResult, CoreError> {
+        // whisper.cpp needs at least ~0.1s of audio at 16kHz
+        if samples.len() < 1600 {
+            return Ok(TranscriptionResult {
+                text: String::new(),
+                language: "unknown".into(),
+                duration_ms: 0,
+            });
+        }
+
         let guard = self.engine.lock()
             .map_err(|e| CoreError::Transcription { msg: format!("{e}") })?;
 
