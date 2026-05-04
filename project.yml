@@ -25,6 +25,15 @@ targets:
           - "$(PROJECT_DIR)/TapTalk/Generated"
         OTHER_LDFLAGS:
           - "-ltap_talk_core"
+          - "-lc++"
+          - "-framework"
+          - "CoreAudio"
+          - "-framework"
+          - "AudioToolbox"
+          - "-framework"
+          - "Security"
+          - "-framework"
+          - "SystemConfiguration"
         SWIFT_INCLUDE_PATHS:
           - "$(PROJECT_DIR)/TapTalk/Generated"
         SWIFT_OBJC_BRIDGING_HEADER: "TapTalk/BridgingHeader.h"
@@ -34,3 +43,5 @@ targets:
       path: TapTalk/TapTalk.entitlements
     info:
       path: TapTalk/Info.plist
+      properties:
+        NSMicrophoneUsageDescription: "TapTalk needs microphone access to transcribe your speech locally."
