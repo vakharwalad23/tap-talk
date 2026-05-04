@@ -91,6 +91,7 @@ struct RecordView: View {
         .onAppear {
             refresh()
             registerHotkey()
+            FloatingPillController.shared.hide()  // shows idle pill on launch
         }
         .onDisappear {
             HotkeyService.shared.unregister()

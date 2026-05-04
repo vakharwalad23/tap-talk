@@ -8,7 +8,6 @@ final class FloatingPillController {
     private var hostingView: NSHostingView<PillView>?
     private let holder = PillStateHolder()
 
-    // Both tracked so show() can cancel a pending orderOut
     private var autoHideWork: DispatchWorkItem?
     private var orderOutWork: DispatchWorkItem?
 
@@ -17,7 +16,6 @@ final class FloatingPillController {
     func show(state: PillState) {
         autoHideWork?.cancel()
         autoHideWork = nil
-        // Cancel pending orderOut — prevents it firing after we've shown the pill again
         orderOutWork?.cancel()
         orderOutWork = nil
 
@@ -27,24 +25,25 @@ final class FloatingPillController {
         window?.orderFrontRegardless()
 
         if state == .done {
-            let work = DispatchWorkItem { [weak self] in self?.hide() }
+            let work = DispatchWorkItem { [weak self] in
+                self?.autoHideWork = nil
+                self?.holder.state = .idle
+            }
             autoHideWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
         }
     }
 
+    // Returns to idle — pill stays visible
     func hide() {
         autoHideWork?.cancel()
         autoHideWork = nil
         orderOutWork?.cancel()
         orderOutWork = nil
 
-        holder.state = .hidden
-
-        // Wait for hide animation before removing window
-        let work = DispatchWorkItem { [weak self] in self?.window?.orderOut(nil) }
-        orderOutWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
+        if window == nil { createWindow() }
+        holder.state = .idle
+        window?.orderFrontRegardless()
     }
 
     private func createWindow() {
@@ -62,7 +61,6 @@ final class FloatingPillController {
         panel.isMovableByWindowBackground = true
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
 
-        // Single PillView instance — holder mutations drive state changes reactively
         let hv = NSHostingView(rootView: PillView(holder: holder))
         hv.wantsLayer = true
         hv.layer?.backgroundColor = NSColor.clear.cgColor
@@ -72,7 +70,6 @@ final class FloatingPillController {
         panel.contentView = hv
         hostingView = hv
 
-        // Clear layer background again after contentView assignment (layer may be recreated)
         DispatchQueue.main.async {
             hv.layer?.backgroundColor = NSColor.clear.cgColor
         }

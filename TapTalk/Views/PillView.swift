@@ -1,14 +1,13 @@
 import SwiftUI
 
 enum PillState: Equatable {
+    case idle
     case hidden
     case recording
     case transcribing
     case done
 }
 
-// Observable holder so a single PillView instance reacts to state changes.
-// Replacing NSHostingView.rootView doesn't trigger onAppear/onChange — this does.
 final class PillStateHolder: ObservableObject {
     @Published var state: PillState = .hidden
 }
@@ -39,24 +38,24 @@ struct PillView: View {
         }
         .frame(width: 156, height: 38)
         .clipShape(RoundedRectangle(cornerRadius: 19))
-        // strokeBorder draws entirely inside the shape — no overflow past the clip
         .overlay(
             RoundedRectangle(cornerRadius: 19)
                 .strokeBorder(borderColor, lineWidth: 1)
         )
-        // subtle dark drop shadow only — no colored glow that bleeds on light backgrounds
         .shadow(
             color: pillState == .hidden ? .clear : Color.black.opacity(0.22),
             radius: 5, x: 0, y: 2
         )
         .animation(.spring(response: 0.28, dampingFraction: 0.76), value: pillState)
         .onAppear {
-            if pillState != .hidden { startTimer() }
+            if pillState == .recording || pillState == .transcribing { startTimer() }
         }
         .onDisappear { stopTimer() }
         .onChange(of: holder.state) { newState in
-            // onChange fires on every holder.state mutation (unlike rootView replacement)
-            if newState == .hidden { stopTimer() } else { startTimer() }
+            switch newState {
+            case .recording, .transcribing: startTimer()
+            default: stopTimer()
+            }
         }
     }
 
@@ -65,6 +64,17 @@ struct PillView: View {
         switch pillState {
         case .hidden:
             EmptyView()
+
+        case .idle:
+            // circle ring + center dot — universal "ready" indicator
+            ZStack {
+                Circle()
+                    .strokeBorder(Color.white.opacity(0.30), lineWidth: 1.5)
+                    .frame(width: 14, height: 14)
+                Circle()
+                    .fill(Color.white.opacity(0.45))
+                    .frame(width: 5, height: 5)
+            }
 
         case .recording:
             HStack(spacing: 3) {
@@ -113,6 +123,7 @@ struct PillView: View {
 
     private var bgColor: Color {
         switch pillState {
+        case .idle:         return Color(red: 0.13, green: 0.13, blue: 0.15)
         case .recording:    return Color(red: 0.11, green: 0.04, blue: 0.04)
         case .transcribing: return Color(red: 0.10, green: 0.10, blue: 0.13)
         case .done:         return Color(red: 0.07, green: 0.15, blue: 0.08)
@@ -122,6 +133,7 @@ struct PillView: View {
 
     private var borderColor: Color {
         switch pillState {
+        case .idle:         return Color.white.opacity(0.08)
         case .recording:    return Color(red: 1, green: 0.22, blue: 0.18).opacity(0.5)
         case .transcribing: return Color.white.opacity(0.11)
         case .done:         return AppTheme.success.opacity(0.6)
@@ -130,7 +142,6 @@ struct PillView: View {
     }
 
     private func startTimer() {
-        // always cancel existing timer before creating a new one
         stopTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
             phase    += 0.048
