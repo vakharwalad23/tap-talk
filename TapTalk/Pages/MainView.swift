@@ -1,70 +1,93 @@
 import SwiftUI
 
+final class RecordingState: ObservableObject {
+    @Published var recording = false
+    @Published var transcribing = false
+    @Published var cancelled = false
+    @Published var hotkeyTriggered = false
+    @Published var status = ""
+    @Published var transcriptText = ""
+    @Published var transcriptLang = ""
+    @Published var transcriptMs: UInt64 = 0
+    @Published var audioDuration: Float = 0
+    @Published var modelReady = false
+    @Published var loadingModel = false
+    @Published var hotkeyActive = false
+
+    var canRecord: Bool { modelReady && !recording && !loadingModel }
+}
+
 struct MainView: View {
     let recorder: Recorder
     let transcriber: Transcriber
     let manager: ModelManager
 
-    @State private var recording = false
-    @State private var status = ""
-    @State private var transcriptText = ""
-    @State private var transcriptLang = ""
-    @State private var transcriptMs: UInt64 = 0
-    @State private var audioDuration: Float = 0
+    @StateObject private var state = RecordingState()
     @State private var selectedTier: UInt8 = 1
     @State private var selectedLanguage: String? = nil
     @State private var installedTiers: [UInt8] = []
-    @State private var modelReady = false
-    @State private var loadingModel = false
+    @State private var transcribeTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 20) {
-            // Controls row
             HStack(spacing: 12) {
                 ModelTierPicker(selectedTier: $selectedTier, installedTiers: installedTiers)
                 LanguagePicker(selectedLanguage: $selectedLanguage)
             }
-            .disabled(recording || loadingModel)
+            .disabled(state.recording || state.loadingModel || state.transcribing)
 
             Spacer()
 
-            // Waveform
-            Waveform(isRecording: recording)
+            Waveform(isRecording: state.recording)
 
-            // Status
-            Text(status)
+            Text(state.status)
                 .font(.callout)
-                .foregroundStyle(recording ? .red : .secondary)
+                .foregroundStyle(state.recording ? .red : .secondary)
                 .frame(height: 20)
 
-            // Transcript
-            if !transcriptText.isEmpty {
+            if !state.transcriptText.isEmpty {
                 TranscriptDisplay(
-                    text: transcriptText,
-                    language: transcriptLang,
-                    durationMs: transcriptMs,
-                    audioDuration: audioDuration
+                    text: state.transcriptText,
+                    language: state.transcriptLang,
+                    durationMs: state.transcriptMs,
+                    audioDuration: state.audioDuration
                 )
             }
 
             Spacer()
 
-            // Record button
             Button(action: toggleRecording) {
                 HStack {
-                    Image(systemName: recording ? "stop.fill" : "mic.fill")
-                    Text(recording ? "Stop" : "Record")
+                    Image(systemName: state.recording ? "stop.fill" : "mic.fill")
+                    Text(state.recording ? "Stop" : "Record")
                 }
                 .frame(width: 120)
             }
             .keyboardShortcut(.space, modifiers: [])
             .buttonStyle(.borderedProminent)
-            .tint(recording ? .red : .accentColor)
+            .tint(state.recording ? .red : .accentColor)
             .controlSize(.large)
-            .disabled(!modelReady || loadingModel)
+            .disabled(!state.canRecord && !state.recording)
+
+            Button("Cancel") { cancelRecording() }
+                .keyboardShortcut(.escape, modifiers: [])
+                .hidden()
+
+            HStack(spacing: 4) {
+                Image(systemName: state.hotkeyActive ? "keyboard.fill" : "keyboard")
+                Text(state.hotkeyActive ? "Hotkey active (Right ⌘)" : "Right ⌘ push-to-talk")
+            }
+            .font(.caption)
+            .foregroundColor(state.hotkeyActive ? .green : .gray)
         }
         .padding(24)
-        .onAppear { refresh() }
+        .onAppear {
+            refresh()
+            registerHotkey()
+        }
+        .onDisappear {
+            HotkeyService.shared.unregister()
+        }
         .onChange(of: selectedTier, perform: { _ in loadSelectedTier() })
     }
 
@@ -74,73 +97,147 @@ struct MainView: View {
             selectedTier = first
             loadSelectedTier()
         } else {
-            status = "No models installed"
-            modelReady = false
+            state.status = "No models installed"
+            state.modelReady = false
         }
     }
 
     private func loadSelectedTier() {
         guard installedTiers.contains(selectedTier) else { return }
-        loadingModel = true
-        modelReady = false
+        state.loadingModel = true
+        state.modelReady = false
         let tierName = availableTiers().first(where: { $0.id == selectedTier })?.name ?? ""
-        status = "Loading \(tierName)..."
+        state.status = "Loading \(tierName)..."
 
         Task.detached {
             do {
                 try transcriber.loadModel(tier: selectedTier, modelsDir: ContentView.modelsDirectory())
                 await MainActor.run {
-                    loadingModel = false
-                    modelReady = true
-                    status = "\(tierName) ready"
+                    state.loadingModel = false
+                    state.modelReady = true
+                    state.status = "\(tierName) ready"
                 }
             } catch {
                 await MainActor.run {
-                    loadingModel = false
-                    status = "Failed: \(error.localizedDescription)"
+                    state.loadingModel = false
+                    state.status = "Failed: \(error.localizedDescription)"
                 }
             }
         }
     }
 
     private func toggleRecording() {
-        if recording { stopAndTranscribe() } else { startRecording() }
+        if state.recording {
+            stopAndTranscribe()
+        } else {
+            state.hotkeyTriggered = false
+            startRecording()
+        }
     }
 
     private func startRecording() {
+        guard state.canRecord else { return }
+
+        // Cancel in-flight transcription if hotkey pressed again
+        if state.transcribing {
+            cancelTranscription()
+        }
+
         do {
             try recorder.start()
-            recording = true
-            status = "Recording..."
-            transcriptText = ""
+            state.recording = true
+            state.status = "Recording..."
         } catch {
-            status = "Error: \(error.localizedDescription)"
+            state.status = "Error: \(error.localizedDescription)"
         }
     }
 
-    private func stopAndTranscribe() {
-        recording = false
-        status = "Transcribing..."
+    private func cancelRecording() {
+        guard state.recording else { return }
+        state.recording = false
+        _ = try? recorder.stop()
+        state.status = "Cancelled"
+    }
 
-        Task.detached {
+    private func cancelTranscription() {
+        transcribeTask?.cancel()
+        transcribeTask = nil
+        state.transcribing = false
+        state.cancelled = true
+    }
+
+    private func stopAndTranscribe() {
+        guard state.recording else { return }
+        state.recording = false
+        state.transcribing = true
+        state.cancelled = false
+        state.status = "Transcribing..."
+
+        let lang = selectedLanguage
+        transcribeTask = Task.detached {
             do {
                 let audio = try recorder.stop()
+
+                if Task.isCancelled {
+                    await MainActor.run {
+                        state.transcribing = false
+                        state.status = "Cancelled"
+                    }
+                    return
+                }
+
                 let result = try transcriber.transcribe(
                     samples: audio.samples,
-                    language: selectedLanguage
+                    language: lang
                 )
+
                 await MainActor.run {
-                    transcriptText = result.text
-                    transcriptLang = result.language
-                    transcriptMs = result.durationMs
-                    audioDuration = audio.durationSecs
-                    status = "Done"
+                    guard !state.cancelled else { return }
+                    state.transcribing = false
+                    if result.text.isEmpty {
+                        state.status = "Too short — hold longer"
+                    } else {
+                        state.transcriptText = result.text
+                        state.transcriptLang = result.language
+                        state.transcriptMs = result.durationMs
+                        state.audioDuration = audio.durationSecs
+                        state.status = "Done"
+                        if state.hotkeyTriggered {
+                            PasteService.paste(result.text)
+                        }
+                    }
                 }
             } catch {
                 await MainActor.run {
-                    status = "Error: \(error.localizedDescription)"
+                    guard !state.cancelled else { return }
+                    state.transcribing = false
+                    state.status = "Error: \(error.localizedDescription)"
                 }
             }
         }
+    }
+
+    private func registerHotkey() {
+        guard AccessibilityService.hasPermission else {
+            AccessibilityService.requestPermission()
+            return
+        }
+
+        let st = state
+        HotkeyService.shared.register(
+            keyDown: {
+                if st.transcribing {
+                    cancelTranscription()
+                }
+                st.hotkeyTriggered = true
+                startRecording()
+            },
+            keyUp: {
+                if st.recording {
+                    stopAndTranscribe()
+                }
+            }
+        )
+        state.hotkeyActive = true
     }
 }
