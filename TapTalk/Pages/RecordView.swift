@@ -10,24 +10,31 @@ struct RecordView: View {
     @ObservedObject private var settings = SettingsStore.shared
     @State private var installedTiers: [UInt8] = []
     @State private var transcribeTask: Task<Void, Never>?
+    @State private var permissionPoller: Timer?
 
     var body: some View {
-        VStack(spacing: 20) {
-            HStack(spacing: 12) {
+        VStack(spacing: 0) {
+            // Pickers row
+            HStack(spacing: 8) {
                 ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: installedTiers)
                 LanguagePicker(selectedLanguage: $settings.selectedLanguage)
+                Spacer()
             }
             .disabled(state.recording || state.loadingModel || state.transcribing)
+            .padding(.bottom, 20)
 
-            Spacer()
-
+            // Waveform
             Waveform(isRecording: state.recording)
+                .padding(.bottom, 8)
 
+            // Status
             Text(state.status)
-                .font(.callout)
+                .font(.system(size: 12))
                 .foregroundStyle(state.recording ? AppTheme.danger : AppTheme.secondary)
-                .frame(height: 20)
+                .frame(height: 18)
+                .padding(.bottom, 16)
 
+            // Transcript
             if !state.transcriptText.isEmpty {
                 TranscriptDisplay(
                     text: state.transcriptText,
@@ -35,35 +42,49 @@ struct RecordView: View {
                     durationMs: state.transcriptMs,
                     audioDuration: state.audioDuration
                 )
+                .padding(.bottom, 16)
             }
 
             Spacer()
 
+            // Record button
             Button(action: toggleRecording) {
-                HStack {
+                HStack(spacing: 8) {
                     Image(systemName: state.recording ? "stop.fill" : "mic.fill")
-                    Text(state.recording ? "Stop" : "Record")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text(state.recording ? "Stop Recording" : "Record")
+                        .font(.system(size: 14, weight: .semibold))
                 }
-                .frame(width: 120)
+                .frame(maxWidth: .infinity)
+                .frame(height: 42)
+                .background(
+                    state.recording
+                        ? AppTheme.danger
+                        : (state.canRecord ? AppTheme.accent : AppTheme.accent.opacity(0.4))
+                )
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
+            .buttonStyle(.plain)
             .keyboardShortcut(.space, modifiers: [])
-            .buttonStyle(.borderedProminent)
-            .tint(state.recording ? AppTheme.danger : AppTheme.accent)
-            .controlSize(.large)
             .disabled(!state.canRecord && !state.recording)
 
-            Button("Cancel") { cancelRecording() }
+            Button("") { cancelRecording() }
                 .keyboardShortcut(.escape, modifiers: [])
+                .frame(width: 0, height: 0)
                 .hidden()
 
-            HStack(spacing: 4) {
+            // Hotkey hint
+            HStack(spacing: 5) {
                 Image(systemName: state.hotkeyActive ? "keyboard.fill" : "keyboard")
+                    .font(.system(size: 10))
                 Text(state.hotkeyActive
-                     ? "Hotkey active (\(keyLabel))"
+                     ? "Hotkey active · \(keyLabel)"
                      : "\(keyLabel) push-to-talk")
+                    .font(.system(size: 11))
             }
-            .font(.caption)
-            .foregroundColor(state.hotkeyActive ? AppTheme.success : AppTheme.tertiary)
+            .foregroundStyle(state.hotkeyActive ? AppTheme.success : AppTheme.tertiary)
+            .padding(.top, 10)
         }
         .padding(24)
         .background(AppTheme.windowBg)
@@ -73,6 +94,8 @@ struct RecordView: View {
         }
         .onDisappear {
             HotkeyService.shared.unregister()
+            permissionPoller?.invalidate()
+            permissionPoller = nil
         }
         .onChange(of: settings.selectedTier, perform: { _ in loadSelectedTier() })
     }
@@ -252,6 +275,7 @@ struct RecordView: View {
     private func registerHotkey() {
         guard AccessibilityService.hasPermission else {
             AccessibilityService.requestPermission()
+            startPermissionPoller()
             return
         }
 
@@ -272,5 +296,15 @@ struct RecordView: View {
             }
         )
         state.hotkeyActive = true
+        permissionPoller?.invalidate()
+        permissionPoller = nil
+    }
+
+    private func startPermissionPoller() {
+        guard permissionPoller == nil else { return }
+        permissionPoller = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            guard AccessibilityService.hasPermission else { return }
+            DispatchQueue.main.async { registerHotkey() }
+        }
     }
 }
