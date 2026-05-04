@@ -233,6 +233,7 @@ struct RecordView: View {
                     state.transcribing = false
                     if result.text.isEmpty {
                         state.status = "Too short — hold longer"
+                        FloatingPillController.shared.hide()
                     } else {
                         state.transcriptText = result.text
                         state.transcriptLang = result.language
