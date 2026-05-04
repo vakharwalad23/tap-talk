@@ -1,4 +1,5 @@
 mod audio;
+mod transcribe;
 
 uniffi::setup_scaffolding!();
 
@@ -6,6 +7,10 @@ uniffi::setup_scaffolding!();
 pub enum CoreError {
     #[error("{msg}")]
     Audio { msg: String },
+    #[error("{msg}")]
+    Model { msg: String },
+    #[error("{msg}")]
+    Transcription { msg: String },
 }
 
 #[uniffi::export]
@@ -17,6 +22,8 @@ pub fn ping() -> String {
 pub fn system_info() -> String {
     format!("tap-talk-core v{}, aarch64-apple-darwin", env!("CARGO_PKG_VERSION"))
 }
+
+// --- Audio Recording ---
 
 #[derive(uniffi::Record)]
 pub struct RecordingResult {
@@ -57,6 +64,78 @@ impl Recorder {
             samples: trimmed,
             sample_count,
             duration_secs,
+        })
+    }
+}
+
+// --- Transcription ---
+
+#[derive(uniffi::Record)]
+pub struct TranscriptionResult {
+    pub text: String,
+    pub language: String,
+    pub duration_ms: u64,
+}
+
+#[derive(uniffi::Record)]
+pub struct ModelTierInfo {
+    pub id: u8,
+    pub name: String,
+    pub ggml_filename: String,
+    pub disk_size_mb: u32,
+}
+
+#[uniffi::export]
+pub fn available_tiers() -> Vec<ModelTierInfo> {
+    transcribe::TIERS.iter().map(|t| ModelTierInfo {
+        id: t.id,
+        name: t.name.to_string(),
+        ggml_filename: t.ggml_filename.to_string(),
+        disk_size_mb: t.disk_size_mb,
+    }).collect()
+}
+
+#[derive(uniffi::Object)]
+pub struct Transcriber {
+    engine: std::sync::Mutex<Option<transcribe::WhisperEngine>>,
+}
+
+#[uniffi::export]
+impl Transcriber {
+    #[uniffi::constructor]
+    pub fn new() -> Self {
+        Self {
+            engine: std::sync::Mutex::new(None),
+        }
+    }
+
+    pub fn load_model(&self, tier: u8, models_dir: String) -> Result<(), CoreError> {
+        let engine = transcribe::WhisperEngine::load(tier, std::path::Path::new(&models_dir))
+            .map_err(|msg| CoreError::Model { msg })?;
+
+        let mut guard = self.engine.lock().map_err(|e| CoreError::Model { msg: format!("{e}") })?;
+        *guard = Some(engine);
+        Ok(())
+    }
+
+    pub fn current_tier(&self) -> Option<u8> {
+        self.engine.lock().ok()?.as_ref().map(|e| e.tier_id())
+    }
+
+    pub fn transcribe(&self, samples: Vec<f32>, language: Option<String>) -> Result<TranscriptionResult, CoreError> {
+        let guard = self.engine.lock()
+            .map_err(|e| CoreError::Transcription { msg: format!("{e}") })?;
+
+        let engine = guard.as_ref()
+            .ok_or_else(|| CoreError::Model { msg: "no model loaded".into() })?;
+
+        let result = engine.transcribe(&samples, language.as_deref())
+            .map_err(|msg| CoreError::Transcription { msg })?;
+
+        Ok(TranscriptionResult {
+            text: result.text,
+            language: result.language,
+            duration_ms: result.duration_ms,
         })
     }
 }

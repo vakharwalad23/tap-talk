@@ -10,6 +10,7 @@ name = "tap_talk_core"
 [dependencies]
 uniffi = { version = "0.29", features = ["cli"] }
 thiserror = "2"
+whisper-rs = { version = "0.14", features = ["coreml", "metal"] }
 cpal = "0.15"
 rubato = "0.15"
 voice_activity_detector = "0.2"
