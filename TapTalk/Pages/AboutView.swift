@@ -1,0 +1,73 @@
+import SwiftUI
+import AppKit
+
+struct AboutView: View {
+    private var version: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1"
+    }
+    private var build: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("About")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(AppTheme.primary)
+            }
+            .padding(.bottom, 20)
+
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("TapTalk")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(AppTheme.primary)
+                    Text("Version \(version) (\(build))")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppTheme.secondary)
+                }
+
+                Text("Local speech-to-text for macOS. Hold a hotkey, speak, release — your words appear wherever the cursor is. Runs entirely on-device using Whisper. No account, no cloud by default.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppTheme.secondary)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Divider().background(AppTheme.divider)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    infoRow("Engine", value: "Whisper (whisper.cpp via Rust)")
+                    infoRow("Audio", value: "cpal · VAD silence trimming")
+                    infoRow("Platform", value: "macOS 13+ · Apple Silicon")
+                }
+
+                Divider().background(AppTheme.divider)
+
+                Button("View on GitHub") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/vakharwalad23/tap-talk")!)
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(AppTheme.primary)
+                .font(.system(size: 12))
+            }
+
+            Spacer()
+        }
+        .padding(24)
+        .background(AppTheme.windowBg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func infoRow(_ label: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundStyle(AppTheme.tertiary)
+                .frame(width: 80, alignment: .leading)
+            Text(value)
+                .font(.system(size: 12))
+                .foregroundStyle(AppTheme.secondary)
+        }
+    }
+}
