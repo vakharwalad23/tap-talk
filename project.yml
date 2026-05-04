@@ -1,0 +1,36 @@
+name: TapTalk
+options:
+  bundleIdPrefix: talk.tap
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+
+targets:
+  TapTalk:
+    type: application
+    platform: macOS
+    sources:
+      - path: TapTalk
+        excludes:
+          - "Generated/TapTalkCoreFFI.h"
+          - "Generated/TapTalkCoreFFI.modulemap"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: talk.tap.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        LIBRARY_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/core/target/release"
+        HEADER_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/TapTalk/Generated"
+        OTHER_LDFLAGS:
+          - "-ltap_talk_core"
+        SWIFT_INCLUDE_PATHS:
+          - "$(PROJECT_DIR)/TapTalk/Generated"
+        SWIFT_OBJC_BRIDGING_HEADER: "TapTalk/BridgingHeader.h"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+    entitlements:
+      path: TapTalk/TapTalk.entitlements
+    info:
+      path: TapTalk/Info.plist

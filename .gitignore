@@ -1,0 +1,57 @@
+# Rust
+core/target/
+**/*.rs.bk
+Cargo.lock
+
+# Xcode
+TapTalk.xcodeproj/
+build/
+DerivedData/
+*.xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+*.swp
+*.swo
+*~
+
+# Models (downloaded at runtime)
+models/
+
+# Secrets & environment
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.mobileprovision
+*.provisionprofile
+
+# Claude (only rules committed — plans, memory, settings are local)
+.claude/settings.local.json
+.claude/plans/
+.claude/memory/
+.claude/todos/
+
+# Plan doc (working document, not shipped)
+PLAN.md
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs & temp
+*.log
+tmp/
+temp/
+*.tmp

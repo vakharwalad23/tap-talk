@@ -1,0 +1,43 @@
+---
+description: Code commenting standards across all languages
+globs: "**/*.{rs,swift}"
+---
+
+# Commenting Standards
+
+## Principles
+- Code explains what. Comments explain why.
+- No decorative comments (banners, section dividers, ASCII art).
+- No first-person language ("I", "we", "our"). Write impersonal.
+- Single-line comments only. No multi-line comment blocks.
+
+## When to Comment
+- Non-obvious logic: algorithms, bitwise ops, complex conditionals.
+- Workarounds: link to issue or explain the constraint.
+- Performance choices: why this approach over the simpler one.
+- Safety invariants: `// SAFETY:` for unsafe Rust, pre/post conditions.
+- Public API: single-line `///` doc comment on every exported function.
+
+## When NOT to Comment
+- Obvious code: `let count = items.count` needs no comment.
+- Restating the code: `// increment counter` above `counter += 1`.
+- TODO/FIXME without context — include what and when.
+- Changelog-style: "added in v0.2" — that belongs in git history.
+
+## Style
+```rust
+// Resample to 16kHz — whisper.cpp requires fixed sample rate
+let resampled = resample(&buffer, source_rate, 16000);
+```
+
+```swift
+// CGEvent tap requires accessibility permission granted at runtime
+let tap = CGEvent.tapCreate(...)
+```
+
+Bad:
+```rust
+// We need to resample the audio buffer here because
+// the whisper model expects 16kHz input and we might
+// get a different sample rate from the microphone
+```
