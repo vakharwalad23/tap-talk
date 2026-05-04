@@ -7,7 +7,6 @@ final class FloatingPillController {
     private var window: NSPanel?
     private var hostingView: NSHostingView<PillView>?
     private var hideTask: DispatchWorkItem?
-    private var currentState: PillState = .hidden
 
     private init() {}
 
@@ -15,11 +14,9 @@ final class FloatingPillController {
         hideTask?.cancel()
         hideTask = nil
 
-        if window == nil {
-            createWindow()
-        }
+        if window == nil { createWindow() }
 
-        setContentState(state)
+        updateContent(state)
         window?.orderFrontRegardless()
 
         if state == .done {
@@ -32,17 +29,14 @@ final class FloatingPillController {
     func hide() {
         hideTask?.cancel()
         hideTask = nil
-        setContentState(.hidden)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+        updateContent(.hidden)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
             self?.window?.orderOut(nil)
         }
     }
 
-    private func setContentState(_ state: PillState) {
-        currentState = state
-        if let hv = hostingView {
-            hv.rootView = PillView(pillState: state)
-        }
+    private func updateContent(_ state: PillState) {
+        hostingView?.rootView = PillView(pillState: state)
     }
 
     private func createWindow() {
@@ -56,28 +50,28 @@ final class FloatingPillController {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
-        panel.ignoresMouseEvents = true
+        panel.ignoresMouseEvents = false          // allow dragging
+        panel.isMovableByWindowBackground = true  // drag anywhere on pill
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
 
         let pillView = PillView(pillState: .hidden)
         let hv = NSHostingView(rootView: pillView)
-        hv.frame = NSRect(x: 0, y: 0, width: 220, height: 72)
+        hv.wantsLayer = true
+        hv.layer?.backgroundColor = NSColor.clear.cgColor
+
+        let size = NSSize(width: 186, height: 56)
+        hv.frame = NSRect(origin: .zero, size: size)
         panel.contentView = hv
         hostingView = hv
 
-        positionWindow(panel)
+        positionWindow(panel, size: size)
         window = panel
     }
 
-    private func positionWindow(_ panel: NSPanel) {
+    private func positionWindow(_ panel: NSPanel, size: NSSize) {
         guard let screen = NSScreen.main else { return }
-        let sw = screen.frame.width
-        let sh = screen.frame.height
-        let visibleBottom = screen.visibleFrame.minY
-        let pw: CGFloat = 220
-        let ph: CGFloat = 72
-        let x = (sw - pw) / 2
-        let y = visibleBottom + 60
-        panel.setFrame(NSRect(x: x, y: y, width: pw, height: ph), display: false)
+        let x = (screen.frame.width - size.width) / 2
+        let y = screen.visibleFrame.minY + 56
+        panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: false)
     }
 }
