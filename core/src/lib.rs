@@ -1,4 +1,5 @@
 mod audio;
+mod models;
 mod transcribe;
 
 uniffi::setup_scaffolding!();
@@ -137,5 +138,62 @@ impl Transcriber {
             language: result.language,
             duration_ms: result.duration_ms,
         })
+    }
+}
+
+// --- Model Manager ---
+
+#[derive(uniffi::Record)]
+pub struct DownloadProgressInfo {
+    pub tier: u8,
+    pub bytes_downloaded: u64,
+    pub total_bytes: u64,
+    pub done: bool,
+}
+
+#[uniffi::export(callback_interface)]
+pub trait DownloadProgressCallback: Send + Sync {
+    fn on_progress(&self, progress: DownloadProgressInfo);
+}
+
+#[derive(uniffi::Object)]
+pub struct ModelManager {
+    inner: models::ModelManager,
+}
+
+#[uniffi::export]
+impl ModelManager {
+    #[uniffi::constructor]
+    pub fn new(models_dir: String) -> Self {
+        Self {
+            inner: models::ModelManager::new(std::path::Path::new(&models_dir)),
+        }
+    }
+
+    pub fn models_dir(&self) -> String {
+        self.inner.models_dir().to_string_lossy().to_string()
+    }
+
+    pub fn is_installed(&self, tier: u8) -> bool {
+        self.inner.is_installed(tier)
+    }
+
+    pub fn installed_tiers(&self) -> Vec<u8> {
+        self.inner.installed_tiers()
+    }
+
+    pub fn download(&self, tier: u8, callback: Box<dyn DownloadProgressCallback>) -> Result<(), CoreError> {
+        self.inner.download(tier, &|progress| {
+            callback.on_progress(DownloadProgressInfo {
+                tier: progress.tier,
+                bytes_downloaded: progress.bytes_downloaded,
+                total_bytes: progress.total_bytes,
+                done: matches!(progress.status, models::manager::DownloadStatus::Complete),
+            });
+        }).map_err(|msg| CoreError::Model { msg })
+    }
+
+    pub fn delete(&self, tier: u8) -> Result<(), CoreError> {
+        self.inner.delete(tier).map_err(|msg| CoreError::Model { msg })
     }
 }

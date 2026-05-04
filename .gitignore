@@ -24,8 +24,8 @@ DerivedData/
 *.swo
 *~
 
-# Models (downloaded at runtime)
-models/
+# Models (downloaded at runtime — only the app support dir, not source)
+/models/
 
 # Secrets & environment
 .env
