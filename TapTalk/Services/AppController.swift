@@ -1,5 +1,6 @@
 import SwiftUI
 import Carbon.HIToolbox
+import AVFoundation
 
 /// App-level singleton. Owns recorder, transcriber, state, and hotkey registration.
 /// Lives for the full app lifetime — independent of any window.
@@ -30,6 +31,12 @@ final class AppController: ObservableObject {
 
     /// Called once at app launch.
     func setup() {
+        // Request mic permission now (window is open) so it never blocks mid-recording.
+        // CPAL blocks the main thread during the permission dialog; if that happens during
+        // a hotkey keyDown callback the matching keyUp is missed and recording gets stuck.
+        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .audio) { _ in }
+        }
         refresh()
         setupHotkey()
         FloatingPillController.shared.hide()  // show idle pill

@@ -66,14 +66,13 @@ struct PillView: View {
             EmptyView()
 
         case .idle:
-            // circle ring + center dot — universal "ready" indicator
-            ZStack {
-                Circle()
-                    .strokeBorder(Color.white.opacity(0.30), lineWidth: 1.5)
-                    .frame(width: 14, height: 14)
-                Circle()
-                    .fill(Color.white.opacity(0.45))
-                    .frame(width: 5, height: 5)
+            // static waveform — calm snapshot showing the app is ready
+            HStack(spacing: 3) {
+                ForEach(Array([5, 11, 7, 15, 9, 13, 6].enumerated()), id: \.offset) { _, h in
+                    Capsule()
+                        .fill(Color.white.opacity(0.28))
+                        .frame(width: 2.5, height: CGFloat(h))
+                }
             }
 
         case .recording:

@@ -2,7 +2,10 @@ import SwiftUI
 import Carbon.HIToolbox
 
 struct RecordView: View {
+    // ctrl for actions and installedTiers (AppController @Published properties)
     @ObservedObject private var ctrl     = AppController.shared
+    // state observed directly — nested ObservableObject changes don't bubble up through ctrl
+    @ObservedObject private var state    = AppController.shared.state
     @ObservedObject private var settings = SettingsStore.shared
 
     var body: some View {
@@ -12,24 +15,24 @@ struct RecordView: View {
                 LanguagePicker(selectedLanguage: $settings.selectedLanguage)
                 Spacer()
             }
-            .disabled(ctrl.state.recording || ctrl.state.loadingModel || ctrl.state.transcribing)
+            .disabled(state.recording || state.loadingModel || state.transcribing)
             .padding(.bottom, 20)
 
-            Waveform(isRecording: ctrl.state.recording)
+            Waveform(isRecording: state.recording)
                 .padding(.bottom, 8)
 
-            Text(ctrl.state.status)
+            Text(state.status)
                 .font(.system(size: 12))
-                .foregroundStyle(ctrl.state.recording ? AppTheme.danger : AppTheme.secondary)
+                .foregroundStyle(state.recording ? AppTheme.danger : AppTheme.secondary)
                 .frame(height: 18)
                 .padding(.bottom, 16)
 
-            if !ctrl.state.transcriptText.isEmpty {
+            if !state.transcriptText.isEmpty {
                 TranscriptDisplay(
-                    text: ctrl.state.transcriptText,
-                    language: ctrl.state.transcriptLang,
-                    durationMs: ctrl.state.transcriptMs,
-                    audioDuration: ctrl.state.audioDuration
+                    text: state.transcriptText,
+                    language: state.transcriptLang,
+                    durationMs: state.transcriptMs,
+                    audioDuration: state.audioDuration
                 )
                 .padding(.bottom, 16)
             }
@@ -38,24 +41,24 @@ struct RecordView: View {
 
             Button(action: ctrl.toggleRecording) {
                 HStack(spacing: 8) {
-                    Image(systemName: ctrl.state.recording ? "stop.fill" : "mic.fill")
+                    Image(systemName: state.recording ? "stop.fill" : "mic.fill")
                         .font(.system(size: 15, weight: .semibold))
-                    Text(ctrl.state.recording ? "Stop Recording" : "Record")
+                    Text(state.recording ? "Stop Recording" : "Record")
                         .font(.system(size: 14, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 42)
                 .background(
-                    ctrl.state.recording
+                    state.recording
                         ? AppTheme.danger
-                        : (ctrl.state.canRecord ? AppTheme.accent : AppTheme.accent.opacity(0.4))
+                        : (state.canRecord ? AppTheme.accent : AppTheme.accent.opacity(0.4))
                 )
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.space, modifiers: [])
-            .disabled(!ctrl.state.canRecord && !ctrl.state.recording)
+            .disabled(!state.canRecord && !state.recording)
 
             Button("") { ctrl.cancelRecording() }
                 .keyboardShortcut(.escape, modifiers: [])
@@ -63,22 +66,22 @@ struct RecordView: View {
                 .hidden()
 
             HStack(spacing: 5) {
-                Image(systemName: ctrl.state.hotkeyActive ? "keyboard.fill" : "keyboard")
+                Image(systemName: state.hotkeyActive ? "keyboard.fill" : "keyboard")
                     .font(.system(size: 10))
-                Text(ctrl.state.hotkeyActive
+                Text(state.hotkeyActive
                      ? "Hotkey active · \(keyLabel)"
                      : "\(keyLabel) push-to-talk")
                     .font(.system(size: 11))
             }
-            .foregroundStyle(ctrl.state.hotkeyActive ? AppTheme.success : AppTheme.tertiary)
+            .foregroundStyle(state.hotkeyActive ? AppTheme.success : AppTheme.tertiary)
             .padding(.top, 10)
         }
         .padding(24)
         .background(AppTheme.windowBg)
-        // Re-register hotkey when window opens (picks up any key code change from settings)
+        // Re-register on window open to pick up any hotkey code change from settings
         .onAppear { ctrl.setupHotkey() }
-        .onChange(of: settings.selectedTier)          { _ in ctrl.loadSelectedTier() }
-        .onChange(of: settings.transcriptionEngine)   { _ in ctrl.loadSelectedTier() }
+        .onChange(of: settings.selectedTier)        { _ in ctrl.loadSelectedTier() }
+        .onChange(of: settings.transcriptionEngine) { _ in ctrl.loadSelectedTier() }
     }
 
     private var keyLabel: String {
