@@ -27,6 +27,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(AppTheme.windowBg)
+        .preferredColorScheme(.light)
         .frame(minWidth: 520, minHeight: 420)
     }
 
@@ -83,11 +84,9 @@ struct SidebarView: View {
                 .foregroundStyle(selection == item ? AppTheme.primary : AppTheme.tertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 7)
+                .padding(.vertical, 6)
                 .background(
-                    selection == item
-                        ? AppTheme.accent.opacity(0.06)
-                        : Color.clear
+                    selection == item ? AppTheme.accent.opacity(0.07) : Color.clear
                 )
         }
         .buttonStyle(.plain)
