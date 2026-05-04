@@ -12,6 +12,7 @@ struct TranscriptDisplay: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(text)
                 .font(.body)
+                .foregroundStyle(AppTheme.primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -38,7 +39,11 @@ struct TranscriptDisplay: View {
             .foregroundStyle(.secondary)
         }
         .padding(12)
-        .background(Color.gray.opacity(0.1))
+        .background(AppTheme.sectionBg)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.divider, lineWidth: 1)
+        )
     }
 }

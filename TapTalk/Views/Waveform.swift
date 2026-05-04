@@ -9,7 +9,7 @@ struct Waveform: View {
         HStack(spacing: 2) {
             ForEach(0..<20, id: \.self) { i in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isRecording ? Color.red : Color.secondary.opacity(0.3))
+                    .fill(isRecording ? AppTheme.danger : AppTheme.primary.opacity(0.2))
                     .frame(width: 4, height: barHeight(index: i))
                     .animation(.easeInOut(duration: 0.3), value: isRecording)
             }
