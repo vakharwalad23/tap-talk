@@ -10,13 +10,6 @@ enum NavItem: String, CaseIterable {
 
 struct ContentView: View {
     @State private var selection: NavItem = .record
-    @State private var recorder = Recorder()
-    @State private var transcriber = Transcriber()
-    @State private var manager: ModelManager
-
-    init() {
-        _manager = State(initialValue: ModelManager(modelsDir: Self.modelsDirectory()))
-    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -35,9 +28,9 @@ struct ContentView: View {
     private var content: some View {
         switch selection {
         case .record:
-            RecordView(recorder: recorder, transcriber: transcriber, manager: manager)
+            RecordView()
         case .models:
-            ModelsPage(manager: manager, onModelReady: { selection = .record })
+            ModelsPage(onModelReady: { selection = .record })
         case .settings:
             SettingsView()
         case .privacy:
@@ -48,10 +41,7 @@ struct ContentView: View {
     }
 
     static func modelsDirectory() -> String {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = appSupport.appendingPathComponent("talk.tap.app/models")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.path
+        AppController.modelsDirectory()
     }
 }
 
@@ -94,20 +84,29 @@ struct SidebarView: View {
 }
 
 struct ModelsPage: View {
-    let manager: ModelManager
     var onModelReady: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Models")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(AppTheme.primary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Models")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(AppTheme.primary)
+                    Text("Run entirely on your device — no internet required.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppTheme.tertiary)
+                }
 
-            ModelDownloader(manager: manager, onModelChanged: onModelReady)
+                ModelDownloader(manager: AppController.shared.manager, onModelChanged: {
+                    AppController.shared.refresh()
+                    onModelReady()
+                })
 
-            Spacer()
+                Spacer()
+            }
+            .padding(24)
         }
-        .padding(24)
         .background(AppTheme.windowBg)
     }
 }

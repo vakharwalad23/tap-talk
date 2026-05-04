@@ -13,67 +13,146 @@ struct ModelDownloader: View {
     private let tiers = availableTiers()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 8) {
             ForEach(tiers, id: \.id) { tier in
-                tierRow(tier)
-                if tier.id != tiers.last?.id {
-                    Divider()
-                        .background(AppTheme.divider)
-                }
+                tierCard(tier)
             }
         }
-        .background(AppTheme.sectionBg)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.divider, lineWidth: 1))
         .onAppear { refreshInstalled() }
     }
 
     @ViewBuilder
-    private func tierRow(_ tier: ModelTierInfo) -> some View {
+    private func tierCard(_ tier: ModelTierInfo) -> some View {
         let installed = installedTiers.contains(tier.id)
         let isDownloading = downloading == tier.id
+        let isRecommended = tier.id == 3
 
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 10) {
+            // Name + badge + size
+            HStack(alignment: .center, spacing: 7) {
                 Text(tier.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppTheme.primary)
+
+                if isRecommended {
+                    Text("Recommended")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2.5)
+                        .background(AppTheme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+
+                Spacer()
+
                 Text(sizeLabel(tier.diskSizeMb))
-                    .font(.system(size: 11))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(AppTheme.secondary)
+                    .monospacedDigit()
             }
 
-            Spacer()
+            // Description + action
+            HStack(alignment: .center) {
+                Text(tierDescription(tier.id))
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.tertiary)
 
+                Spacer()
+
+                if isDownloading {
+                    downloadingView
+                } else if installed {
+                    installedView(tier.id)
+                } else {
+                    downloadButton(tier.id)
+                }
+            }
+
+            // Full-width progress bar when downloading
             if isDownloading {
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: 3) {
                     ProgressView(value: progress)
-                        .frame(width: 90)
                         .tint(AppTheme.accent)
-                    Text(String(format: "%.0f / %.0f MB", downloadedMB, totalMB))
-                        .font(.caption2)
-                        .foregroundStyle(AppTheme.secondary)
+                    HStack {
+                        Text(String(format: "%.0f MB of %.0f MB", downloadedMB, totalMB))
+                            .font(.system(size: 10))
+                            .foregroundStyle(AppTheme.tertiary)
+                        Spacer()
+                        Text("\(Int(progress * 100))%")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(AppTheme.secondary)
+                            .monospacedDigit()
+                    }
                 }
-            } else if installed {
-                HStack(spacing: 10) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AppTheme.success)
-                        .font(.system(size: 14))
-                    Button("Delete") { deleteModel(tier.id) }
-                        .buttonStyle(.borderless)
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppTheme.danger)
-                }
-            } else {
-                Button("Download") { downloadModel(tier.id) }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accent)
-                    .controlSize(.small)
-                    .disabled(downloading != nil)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(14)
+        .background(isRecommended ? AppTheme.accent.opacity(0.05) : AppTheme.sectionBg)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(
+                    isRecommended ? AppTheme.accent.opacity(0.18) : AppTheme.divider,
+                    lineWidth: 1
+                )
+        )
+    }
+
+    private var downloadingView: some View {
+        HStack(spacing: 6) {
+            ProgressView()
+                .controlSize(.small)
+                .tint(AppTheme.secondary)
+            Text("Downloading")
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.secondary)
+        }
+    }
+
+    private func installedView(_ tierId: UInt8) -> some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(AppTheme.success)
+                    .font(.system(size: 13))
+                Text("Installed")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppTheme.success)
+            }
+
+            Button {
+                deleteModel(tierId)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.danger)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func downloadButton(_ tierId: UInt8) -> some View {
+        Button("Download") { downloadModel(tierId) }
+            .buttonStyle(.plain)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(AppTheme.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(AppTheme.divider)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .disabled(downloading != nil)
+            .opacity(downloading != nil ? 0.4 : 1)
+    }
+
+    private func tierDescription(_ id: UInt8) -> String {
+        switch id {
+        case 1: return "Fastest · Good for quick notes"
+        case 2: return "Balanced speed and accuracy"
+        case 3: return "Best speed/accuracy ratio"
+        case 4: return "Maximum accuracy · Slowest"
+        default: return ""
+        }
     }
 
     private func sizeLabel(_ mb: UInt32) -> String {
