@@ -22,7 +22,6 @@ pub struct DownloadProgress {
 pub enum DownloadStatus {
     Downloading,
     Complete,
-    Failed(String),
 }
 
 impl ModelManager {
