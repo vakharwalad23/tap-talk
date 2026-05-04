@@ -1,4 +1,4 @@
-.PHONY: all rust bindings xcode build run clean
+.PHONY: all rust bindings xcode build run kill clean
 
 all: build
 
@@ -20,6 +20,9 @@ build: xcode
 
 run: build
 	open build/Build/Products/Debug/TapTalk.app
+
+kill:
+	@pkill -x TapTalk 2>/dev/null && echo "TapTalk stopped" || echo "TapTalk not running"
 
 clean:
 	cd core && cargo clean
