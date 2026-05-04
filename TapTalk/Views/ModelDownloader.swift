@@ -13,14 +13,18 @@ struct ModelDownloader: View {
     private let tiers = availableTiers()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(tiers, id: \.id) { tier in
                 tierRow(tier)
                 if tier.id != tiers.last?.id {
                     Divider()
+                        .background(AppTheme.divider)
                 }
             }
         }
+        .background(AppTheme.sectionBg)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.divider, lineWidth: 1))
         .onAppear { refreshInstalled() }
     }
 
@@ -29,50 +33,51 @@ struct ModelDownloader: View {
         let installed = installedTiers.contains(tier.id)
         let isDownloading = downloading == tier.id
 
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(tier.name)
-                    .font(.headline)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(AppTheme.primary)
                 Text(sizeLabel(tier.diskSizeMb))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.secondary)
             }
 
             Spacer()
 
             if isDownloading {
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: 4) {
                     ProgressView(value: progress)
-                        .frame(width: 100)
+                        .frame(width: 90)
+                        .tint(AppTheme.accent)
                     Text(String(format: "%.0f / %.0f MB", downloadedMB, totalMB))
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.secondary)
                 }
             } else if installed {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Button("Delete") {
-                        deleteModel(tier.id)
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.red)
+                        .foregroundStyle(AppTheme.success)
+                        .font(.system(size: 14))
+                    Button("Delete") { deleteModel(tier.id) }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppTheme.danger)
                 }
             } else {
-                Button("Download") {
-                    downloadModel(tier.id)
-                }
-                .disabled(downloading != nil)
+                Button("Download") { downloadModel(tier.id) }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.accent)
+                    .controlSize(.small)
+                    .disabled(downloading != nil)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
     }
 
     private func sizeLabel(_ mb: UInt32) -> String {
-        if mb >= 1000 {
-            return String(format: "%.1f GB", Double(mb) / 1000.0)
-        }
-        return "\(mb) MB"
+        mb >= 1000 ? String(format: "%.1f GB", Double(mb) / 1000) : "\(mb) MB"
     }
 
     private func refreshInstalled() {
@@ -81,18 +86,15 @@ struct ModelDownloader: View {
 
     private func downloadModel(_ tier: UInt8) {
         downloading = tier
-        progress = 0
-        downloadedMB = 0
-        totalMB = 0
+        progress = 0; downloadedMB = 0; totalMB = 0
 
-        let callback = ProgressHandler { info in
+        let cb = ProgressHandler { info in
             DispatchQueue.main.async {
                 if info.totalBytes > 0 {
                     self.progress = Double(info.bytesDownloaded) / Double(info.totalBytes)
                 }
                 self.downloadedMB = Double(info.bytesDownloaded) / 1_000_000
-                self.totalMB = Double(info.totalBytes) / 1_000_000
-
+                self.totalMB     = Double(info.totalBytes)      / 1_000_000
                 if info.done {
                     self.downloading = nil
                     self.refreshInstalled()
@@ -102,13 +104,8 @@ struct ModelDownloader: View {
         }
 
         Task.detached {
-            do {
-                try manager.download(tier: tier, callback: callback)
-            } catch {
-                await MainActor.run {
-                    downloading = nil
-                }
-            }
+            do    { try manager.download(tier: tier, callback: cb) }
+            catch { await MainActor.run { downloading = nil } }
         }
     }
 
@@ -121,12 +118,6 @@ struct ModelDownloader: View {
 
 private class ProgressHandler: DownloadProgressCallback {
     let handler: (DownloadProgressInfo) -> Void
-
-    init(_ handler: @escaping (DownloadProgressInfo) -> Void) {
-        self.handler = handler
-    }
-
-    func onProgress(progress: DownloadProgressInfo) {
-        handler(progress)
-    }
+    init(_ handler: @escaping (DownloadProgressInfo) -> Void) { self.handler = handler }
+    func onProgress(progress: DownloadProgressInfo) { handler(progress) }
 }

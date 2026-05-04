@@ -5,10 +5,8 @@ struct TapTalkApp: App {
     @StateObject private var recordingState = AppRecordingState.shared
 
     var body: some Scene {
-        MenuBarExtra {
+        MenuBarExtra("TapTalk", systemImage: recordingState.isRecording ? "waveform.badge.mic" : "waveform") {
             MenuBarView()
-        } label: {
-            MenuBarWaveformView(isRecording: recordingState.isRecording)
         }
         .menuBarExtraStyle(.window)
 
