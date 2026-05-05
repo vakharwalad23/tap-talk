@@ -327,7 +327,7 @@ struct SettingsView: View {
 
     private func applyKey(_ code: UInt16) {
         settings.hotkeyCode = code
-        HotkeyService.shared.setKeyCode(code)
+        AppController.shared.setupHotkey()
     }
 
     private func keyName(_ code: UInt16) -> String { AppTheme.keyLabel(for: code) }

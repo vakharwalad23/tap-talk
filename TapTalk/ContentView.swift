@@ -40,9 +40,6 @@ struct ContentView: View {
         }
     }
 
-    static func modelsDirectory() -> String {
-        AppController.modelsDirectory()
-    }
 }
 
 struct SidebarView: View {

@@ -36,15 +36,26 @@ final class AppController: ObservableObject {
 
     /// Called once at app launch.
     func setup() {
-        // Request mic permission now (window is open) so it never blocks mid-recording.
-        // CPAL blocks the main thread during the permission dialog; if that happens during
-        // a hotkey keyDown callback the matching keyUp is missed and recording gets stuck.
-        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
-            AVCaptureDevice.requestAccess(for: .audio) { _ in }
-        }
         refresh()
-        setupHotkey()
-        FloatingPillController.shared.hide()  // show idle pill
+        FloatingPillController.shared.hide()
+        resolveMicThenSetupHotkey()
+    }
+
+    // Ensures mic permission is resolved before the hotkey goes live.
+    // CPAL blocks the main thread during the CoreAudio permission dialog; if the hotkey
+    // fires while that block is in progress, keyUp is missed and recording gets stuck.
+    private func resolveMicThenSetupHotkey() {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized, .denied, .restricted:
+            setupHotkey()
+        case .notDetermined:
+            // Show dialog and wait for the user to respond before registering the hotkey.
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] _ in
+                DispatchQueue.main.async { self?.setupHotkey() }
+            }
+        @unknown default:
+            setupHotkey()
+        }
     }
 
     func refresh() {
@@ -116,7 +127,9 @@ final class AppController: ObservableObject {
 
     func cancelRecording() {
         guard state.recording else { return }
-        state.recording = false
+        state.recording       = false
+        state.cancelled       = false
+        state.hotkeyTriggered = false
         _ = try? recorder.stop()
         state.status = "Cancelled"
         AppRecordingState.shared.isRecording = false
@@ -128,6 +141,8 @@ final class AppController: ObservableObject {
         transcribeTask = nil
         state.transcribing = false
         state.cancelled    = true
+        AppRecordingState.shared.isRecording = false
+        FloatingPillController.shared.hide()
     }
 
     func stopAndTranscribe() {
@@ -152,6 +167,7 @@ final class AppController: ObservableObject {
                     await MainActor.run {
                         self.state.transcribing = false
                         self.state.status = "Cancelled"
+                        FloatingPillController.shared.hide()
                     }
                     return
                 }
@@ -203,8 +219,9 @@ final class AppController: ObservableObject {
     }
 
     /// Registers (or re-registers) the global hotkey with the current key code.
-    /// Safe to call multiple times — unregisters first.
+    /// Safe to call multiple times — unregisters first. No-op if recording is active.
     func setupHotkey() {
+        guard !state.recording, !state.transcribing else { return }
         guard AccessibilityService.hasPermission else {
             AccessibilityService.requestPermission()
             startPermissionPoller()

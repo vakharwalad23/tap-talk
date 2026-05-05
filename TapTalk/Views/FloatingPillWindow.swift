@@ -9,15 +9,12 @@ final class FloatingPillController {
     private let holder = PillStateHolder()
 
     private var autoHideWork: DispatchWorkItem?
-    private var orderOutWork: DispatchWorkItem?
 
     private init() {}
 
     func show(state: PillState) {
         autoHideWork?.cancel()
         autoHideWork = nil
-        orderOutWork?.cancel()
-        orderOutWork = nil
 
         if window == nil { createWindow() }
 
@@ -38,8 +35,6 @@ final class FloatingPillController {
     func hide() {
         autoHideWork?.cancel()
         autoHideWork = nil
-        orderOutWork?.cancel()
-        orderOutWork = nil
 
         if window == nil { createWindow() }
         holder.state = .idle
