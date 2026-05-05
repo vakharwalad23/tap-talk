@@ -1,4 +1,5 @@
 mod audio;
+mod llm;
 mod models;
 mod transcribe;
 
@@ -250,4 +251,66 @@ impl ModelManager {
     pub fn delete(&self, tier: u8) -> Result<(), CoreError> {
         self.inner.delete(tier).map_err(|msg| CoreError::Model { msg })
     }
+
+    pub fn is_llm_installed(&self, model_id: String) -> bool {
+        self.inner.is_llm_installed(&model_id)
+    }
+
+    pub fn installed_llm_ids(&self) -> Vec<String> {
+        self.inner.installed_llm_ids()
+    }
+
+    pub fn llm_model_path(&self, model_id: String) -> Option<String> {
+        self.inner.llm_model_path(&model_id)
+            .map(|p| p.to_string_lossy().to_string())
+    }
+
+    pub fn download_llm(&self, model_id: String, callback: Box<dyn LlmDownloadProgressCallback>) -> Result<(), CoreError> {
+        self.inner.download_llm(&model_id, &|progress| {
+            callback.on_progress(LlmDownloadProgressInfo {
+                model_id: progress.model_id.clone(),
+                bytes_downloaded: progress.bytes_downloaded,
+                total_bytes: progress.total_bytes,
+                done: progress.done,
+            });
+        }).map_err(|msg| CoreError::Model { msg })
+    }
+
+    pub fn delete_llm(&self, model_id: String) -> Result<(), CoreError> {
+        self.inner.delete_llm(&model_id).map_err(|msg| CoreError::Model { msg })
+    }
 }
+
+// --- LLM models catalog ---
+
+#[derive(uniffi::Record)]
+pub struct LlmModelInfo {
+    pub id: String,
+    pub name: String,
+    pub filename: String,
+    pub disk_size_mb: u32,
+}
+
+#[uniffi::export]
+pub fn available_llm_models() -> Vec<LlmModelInfo> {
+    llm::catalog::LLM_MODELS.iter().map(|m| LlmModelInfo {
+        id: m.id.to_string(),
+        name: m.name.to_string(),
+        filename: m.filename.to_string(),
+        disk_size_mb: m.disk_size_mb,
+    }).collect()
+}
+
+#[derive(uniffi::Record)]
+pub struct LlmDownloadProgressInfo {
+    pub model_id: String,
+    pub bytes_downloaded: u64,
+    pub total_bytes: u64,
+    pub done: bool,
+}
+
+#[uniffi::export(callback_interface)]
+pub trait LlmDownloadProgressCallback: Send + Sync {
+    fn on_progress(&self, progress: LlmDownloadProgressInfo);
+}
+

@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::transcribe::TIERS;
+use crate::llm::catalog::{llm_model_by_id, LLM_MODELS};
 
 const HF_BASE_URL: &str = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main";
 
@@ -22,6 +23,13 @@ pub struct DownloadProgress {
 pub enum DownloadStatus {
     Downloading,
     Complete,
+}
+
+pub struct LlmDownloadProgress {
+    pub model_id: String,
+    pub bytes_downloaded: u64,
+    pub total_bytes: u64,
+    pub done: bool,
 }
 
 impl ModelManager {
@@ -139,6 +147,95 @@ impl ModelManager {
             status: DownloadStatus::Complete,
         });
 
+        Ok(())
+    }
+
+    // --- LLM model management ---
+
+    pub fn is_llm_installed(&self, model_id: &str) -> bool {
+        let Some(spec) = llm_model_by_id(model_id) else { return false };
+        self.models_dir.join(spec.filename).exists()
+    }
+
+    pub fn installed_llm_ids(&self) -> Vec<String> {
+        LLM_MODELS.iter()
+            .filter(|m| self.models_dir.join(m.filename).exists())
+            .map(|m| m.id.to_string())
+            .collect()
+    }
+
+    pub fn llm_model_path(&self, model_id: &str) -> Option<PathBuf> {
+        let spec = llm_model_by_id(model_id)?;
+        let path = self.models_dir.join(spec.filename);
+        path.exists().then_some(path)
+    }
+
+    pub fn download_llm(
+        &self,
+        model_id: &str,
+        progress_cb: &dyn Fn(LlmDownloadProgress),
+    ) -> Result<(), String> {
+        let spec = llm_model_by_id(model_id)
+            .ok_or_else(|| format!("unknown LLM model: {model_id}"))?;
+
+        let dest = self.models_dir.join(spec.filename);
+        let partial = self.models_dir.join(format!("{}.partial", spec.filename));
+
+        let agent = ureq::Agent::new_with_defaults();
+        let response = agent.get(spec.url).call()
+            .map_err(|e| format!("download request failed: {e}"))?;
+
+        let total_bytes = response.headers().get("content-length")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(0);
+
+        let mut file = fs::File::create(&partial)
+            .map_err(|e| format!("create file: {e}"))?;
+
+        let mut reader = response.into_body().into_reader();
+        let mut buf = vec![0u8; 64 * 1024];
+        let mut downloaded: u64 = 0;
+
+        loop {
+            let n = std::io::Read::read(&mut reader, &mut buf)
+                .map_err(|e| format!("read: {e}"))?;
+            if n == 0 { break; }
+            file.write_all(&buf[..n]).map_err(|e| format!("write: {e}"))?;
+            downloaded += n as u64;
+            progress_cb(LlmDownloadProgress {
+                model_id: model_id.to_string(),
+                bytes_downloaded: downloaded,
+                total_bytes,
+                done: false,
+            });
+        }
+
+        file.flush().map_err(|e| format!("flush: {e}"))?;
+        drop(file);
+
+        fs::rename(&partial, &dest).map_err(|e| {
+            let _ = fs::remove_file(&partial);
+            format!("rename: {e}")
+        })?;
+
+        progress_cb(LlmDownloadProgress {
+            model_id: model_id.to_string(),
+            bytes_downloaded: downloaded,
+            total_bytes,
+            done: true,
+        });
+
+        Ok(())
+    }
+
+    pub fn delete_llm(&self, model_id: &str) -> Result<(), String> {
+        let spec = llm_model_by_id(model_id)
+            .ok_or_else(|| format!("unknown LLM model: {model_id}"))?;
+        let path = self.models_dir.join(spec.filename);
+        if path.exists() {
+            fs::remove_file(&path).map_err(|e| format!("delete: {e}"))?;
+        }
         Ok(())
     }
 

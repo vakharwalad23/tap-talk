@@ -1,5 +1,12 @@
 import Foundation
 
+// UniFFI callback bridge for LLM download progress
+final class LlmProgressBridge: LlmDownloadProgressCallback {
+    private let handler: (LlmDownloadProgressInfo) -> Void
+    init(_ handler: @escaping (LlmDownloadProgressInfo) -> Void) { self.handler = handler }
+    func onProgress(progress: LlmDownloadProgressInfo) { handler(progress) }
+}
+
 protocol LLMBackendClient {
     func complete(systemPrompt: String, userMessage: String) async throws -> String
 }
@@ -87,7 +94,22 @@ func makeLLMClient(settings: SettingsStore) -> LLMBackendClient? {
             apiKey: settings.llmApiKey
         )
     case .local:
-        return nil // Phase A2
+        guard let path = AppController.shared.manager.llmModelPath(modelId: "qwen2.5-1.5b") else {
+            return nil  // Model not downloaded yet
+        }
+        return LocalLLMClient(modelPath: path)
+    }
+}
+
+// On-device inference via llama-server subprocess (llama.cpp HTTP API)
+struct LocalLLMClient: LLMBackendClient {
+    let modelPath: String
+
+    func complete(systemPrompt: String, userMessage: String) async throws -> String {
+        let server = LlamaServerManager.shared
+        try await server.ensureRunning(modelPath: modelPath)
+        let http = CustomEndpointClient(baseURL: server.baseURL, model: "qwen2.5-1.5b", apiKey: "")
+        return try await http.complete(systemPrompt: systemPrompt, userMessage: userMessage)
     }
 }
 
