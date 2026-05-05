@@ -105,48 +105,56 @@ final class LlamaServerManager {
     }
 
     private func downloadFile(from url: URL, to dest: URL, onProgress: ((Double) -> Void)?) async throws {
-        let delegate = DownloadDelegate(onProgress: onProgress)
-        let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
-        let (localURL, response) = try await session.download(from: url)
+        let (asyncBytes, response) = try await URLSession.shared.bytes(from: url)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             throw LlamaServerError.downloadFailed("HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")
         }
-        // Remove existing dest if present, then move
+
+        let totalBytes = response.expectedContentLength
+        var received: Int64 = 0
+
         try? FileManager.default.removeItem(at: dest)
-        try FileManager.default.moveItem(at: localURL, to: dest)
+        FileManager.default.createFile(atPath: dest.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: dest)
+
+        var chunk = Data(capacity: 262_144)
+        for try await byte in asyncBytes {
+            chunk.append(byte)
+            if chunk.count >= 262_144 {
+                try handle.write(contentsOf: chunk)
+                received += Int64(chunk.count)
+                chunk.removeAll(keepingCapacity: true)
+                if totalBytes > 0 { onProgress?(Double(received) / Double(totalBytes)) }
+            }
+        }
+        if !chunk.isEmpty {
+            try handle.write(contentsOf: chunk)
+            received += Int64(chunk.count)
+        }
+        try handle.close()
+        onProgress?(1.0)
     }
 
     private func extractLlamaServer(from zipURL: URL, to destination: String) throws {
         let extractDir = zipURL.deletingPathExtension().path
         try? FileManager.default.createDirectory(atPath: extractDir, withIntermediateDirectories: true)
 
-        let result = Process()
-        result.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        result.arguments = ["-o", zipURL.path, "*/llama-server", "-d", extractDir]
-        result.standardOutput = FileHandle.nullDevice
-        result.standardError  = FileHandle.nullDevice
-        try result.run()
-        result.waitUntilExit()
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+        // -j junks paths so both flat and subdirectory zip layouts land in extractDir
+        proc.arguments = ["-j", "-o", zipURL.path, "*llama-server", "-d", extractDir]
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError  = FileHandle.nullDevice
+        try proc.run()
+        proc.waitUntilExit()
 
-        // Find the extracted binary
-        let fm = FileManager.default
-        let items = try fm.contentsOfDirectory(atPath: extractDir)
-        for item in items {
-            let candidate = (extractDir as NSString).appendingPathComponent(item + "/llama-server")
-            if fm.fileExists(atPath: candidate) {
-                try fm.moveItem(atPath: candidate, toPath: destination)
-                try? fm.removeItem(atPath: extractDir)
-                return
-            }
-            // Flat layout
-            let flat = (extractDir as NSString).appendingPathComponent("llama-server")
-            if fm.fileExists(atPath: flat) {
-                try fm.moveItem(atPath: flat, toPath: destination)
-                try? fm.removeItem(atPath: extractDir)
-                return
-            }
+        let binary = (extractDir as NSString).appendingPathComponent("llama-server")
+        guard FileManager.default.fileExists(atPath: binary) else {
+            throw LlamaServerError.binaryNotFound
         }
-        throw LlamaServerError.binaryNotFound
+        try? FileManager.default.removeItem(atPath: destination)
+        try FileManager.default.moveItem(atPath: binary, toPath: destination)
+        try? FileManager.default.removeItem(atPath: extractDir)
     }
 
     // MARK: GitHub release lookup
@@ -191,19 +199,6 @@ final class LlamaServerManager {
     }
 }
 
-private final class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
-    let onProgress: ((Double) -> Void)?
-    init(onProgress: ((Double) -> Void)?) { self.onProgress = onProgress }
-
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didWriteData: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        guard totalBytesExpectedToWrite > 0 else { return }
-        onProgress?(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
-    }
-
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didFinishDownloadingTo location: URL) {}
-}
 
 enum LlamaServerError: LocalizedError {
     case binaryNotFound

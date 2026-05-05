@@ -480,7 +480,8 @@ struct IntelligenceView: View {
                         let p = info.totalBytes > 0 ? Double(info.bytesDownloaded) / Double(info.totalBytes) : 0
                         DispatchQueue.main.async { self.localModelProgress = p }
                     }
-                    try manager.downloadLlm(modelId: "qwen2.5-1.5b", callback: cb)
+                    // downloadLlm is blocking Rust — run off MainActor
+                    try await Task.detached { try manager.downloadLlm(modelId: "qwen2.5-1.5b", callback: cb) }.value
                     await MainActor.run { localModelInstalled = true }
                 }
 
