@@ -4,6 +4,7 @@ struct Waveform: View {
     let isRecording: Bool
 
     @State private var phase: Double = 0
+    @State private var timer: Timer?
 
     var body: some View {
         HStack(spacing: 2) {
@@ -16,6 +17,7 @@ struct Waveform: View {
         }
         .frame(height: 32)
         .onAppear { startAnimation() }
+        .onDisappear { timer?.invalidate(); timer = nil }
     }
 
     private func barHeight(index: Int) -> CGFloat {
@@ -25,7 +27,8 @@ struct Waveform: View {
     }
 
     private func startAnimation() {
-        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             phase += 0.3
         }
     }

@@ -25,12 +25,13 @@ pub enum DownloadStatus {
 }
 
 impl ModelManager {
-    pub fn new(models_dir: &Path) -> Self {
-        fs::create_dir_all(models_dir).ok();
-        Self {
+    pub fn new(models_dir: &Path) -> Result<Self, String> {
+        fs::create_dir_all(models_dir)
+            .map_err(|e| format!("cannot create models dir: {e}"))?;
+        Ok(Self {
             models_dir: models_dir.to_path_buf(),
             active_download: Mutex::new(None),
-        }
+        })
     }
 
     pub fn models_dir(&self) -> &Path {
@@ -125,9 +126,11 @@ impl ModelManager {
         file.flush().map_err(|e| format!("flush: {e}"))?;
         drop(file);
 
-        // Rename partial to final
-        fs::rename(&partial, &dest)
-            .map_err(|e| format!("rename: {e}"))?;
+        // Rename partial to final; remove stale .partial on failure
+        fs::rename(&partial, &dest).map_err(|e| {
+            let _ = fs::remove_file(&partial);
+            format!("rename: {e}")
+        })?;
 
         progress_cb(DownloadProgress {
             tier,

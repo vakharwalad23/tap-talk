@@ -54,7 +54,6 @@ final class HotkeyService {
             callback: hotkeyCallback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            print("Failed to create event tap — accessibility permission required")
             return
         }
 

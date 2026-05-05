@@ -122,7 +122,7 @@ fn pick_input_config(device: &cpal::Device) -> Result<cpal::SupportedStreamConfi
     }
 
     configs.sort_by_key(|c| c.channels());
-    Ok(configs[0].clone())
+    Ok(configs[0])
 }
 
 fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Result<Vec<f32>, String> {

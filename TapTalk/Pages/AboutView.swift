@@ -45,7 +45,9 @@ struct AboutView: View {
                 Divider().background(AppTheme.divider)
 
                 Button("View on GitHub") {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/vakharwalad23/tap-talk")!)
+                    if let url = URL(string: "https://github.com/vakharwalad23/tap-talk") {
+                        NSWorkspace.shared.open(url)
+                    }
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(AppTheme.primary)

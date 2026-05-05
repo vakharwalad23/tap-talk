@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var keyCapture = KeyCapture()
     @State private var apiKeyInput = ""
     @State private var apiKeySaved = false
+    @State private var apiKeySaveError: String?
     @State private var testStatus: TestStatus = .idle
     @State private var testTask: Task<Void, Never>?
 
@@ -203,16 +204,28 @@ struct SettingsView: View {
                             .stroke(AppTheme.divider, lineWidth: 1)
                     )
 
-                Button(apiKeySaved ? "Saved" : "Save") {
-                    settings.apiKey = apiKeyInput
-                    apiKeySaved = true
-                    testStatus = .idle
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { apiKeySaved = false }
+                Button(apiKeySaved ? "Saved ✓" : "Save") {
+                    do {
+                        try KeychainService.save(key: apiKeyInput, account: "openai-api-key")
+                        settings.apiKey = apiKeyInput
+                        apiKeySaved = true
+                        apiKeySaveError = nil
+                        testStatus = .idle
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { apiKeySaved = false }
+                    } catch {
+                        apiKeySaveError = error.localizedDescription
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(apiKeySaved ? AppTheme.success : AppTheme.accent)
                 .controlSize(.small)
                 .disabled(apiKeyInput == settings.apiKey || apiKeyInput.isEmpty)
+            }
+
+            if let err = apiKeySaveError {
+                Text(err)
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.danger)
             }
 
             HStack(spacing: 10) {
@@ -317,19 +330,7 @@ struct SettingsView: View {
         HotkeyService.shared.setKeyCode(code)
     }
 
-    private func keyName(_ code: UInt16) -> String {
-        switch Int(code) {
-        case kVK_RightCommand: return "Right ⌘"
-        case kVK_RightOption:  return "Right ⌥"
-        case kVK_RightControl: return "Right ⌃"
-        case kVK_RightShift:   return "Right ⇧"
-        case kVK_Command:      return "Left ⌘"
-        case kVK_Option:       return "Left ⌥"
-        case kVK_Control:      return "Left ⌃"
-        case kVK_Shift:        return "Left ⇧"
-        default:               return "Key \(code)"
-        }
-    }
+    private func keyName(_ code: UInt16) -> String { AppTheme.keyLabel(for: code) }
 }
 
 final class KeyCapture {

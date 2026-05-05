@@ -1,4 +1,5 @@
 import SwiftUI
+import Carbon.HIToolbox
 
 enum AppTheme {
     // Backgrounds
@@ -16,6 +17,20 @@ enum AppTheme {
     static let accent    = Color(hex: "1a1917")
     static let danger    = Color(red: 1,   green: 0.23, blue: 0.19)
     static let success   = Color(red: 0.2, green: 0.78, blue: 0.35)
+
+    static func keyLabel(for code: UInt16) -> String {
+        switch Int(code) {
+        case kVK_RightCommand: return "Right ⌘"
+        case kVK_RightOption:  return "Right ⌥"
+        case kVK_RightControl: return "Right ⌃"
+        case kVK_RightShift:   return "Right ⇧"
+        case kVK_Command:      return "Left ⌘"
+        case kVK_Option:       return "Left ⌥"
+        case kVK_Control:      return "Left ⌃"
+        case kVK_Shift:        return "Left ⇧"
+        default:               return "Key \(code)"
+        }
+    }
 }
 
 extension Color {

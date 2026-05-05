@@ -25,8 +25,10 @@ impl WhisperEngine {
             return Err(format!("model not found: {}", model_path.display()));
         }
 
+        let path_str = model_path.to_str()
+            .ok_or_else(|| "model path contains non-UTF-8 characters".to_string())?;
         let params = WhisperContextParameters::default();
-        let ctx = WhisperContext::new_with_params(model_path.to_str().unwrap(), params)
+        let ctx = WhisperContext::new_with_params(path_str, params)
             .map_err(|e| format!("failed to load model: {e}"))?;
 
         Ok(Self {

@@ -38,6 +38,12 @@ pub struct Recorder {
     inner: audio::AudioRecorder,
 }
 
+impl Default for Recorder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[uniffi::export]
 impl Recorder {
     #[uniffi::constructor]
@@ -99,6 +105,12 @@ pub fn available_tiers() -> Vec<ModelTierInfo> {
 #[derive(uniffi::Object)]
 pub struct Transcriber {
     engine: std::sync::Mutex<Option<transcribe::WhisperEngine>>,
+}
+
+impl Default for Transcriber {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[uniffi::export]
@@ -205,10 +217,11 @@ pub struct ModelManager {
 #[uniffi::export]
 impl ModelManager {
     #[uniffi::constructor]
-    pub fn new(models_dir: String) -> Self {
-        Self {
-            inner: models::ModelManager::new(std::path::Path::new(&models_dir)),
-        }
+    pub fn new(models_dir: String) -> Result<Self, CoreError> {
+        Ok(Self {
+            inner: models::ModelManager::new(std::path::Path::new(&models_dir))
+                .map_err(|msg| CoreError::Model { msg })?,
+        })
     }
 
     pub fn models_dir(&self) -> String {

@@ -47,11 +47,20 @@ targets:
         SWIFT_INCLUDE_PATHS:
           - "$(PROJECT_DIR)/TapTalk/Generated"
         SWIFT_OBJC_BRIDGING_HEADER: "TapTalk/BridgingHeader.h"
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGN_STYLE: Manual
+        ENABLE_HARDENED_RUNTIME: YES
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_STYLE: Manual
+        Release:
+          CODE_SIGN_IDENTITY: "Developer ID Application"
+          CODE_SIGN_STYLE: Automatic
+          DEVELOPMENT_TEAM: "$(DEVELOPMENT_TEAM)"
     entitlements:
       path: TapTalk/TapTalk.entitlements
     info:
       path: TapTalk/Info.plist
       properties:
         NSMicrophoneUsageDescription: "TapTalk needs microphone access to transcribe your speech locally."
+        NSAccessibilityUsageDescription: "TapTalk needs accessibility permission to detect your push-to-talk hotkey globally."
+        LSMinimumSystemVersion: "14.0"

@@ -1,5 +1,4 @@
 import SwiftUI
-import Carbon.HIToolbox
 
 struct RecordView: View {
     // ctrl for actions and installedTiers (AppController @Published properties)
@@ -84,17 +83,5 @@ struct RecordView: View {
         .onChange(of: settings.transcriptionEngine) { _ in ctrl.loadSelectedTier() }
     }
 
-    private var keyLabel: String {
-        switch Int(settings.hotkeyCode) {
-        case kVK_RightCommand: return "Right ⌘"
-        case kVK_RightOption:  return "Right ⌥"
-        case kVK_RightControl: return "Right ⌃"
-        case kVK_RightShift:   return "Right ⇧"
-        case kVK_Command:      return "Left ⌘"
-        case kVK_Option:       return "Left ⌥"
-        case kVK_Control:      return "Left ⌃"
-        case kVK_Shift:        return "Left ⇧"
-        default:               return "Key \(settings.hotkeyCode)"
-        }
-    }
+    private var keyLabel: String { AppTheme.keyLabel(for: settings.hotkeyCode) }
 }

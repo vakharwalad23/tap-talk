@@ -19,11 +19,16 @@ final class AppController: ObservableObject {
     private var permissionPoller:  Timer?
 
     private init() {
-        manager = ModelManager(modelsDir: Self.modelsDirectory())
+        // Directory creation failure is unrecoverable — app cannot function without models dir
+        manager = try! ModelManager(modelsDir: Self.modelsDirectory())
     }
 
     static func modelsDirectory() -> String {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            let fallback = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("talk.tap.app/models")
+            try? FileManager.default.createDirectory(at: fallback, withIntermediateDirectories: true)
+            return fallback.path
+        }
         let dir = appSupport.appendingPathComponent("talk.tap.app/models")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.path
