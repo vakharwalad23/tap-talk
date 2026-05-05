@@ -5,6 +5,7 @@ enum PillState: Equatable {
     case hidden
     case recording
     case transcribing
+    case rewriting
     case done
 }
 
@@ -48,12 +49,12 @@ struct PillView: View {
         )
         .animation(.spring(response: 0.28, dampingFraction: 0.76), value: pillState)
         .onAppear {
-            if pillState == .recording || pillState == .transcribing { startTimer() }
+            if pillState == .recording || pillState == .transcribing || pillState == .rewriting { startTimer() }
         }
         .onDisappear { stopTimer() }
         .onChange(of: holder.state) { newState in
             switch newState {
-            case .recording, .transcribing: startTimer()
+            case .recording, .transcribing, .rewriting: startTimer()
             default: stopTimer()
             }
         }
@@ -94,6 +95,21 @@ struct PillView: View {
                 }
             }
 
+        case .rewriting:
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    ForEach(0..<3, id: \.self) { i in
+                        Circle()
+                            .fill(Color(red: 0.58, green: 0.42, blue: 1.0).opacity(0.82))
+                            .frame(width: 5, height: 5)
+                            .scaleEffect(dotScale(index: i))
+                    }
+                }
+                Text("Rewriting")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.75))
+            }
+
         case .done:
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
@@ -125,6 +141,7 @@ struct PillView: View {
         case .idle:         return Color(red: 0.13, green: 0.13, blue: 0.15)
         case .recording:    return Color(red: 0.11, green: 0.04, blue: 0.04)
         case .transcribing: return Color(red: 0.10, green: 0.10, blue: 0.13)
+        case .rewriting:    return Color(red: 0.10, green: 0.08, blue: 0.16)
         case .done:         return Color(red: 0.07, green: 0.15, blue: 0.08)
         case .hidden:       return .clear
         }
@@ -135,6 +152,7 @@ struct PillView: View {
         case .idle:         return Color.white.opacity(0.08)
         case .recording:    return Color(red: 1, green: 0.22, blue: 0.18).opacity(0.5)
         case .transcribing: return Color.white.opacity(0.11)
+        case .rewriting:    return Color(red: 0.58, green: 0.42, blue: 1.0).opacity(0.4)
         case .done:         return AppTheme.success.opacity(0.6)
         case .hidden:       return .clear
         }

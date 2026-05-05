@@ -12,6 +12,11 @@ final class HotkeyService {
     private(set) var keyCode: UInt16 = UInt16(kVK_RightCommand)
     fileprivate(set) var isHeld = false
 
+    private(set) var smartKeyCode: UInt16 = UInt16(kVK_Option)
+    fileprivate(set) var smartIsHeld = false
+    fileprivate var onSmartKeyDown: (() -> Void)?
+    fileprivate var onSmartKeyUp: (() -> Void)?
+
     private init() {}
 
     func register(keyDown: @escaping () -> Void, keyUp: @escaping () -> Void) {
@@ -29,6 +34,22 @@ final class HotkeyService {
     func setKeyCode(_ code: UInt16) {
         isHeld = false
         keyCode = code
+    }
+
+    func setSmartKeyCode(_ code: UInt16) {
+        smartIsHeld = false
+        smartKeyCode = code
+    }
+
+    func registerSmart(keyDown: @escaping () -> Void, keyUp: @escaping () -> Void) {
+        onSmartKeyDown = keyDown
+        onSmartKeyUp = keyUp
+    }
+
+    func unregisterSmart() {
+        smartIsHeld = false
+        onSmartKeyDown = nil
+        onSmartKeyUp = nil
     }
 
     static func flagMask(for keyCode: UInt16) -> CGEventFlags {
@@ -87,17 +108,27 @@ private func hotkeyCallback(
 
     if type == .flagsChanged {
         let eventKeyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-        guard eventKeyCode == service.keyCode else { return Unmanaged.passRetained(event) }
 
-        let mask = HotkeyService.flagMask(for: service.keyCode)
-        let isDown = event.flags.contains(mask)
-
-        if isDown && !service.isHeld {
-            service.isHeld = true
-            DispatchQueue.main.async { service.onKeyDown?() }
-        } else if !isDown && service.isHeld {
-            service.isHeld = false
-            DispatchQueue.main.async { service.onKeyUp?() }
+        if eventKeyCode == service.keyCode {
+            let mask = HotkeyService.flagMask(for: service.keyCode)
+            let isDown = event.flags.contains(mask)
+            if isDown && !service.isHeld {
+                service.isHeld = true
+                DispatchQueue.main.async { service.onKeyDown?() }
+            } else if !isDown && service.isHeld {
+                service.isHeld = false
+                DispatchQueue.main.async { service.onKeyUp?() }
+            }
+        } else if eventKeyCode == service.smartKeyCode, service.onSmartKeyDown != nil {
+            let mask = HotkeyService.flagMask(for: service.smartKeyCode)
+            let isDown = event.flags.contains(mask)
+            if isDown && !service.smartIsHeld {
+                service.smartIsHeld = true
+                DispatchQueue.main.async { service.onSmartKeyDown?() }
+            } else if !isDown && service.smartIsHeld {
+                service.smartIsHeld = false
+                DispatchQueue.main.async { service.onSmartKeyUp?() }
+            }
         }
     }
 

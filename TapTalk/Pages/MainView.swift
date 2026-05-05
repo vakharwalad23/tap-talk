@@ -13,6 +13,8 @@ final class RecordingState: ObservableObject {
     @Published var modelReady = false
     @Published var loadingModel = false
     @Published var hotkeyActive = false
+    @Published var rewriting = false
+    @Published var smartMode = false
 
     var canRecord: Bool { modelReady && !recording && !loadingModel }
 }

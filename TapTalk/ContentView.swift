@@ -1,11 +1,12 @@
 import SwiftUI
 
 enum NavItem: String, CaseIterable {
-    case record   = "Record"
-    case models   = "Models"
-    case settings = "Settings"
-    case privacy  = "Privacy"
-    case about    = "About"
+    case record       = "Record"
+    case models       = "Models"
+    case settings     = "Settings"
+    case intelligence = "Intelligence"
+    case privacy      = "Privacy"
+    case about        = "About"
 }
 
 struct ContentView: View {
@@ -33,6 +34,8 @@ struct ContentView: View {
             ModelsPage(onModelReady: { selection = .record })
         case .settings:
             SettingsView()
+        case .intelligence:
+            IntelligenceView()
         case .privacy:
             PrivacyView()
         case .about:

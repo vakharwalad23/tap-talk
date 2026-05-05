@@ -6,10 +6,16 @@ enum TranscriptionEngine: String {
     case cloud
 }
 
+enum LLMBackend: String {
+    case custom
+    case local
+}
+
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
 
-    private static let apiKeyAccount = "openai-api-key"
+    private static let apiKeyAccount    = "openai-api-key"
+    private static let llmApiKeyAccount = "llm-api-key"
 
     @Published var selectedTier: UInt8 {
         didSet { UserDefaults.standard.set(Int(selectedTier), forKey: "selectedTier") }
@@ -40,6 +46,39 @@ final class SettingsStore: ObservableObject {
         didSet { persistApiKey(apiKey) }
     }
 
+    @Published var llmEnabled: Bool {
+        didSet { UserDefaults.standard.set(llmEnabled, forKey: "llmEnabled") }
+    }
+
+    @Published var llmBackend: LLMBackend {
+        didSet { UserDefaults.standard.set(llmBackend.rawValue, forKey: "llmBackend") }
+    }
+
+    @Published var llmEndpointURL: String {
+        didSet { UserDefaults.standard.set(llmEndpointURL, forKey: "llmEndpointURL") }
+    }
+
+    @Published var llmModel: String {
+        didSet { UserDefaults.standard.set(llmModel, forKey: "llmModel") }
+    }
+
+    // In-memory only — loaded from Keychain on init
+    @Published var llmApiKey: String = "" {
+        didSet { persistLLMApiKey(llmApiKey) }
+    }
+
+    @Published var smartHotkeyEnabled: Bool {
+        didSet { UserDefaults.standard.set(smartHotkeyEnabled, forKey: "smartHotkeyEnabled") }
+    }
+
+    @Published var smartHotkeyCode: UInt16 {
+        didSet { UserDefaults.standard.set(Int(smartHotkeyCode), forKey: "smartHotkeyCode") }
+    }
+
+    @Published var dictionarySegments: [DictionarySegment] {
+        didSet { persistDictionarySegments(dictionarySegments) }
+    }
+
     private init() {
         let rawTier = UserDefaults.standard.integer(forKey: "selectedTier")
         selectedTier = rawTier > 0 ? UInt8(rawTier) : 1
@@ -57,6 +96,28 @@ final class SettingsStore: ObservableObject {
         cloudModel = UserDefaults.standard.string(forKey: "cloudModel") ?? "whisper-1"
 
         apiKey = KeychainService.load(account: Self.apiKeyAccount) ?? ""
+
+        llmEnabled = UserDefaults.standard.bool(forKey: "llmEnabled")
+
+        let rawLLMBackend = UserDefaults.standard.string(forKey: "llmBackend") ?? "custom"
+        llmBackend = LLMBackend(rawValue: rawLLMBackend) ?? .custom
+
+        llmEndpointURL = UserDefaults.standard.string(forKey: "llmEndpointURL") ?? ""
+        llmModel = UserDefaults.standard.string(forKey: "llmModel") ?? "llama3.2"
+
+        llmApiKey = KeychainService.load(account: Self.llmApiKeyAccount) ?? ""
+
+        smartHotkeyEnabled = UserDefaults.standard.bool(forKey: "smartHotkeyEnabled")
+
+        let rawSmartCode = UserDefaults.standard.integer(forKey: "smartHotkeyCode")
+        smartHotkeyCode = rawSmartCode > 0 ? UInt16(rawSmartCode) : UInt16(0x3A) // kVK_Option
+
+        if let data = UserDefaults.standard.data(forKey: "dictionarySegments"),
+           let decoded = try? JSONDecoder().decode([DictionarySegment].self, from: data) {
+            dictionarySegments = decoded
+        } else {
+            dictionarySegments = []
+        }
     }
 
     private func applyLaunchAtLogin(_ enable: Bool) {
@@ -76,6 +137,20 @@ final class SettingsStore: ObservableObject {
             KeychainService.delete(account: Self.apiKeyAccount)
         } else {
             try? KeychainService.save(key: key, account: Self.apiKeyAccount)
+        }
+    }
+
+    private func persistLLMApiKey(_ key: String) {
+        if key.isEmpty {
+            KeychainService.delete(account: Self.llmApiKeyAccount)
+        } else {
+            try? KeychainService.save(key: key, account: Self.llmApiKeyAccount)
+        }
+    }
+
+    private func persistDictionarySegments(_ segments: [DictionarySegment]) {
+        if let data = try? JSONEncoder().encode(segments) {
+            UserDefaults.standard.set(data, forKey: "dictionarySegments")
         }
     }
 }
