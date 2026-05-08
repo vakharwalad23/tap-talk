@@ -52,3 +52,12 @@ dmg: notarize staple
 clean:
 	cd core && cargo clean
 	rm -rf TapTalk.xcodeproj build
+
+clean-state:
+	@pkill -x TapTalk 2>/dev/null || true
+	@rm -rf ~/Library/Saved\ Application\ State/talk.tap.app.savedState
+	@rm -rf ~/Library/Application\ Support/talk.tap.app
+	@rm -rf ~/Library/Caches/talk.tap.app
+	@rm -rf ~/Library/HTTPStorages/talk.tap.app
+	@defaults delete talk.tap.app 2>/dev/null || true
+	@echo "TapTalk state + models + binaries cleaned"

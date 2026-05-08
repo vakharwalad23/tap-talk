@@ -66,4 +66,5 @@ targets:
       properties:
         NSMicrophoneUsageDescription: "TapTalk needs microphone access to transcribe your speech locally."
         NSAccessibilityUsageDescription: "TapTalk needs accessibility permission to detect your push-to-talk hotkey globally."
+        NSQuitAlwaysKeepsWindows: false
         LSMinimumSystemVersion: "14.0"
