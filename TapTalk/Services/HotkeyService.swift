@@ -4,7 +4,7 @@ import Carbon.HIToolbox
 final class HotkeyService {
     static let shared = HotkeyService()
 
-    private var eventTap: CFMachPort?
+    fileprivate var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     fileprivate var onKeyDown: (() -> Void)?
     fileprivate var onKeyUp: (() -> Void)?
@@ -105,6 +105,15 @@ private func hotkeyCallback(
 ) -> Unmanaged<CGEvent>? {
     guard let userInfo else { return Unmanaged.passRetained(event) }
     let service = Unmanaged<HotkeyService>.fromOpaque(userInfo).takeUnretainedValue()
+
+    // macOS disables the tap if the callback runs slow or the app is throttled by App Nap.
+    // Re-enable on the spot so push-to-talk keeps working when the main window has been unfocused for a while.
+    if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        if let tap = service.eventTap {
+            CGEvent.tapEnable(tap: tap, enable: true)
+        }
+        return Unmanaged.passUnretained(event)
+    }
 
     if type == .flagsChanged {
         let eventKeyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))

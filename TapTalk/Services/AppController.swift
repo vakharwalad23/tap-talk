@@ -8,7 +8,9 @@ import Combine
 final class AppController: ObservableObject {
     static let shared = AppController()
 
-    let recorder    = Recorder()
+    // Lazy: defer audio-unit initialization until after mic permission has been resolved.
+    // Eager construction at singleton init touches CoreAudio before TCC has been queried, which can re-prompt on rebuild.
+    private(set) lazy var recorder: Recorder = Recorder()
     let transcriber = Transcriber()
     let manager:      ModelManager
 
@@ -19,10 +21,13 @@ final class AppController: ObservableObject {
     private var transcribeTask:    Task<Void, Never>?
     private var permissionPoller:  Timer?
     private var settingsCancellables: Set<AnyCancellable> = []
+    private var appNapToken: NSObjectProtocol?
 
     private init() {
-        // Directory creation failure is unrecoverable — app cannot function without models dir
-        manager = try! ModelManager(modelsDir: Self.modelsDirectory())
+        guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
+            preconditionFailure("ModelManager init failed — TapTalk cannot run without a writable models directory")
+        }
+        manager = m
     }
 
     static func modelsDirectory() -> String {
@@ -38,10 +43,23 @@ final class AppController: ObservableObject {
 
     /// Called once at app launch.
     func setup() {
+        suppressAppNap()
         refresh()
         FloatingPillController.shared.hide()
         resolveMicThenSetupHotkey()
         observeBackendChanges()
+    }
+
+    // App Nap throttles unfocused apps; the throttling stalls the CGEvent tap callback,
+    // and macOS then disables the tap by timeout — silently breaking the global hotkey.
+    // Holding a userInitiated activity keeps the app at full responsiveness while still
+    // allowing the system to idle-sleep when the user is away.
+    private func suppressAppNap() {
+        guard appNapToken == nil else { return }
+        appNapToken = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiated, .latencyCritical],
+            reason: "Global push-to-talk hotkey delivery"
+        )
     }
 
     // dropFirst skips @Published replay on subscribe — avoids stop() at launch when nothing is running
@@ -101,7 +119,8 @@ final class AppController: ObservableObject {
         let tierName = availableTiers().first(where: { $0.id == tier })?.name ?? ""
         state.status = "Loading \(tierName)..."
 
-        Task.detached {
+        Task.detached { [weak self] in
+            guard let self = self else { return }
             do {
                 try self.transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
                 await MainActor.run {
@@ -186,7 +205,8 @@ final class AppController: ObservableObject {
         let llmClient     = makeLLMClient(settings: settings)
         let llmMissingForSmart = smartMode && llmEnabled && llmClient == nil && llmBackend == .local
 
-        transcribeTask = Task.detached {
+        transcribeTask = Task.detached { [weak self] in
+            guard let self = self else { return }
             do {
                 let audio = try self.recorder.stop()
 

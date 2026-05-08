@@ -20,12 +20,14 @@ final class LlamaServerManager {
     private var idleTask: Task<Void, Never>?
     private static let idleTimeout: TimeInterval = 600
 
+    private var currentModelPath: String?
+
     private init() {}
 
     // Ensure the server is running for the given model path.
-    // No-op if already running for the same model.
+    // No-op if already running for the same model; restarts on model swap.
     func ensureRunning(modelPath: String) async throws {
-        if isRunning, let proc = process, proc.isRunning { return }
+        if isRunning, let proc = process, proc.isRunning, currentModelPath == modelPath { return }
         try await start(modelPath: modelPath)
     }
 
@@ -68,6 +70,7 @@ final class LlamaServerManager {
         isRunning = true
 
         try await waitForReady()
+        currentModelPath = modelPath
         startIdleMonitor()
     }
 
@@ -81,6 +84,7 @@ final class LlamaServerManager {
         process?.terminate()
         process = nil
         isRunning = false
+        currentModelPath = nil
     }
 
     func markActivity() {

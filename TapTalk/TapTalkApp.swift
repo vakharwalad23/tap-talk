@@ -40,4 +40,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         LlamaServerManager.shared.stop()
     }
+
+    // MenuBarExtra keeps TapTalk alive for the global hotkey when the user closes the main window.
+    // Without this, AppKit's default (true) terminates the process on last-window-close and tears down the CGEvent tap.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
 }
