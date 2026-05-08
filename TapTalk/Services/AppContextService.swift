@@ -6,20 +6,12 @@ struct AppContextService {
     }
 
     static func systemPrompt(appName: String?) -> String {
-        let base = "You are a transcription assistant. Rewrite the following speech transcription to be clean and natural. Fix grammar, remove filler words, and output only the rewritten text with no explanation."
-        guard let app = appName?.lowercased() else { return base }
-        if app.contains("xcode") || app.contains("code") || app.contains("vim") || app.contains("neovim") {
-            return "\(base) The user is in a code editor — be terse and precise, prefer technical language."
+        let base = "You process voice dictations from the user. The user just held a push-to-talk hotkey and dictated something; you receive the Whisper transcript. Output ONLY the raw text that should be pasted — never wrap output in backticks, code fences, markdown formatting, or quotation marks. No preamble, no explanation."
+
+        guard let app = appName else {
+            return "\(base) Clean the dictation: fix grammar, remove filler words, preserve the user's meaning and tone."
         }
-        if app.contains("slack") || app.contains("messages") || app.contains("discord") || app.contains("telegram") || app.contains("whatsapp") {
-            return "\(base) The user is in a messaging app — keep the tone casual and conversational."
-        }
-        if app.contains("mail") || app.contains("outlook") || app.contains("spark") {
-            return "\(base) The user is writing an email — use a professional tone."
-        }
-        if app.contains("notes") || app.contains("notion") || app.contains("obsidian") || app.contains("bear") {
-            return "\(base) The user is taking notes — preserve detail, use clear structure."
-        }
-        return base
+
+        return "\(base) The user is currently in \(app). Based on what this application is typically used for, decide the most appropriate output format: if it is a code editor, output code for coding instructions or clean prose for comments/docs; if it is a terminal, output a shell command on one line; if it is a messaging app, write a casual concise message; if it is an email client, write a professional email body; if it is a note-taking app, structure as clean notes with bullets where appropriate. For any other app, clean the dictation with grammar fixes. Infer the user's intent from the dictation content and the app context. Remember: output raw text only, absolutely no backticks or code fences."
     }
 }

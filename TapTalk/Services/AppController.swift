@@ -22,6 +22,8 @@ final class AppController: ObservableObject {
     private var permissionPoller:  Timer?
     private var settingsCancellables: Set<AnyCancellable> = []
     private var appNapToken: NSObjectProtocol?
+    private var wakeObserver: NSObjectProtocol?
+    private var didBecomeActiveObserver: NSObjectProtocol?
 
     private init() {
         guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
@@ -48,16 +50,36 @@ final class AppController: ObservableObject {
         FloatingPillController.shared.hide()
         resolveMicThenSetupHotkey()
         observeBackendChanges()
+        observeSystemEvents()
+    }
+
+    private func observeSystemEvents() {
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            self.setupHotkey()
+        }
+
+        // didBecomeActiveNotification does not fire reliably for MenuBarExtra-only apps.
+        // didActivateApplicationNotification fires whenever the user interacts with any
+        // part of TapTalk (menu bar, window, or dock icon).
+        didBecomeActiveObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  app.bundleIdentifier == Bundle.main.bundleIdentifier else { return }
+            self.setupHotkey()
+        }
     }
 
     // App Nap throttles unfocused apps; the throttling stalls the CGEvent tap callback,
     // and macOS then disables the tap by timeout — silently breaking the global hotkey.
-    // Holding a userInitiated activity keeps the app at full responsiveness while still
-    // allowing the system to idle-sleep when the user is away.
     private func suppressAppNap() {
         guard appNapToken == nil else { return }
         appNapToken = ProcessInfo.processInfo.beginActivity(
-            options: [.userInitiated, .latencyCritical],
+            options: [.userInitiatedAllowingIdleSystemSleep],
             reason: "Global push-to-talk hotkey delivery"
         )
     }
@@ -80,15 +102,31 @@ final class AppController: ObservableObject {
     // fires while that block is in progress, keyUp is missed and recording gets stuck.
     private func resolveMicThenSetupHotkey() {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
-        case .authorized, .denied, .restricted:
+        case .authorized:
+            warmUpAudioStream()
+            setupHotkey()
+        case .denied, .restricted:
             setupHotkey()
         case .notDetermined:
-            // Show dialog and wait for the user to respond before registering the hotkey.
-            AVCaptureDevice.requestAccess(for: .audio) { [weak self] _ in
-                DispatchQueue.main.async { self?.setupHotkey() }
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted { self?.warmUpAudioStream() }
+                    self?.setupHotkey()
+                }
             }
         @unknown default:
             setupHotkey()
+        }
+    }
+
+    // Pre-creates the CoreAudio AudioUnit so TCC validation happens at
+    // launch — not inside the hotkey callback where it blocks the main thread.
+    // Touches `recorder` on main thread first (safe lazy init) then warms
+    // up the CPAL stream in background.
+    private func warmUpAudioStream() {
+        let rec = recorder
+        Task.detached {
+            try? rec.warmUp()
         }
     }
 
@@ -101,21 +139,20 @@ final class AppController: ObservableObject {
             loadSelectedTier()
         } else {
             state.status = "No models installed"
-            state.modelReady = false
+            state.setModel(.none)
         }
     }
 
     func loadSelectedTier() {
         guard settings.transcriptionEngine == .local else {
-            state.modelReady = true
+            state.setModel(.ready)
             state.status = "Cloud (OpenAI)"
             return
         }
 
         let tier = settings.selectedTier
         guard installedTiers.contains(tier) else { return }
-        state.loadingModel = true
-        state.modelReady = false
+        state.setModel(.loading)
         let tierName = availableTiers().first(where: { $0.id == tier })?.name ?? ""
         state.status = "Loading \(tierName)..."
 
@@ -124,14 +161,13 @@ final class AppController: ObservableObject {
             do {
                 try self.transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
                 await MainActor.run {
-                    self.state.loadingModel = false
-                    self.state.modelReady   = true
-                    self.state.status       = "\(tierName) ready"
+                    self.state.setModel(.ready)
+                    self.state.status = "\(tierName) ready"
                 }
             } catch {
                 await MainActor.run {
-                    self.state.loadingModel = false
-                    self.state.status       = "Failed: \(error.localizedDescription)"
+                    self.state.setModel(.none)
+                    self.state.status = "Failed: \(error.localizedDescription)"
                 }
             }
         }
@@ -141,18 +177,16 @@ final class AppController: ObservableObject {
         if state.recording {
             stopAndTranscribe()
         } else {
-            state.hotkeyTriggered = false
-            state.smartMode       = false
-            startRecording()
+            startRecording(hotkey: false, smart: false)
         }
     }
 
-    func startRecording() {
+    func startRecording(hotkey: Bool, smart: Bool) {
         guard state.canRecord else { return }
         if state.transcribing { cancelTranscription() }
         do {
             try recorder.start()
-            state.recording = true
+            state.beginRecording(hotkey: hotkey, smart: smart)
             state.status = "Recording..."
             AppRecordingState.shared.isRecording = true
             FloatingPillController.shared.show(state: .recording)
@@ -163,12 +197,8 @@ final class AppController: ObservableObject {
 
     func cancelRecording() {
         guard state.recording else { return }
-        state.recording       = false
-        state.cancelled       = false
-        state.hotkeyTriggered = false
-        state.smartMode       = false
-        state.rewriting       = false
         _ = try? recorder.stop()
+        state.cancel()
         state.status = "Cancelled"
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.hide()
@@ -177,32 +207,30 @@ final class AppController: ObservableObject {
     func cancelTranscription() {
         transcribeTask?.cancel()
         transcribeTask = nil
-        state.transcribing = false
-        state.rewriting    = false
-        state.smartMode    = false
-        state.cancelled    = true
+        state.cancel()
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.hide()
     }
 
     func stopAndTranscribe() {
         guard state.recording else { return }
-        state.recording    = false
-        state.transcribing = true
-        state.cancelled    = false
-        state.status       = "Transcribing..."
+
+        let smartMode       = state.smartMode
+        let hotkeyTriggered = state.hotkeyTriggered
+
+        state.beginTranscribing()
+        state.status = "Transcribing..."
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.show(state: .transcribing)
 
-        let lang          = settings.selectedLanguage
-        let engine        = settings.transcriptionEngine
-        let cloudModel    = settings.cloudModel
-        let apiKey        = settings.apiKey
-        let smartMode     = state.smartMode
-        let segments      = settings.dictionarySegments
-        let llmEnabled    = settings.llmEnabled
-        let llmBackend    = settings.llmBackend
-        let llmClient     = makeLLMClient(settings: settings)
+        let lang       = settings.selectedLanguage
+        let engine     = settings.transcriptionEngine
+        let cloudModel = settings.cloudModel
+        let apiKey     = settings.apiKey
+        let segments   = settings.dictionarySegments
+        let llmEnabled = settings.llmEnabled
+        let llmBackend = settings.llmBackend
+        let llmClient  = makeLLMClient(settings: settings)
         let llmMissingForSmart = smartMode && llmEnabled && llmClient == nil && llmBackend == .local
 
         transcribeTask = Task.detached { [weak self] in
@@ -212,8 +240,7 @@ final class AppController: ObservableObject {
 
                 if Task.isCancelled {
                     await MainActor.run {
-                        self.state.transcribing = false
-                        self.state.smartMode    = false
+                        self.state.cancel()
                         self.state.status = "Cancelled"
                         FloatingPillController.shared.hide()
                     }
@@ -237,27 +264,28 @@ final class AppController: ObservableObject {
 
                 if Task.isCancelled { return }
 
-                // Post-processing pipeline
                 var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
 
+                var rewriteError: String?
                 if smartMode && llmEnabled, let client = llmClient, !processed.isEmpty {
                     await MainActor.run {
-                        self.state.transcribing = false
-                        self.state.rewriting    = true
+                        self.state.beginRewriting()
                         FloatingPillController.shared.show(state: .rewriting)
                     }
                     let appName = await MainActor.run { AppContextService.frontmostAppName() }
                     let prompt = AppContextService.systemPrompt(appName: appName)
-                    processed = (try? await PostProcessingService.rewrite(processed, systemPrompt: prompt, client: client)) ?? processed
+                    do {
+                        processed = try await PostProcessingService.rewrite(processed, systemPrompt: prompt, client: client)
+                    } catch {
+                        rewriteError = error.localizedDescription
+                    }
                 }
 
                 await MainActor.run {
-                    guard !self.state.cancelled else { return }
-                    self.state.transcribing = false
-                    self.state.rewriting    = false
-                    self.state.smartMode    = false
+                    guard !Task.isCancelled else { return }
 
                     if result.text.isEmpty {
+                        self.state.finish()
                         self.state.status = "Too short — hold longer"
                         FloatingPillController.shared.hide()
                     } else {
@@ -265,10 +293,15 @@ final class AppController: ObservableObject {
                         self.state.transcriptLang = result.language
                         self.state.transcriptMs   = result.durationMs
                         self.state.audioDuration  = audio.durationSecs
-                        self.state.status         = llmMissingForSmart
-                            ? "Local model not installed — pasted transcript only"
-                            : "Done"
-                        if self.state.hotkeyTriggered {
+                        self.state.finish()
+                        if let err = rewriteError {
+                            self.state.status = "Smart rewrite failed: \(err)"
+                        } else if llmMissingForSmart {
+                            self.state.status = "Local model not installed — pasted transcript only"
+                        } else {
+                            self.state.status = "Done"
+                        }
+                        if hotkeyTriggered {
                             PasteService.paste(processed)
                             FloatingPillController.shared.show(state: .done)
                         } else {
@@ -278,10 +311,8 @@ final class AppController: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    guard !self.state.cancelled else { return }
-                    self.state.transcribing = false
-                    self.state.rewriting    = false
-                    self.state.smartMode    = false
+                    guard !Task.isCancelled else { return }
+                    self.state.finish()
                     self.state.status = "Error: \(error.localizedDescription)"
                     FloatingPillController.shared.hide()
                 }
@@ -290,10 +321,13 @@ final class AppController: ObservableObject {
     }
 
     /// Registers (or re-registers) the global hotkey with the current key code.
-    /// Safe to call multiple times — unregisters first. No-op if recording is active.
+    /// Safe to call multiple times — unregisters first.
+    /// Only blocked during active recording (user holding key); transcribing/rewriting
+    /// must not block because the tap may need re-creation after invalidation.
     func setupHotkey() {
-        guard !state.recording, !state.transcribing else { return }
+        guard !state.recording else { return }
         guard AccessibilityService.hasPermission else {
+            state.hotkeyActive = false
             AccessibilityService.requestPermission()
             startPermissionPoller()
             return
@@ -306,9 +340,7 @@ final class AppController: ObservableObject {
             keyDown: { [weak self] in
                 guard let self else { return }
                 if state.transcribing { cancelTranscription() }
-                state.hotkeyTriggered = true
-                state.smartMode       = false
-                startRecording()
+                startRecording(hotkey: true, smart: false)
             },
             keyUp: { [weak self] in
                 guard let self else { return }
@@ -322,9 +354,7 @@ final class AppController: ObservableObject {
                 keyDown: { [weak self] in
                     guard let self else { return }
                     if state.transcribing { cancelTranscription() }
-                    state.hotkeyTriggered = true
-                    state.smartMode       = true
-                    startRecording()
+                    startRecording(hotkey: true, smart: true)
                 },
                 keyUp: { [weak self] in
                     guard let self else { return }
@@ -333,16 +363,18 @@ final class AppController: ObservableObject {
             )
         }
 
-        state.hotkeyActive = true
+        state.hotkeyActive = HotkeyService.shared.isTapAlive
         permissionPoller?.invalidate()
         permissionPoller = nil
     }
 
     private func startPermissionPoller() {
         guard permissionPoller == nil else { return }
-        permissionPoller = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
             guard AccessibilityService.hasPermission else { return }
             DispatchQueue.main.async { self?.setupHotkey() }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        permissionPoller = timer
     }
 }

@@ -4,26 +4,28 @@ use rubato::{SincFixedIn, SincInterpolationParameters, SincInterpolationType, Re
 
 const TARGET_SAMPLE_RATE: u32 = 16_000;
 
-struct RecordingState {
-    buffer: Arc<Mutex<Vec<f32>>>,
-    _stream: cpal::Stream,
+struct PersistentStream {
+    stream: cpal::Stream,
     source_sample_rate: u32,
 }
 
-// cpal::Stream is Send but not Sync — Mutex wrapping makes this safe
-unsafe impl Send for RecordingState {}
-unsafe impl Sync for RecordingState {}
+// SAFETY: PersistentStream is only accessed through AudioRecorder.stream_state behind a Mutex.
+// cpal::Stream is Send (the host owns the audio thread); Sync is enforced by the outer Mutex.
+unsafe impl Send for PersistentStream {}
+unsafe impl Sync for PersistentStream {}
 
 pub struct AudioRecorder {
-    recording: AtomicBool,
-    state: Mutex<Option<RecordingState>>,
+    recording: Arc<AtomicBool>,
+    buffer: Arc<Mutex<Vec<f32>>>,
+    stream_state: Mutex<Option<PersistentStream>>,
 }
 
 impl AudioRecorder {
     pub fn create() -> Self {
         Self {
-            recording: AtomicBool::new(false),
-            state: Mutex::new(None),
+            recording: Arc::new(AtomicBool::new(false)),
+            buffer: Arc::new(Mutex::new(Vec::with_capacity(16_000 * 30))),
+            stream_state: Mutex::new(None),
         }
     }
 
@@ -31,9 +33,14 @@ impl AudioRecorder {
         self.recording.load(Ordering::Relaxed)
     }
 
-    pub fn start(&self) -> Result<(), String> {
-        if self.recording.load(Ordering::Relaxed) {
-            return Err("already recording".into());
+    // Creates the CoreAudio stream once; subsequent calls are a no-op.
+    // Keeping the stream alive across recordings prevents macOS TCC
+    // from re-validating mic permission on each start().
+    fn ensure_stream(&self) -> Result<u32, String> {
+        let mut guard = self.stream_state.lock()
+            .map_err(|e| format!("lock: {e}"))?;
+        if let Some(ref s) = *guard {
+            return Ok(s.source_sample_rate);
         }
 
         let host = cpal::default_host();
@@ -45,15 +52,14 @@ impl AudioRecorder {
         let channels = config_range.channels() as usize;
         let config = config_range.with_max_sample_rate();
 
-        let buffer: Arc<Mutex<Vec<f32>>> = Arc::new(
-            Mutex::new(Vec::with_capacity(source_rate as usize * 30))
-        );
-        let buffer_ref = Arc::clone(&buffer);
+        let buf_ref = Arc::clone(&self.buffer);
+        let rec_ref = Arc::clone(&self.recording);
 
         let stream = device.build_input_stream(
             &config.into(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                if let Ok(mut buf) = buffer_ref.try_lock() {
+                if !rec_ref.load(Ordering::Relaxed) { return; }
+                if let Ok(mut buf) = buf_ref.try_lock() {
                     if channels == 1 {
                         buf.extend_from_slice(data);
                     } else {
@@ -68,15 +74,38 @@ impl AudioRecorder {
             None,
         ).map_err(|e| format!("failed to build input stream: {e}"))?;
 
-        stream.play().map_err(|e| format!("failed to start stream: {e}"))?;
-        self.recording.store(true, Ordering::Relaxed);
-
-        let mut state = self.state.lock().map_err(|e| format!("lock: {e}"))?;
-        *state = Some(RecordingState {
-            buffer,
-            _stream: stream,
+        *guard = Some(PersistentStream {
+            stream,
             source_sample_rate: source_rate,
         });
+        Ok(source_rate)
+    }
+
+    /// Pre-creates the CoreAudio stream so TCC validation happens early,
+    /// not inside the hotkey callback where it would block the main thread.
+    pub fn warm_up(&self) -> Result<(), String> {
+        self.ensure_stream().map(|_| ())
+    }
+
+    pub fn start(&self) -> Result<(), String> {
+        if self.recording.load(Ordering::Relaxed) {
+            return Err("already recording".into());
+        }
+
+        self.ensure_stream()?;
+
+        if let Ok(mut buf) = self.buffer.lock() {
+            buf.clear();
+        }
+
+        self.recording.store(true, Ordering::Relaxed);
+
+        let guard = self.stream_state.lock()
+            .map_err(|e| format!("lock: {e}"))?;
+        if let Some(ref s) = *guard {
+            s.stream.play()
+                .map_err(|e| format!("failed to start stream: {e}"))?;
+        }
 
         Ok(())
     }
@@ -88,17 +117,23 @@ impl AudioRecorder {
 
         self.recording.store(false, Ordering::Relaxed);
 
-        let mut state_guard = self.state.lock().map_err(|e| format!("lock: {e}"))?;
-        let recording = state_guard.take().ok_or("no recording state")?;
-        let source_rate = recording.source_sample_rate;
+        // Pause keeps the AudioUnit alive; mic indicator goes away
+        let source_rate = {
+            let guard = self.stream_state.lock()
+                .map_err(|e| format!("lock: {e}"))?;
+            if let Some(ref s) = *guard {
+                let _ = s.stream.pause();
+            }
+            guard.as_ref()
+                .map(|s| s.source_sample_rate)
+                .unwrap_or(TARGET_SAMPLE_RATE)
+        };
 
-        // Drop stream to stop audio callback, then extract buffer
-        drop(recording._stream);
-
-        let samples = Arc::try_unwrap(recording.buffer)
-            .map_err(|_| "buffer still referenced")?
-            .into_inner()
-            .map_err(|e| format!("buffer lock: {e}"))?;
+        let samples = {
+            let mut buf = self.buffer.lock()
+                .map_err(|e| format!("buffer lock: {e}"))?;
+            std::mem::take(&mut *buf)
+        };
 
         if samples.is_empty() {
             return Err("no audio captured".into());

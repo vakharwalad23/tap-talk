@@ -41,8 +41,8 @@ final class LocalIntelligenceInstaller: ObservableObject {
             total += Self.estimatedModelBytes
         }
         if !LlamaServerManager.shared.isBinaryInstalled() {
-            // GitHub release size unknown until queried; ~30MB typical
-            total += 30 * 1_048_576
+            // GitHub release size unknown until queried; ~8-10 MB tarball
+            total += 10 * 1_048_576
         }
         return total
     }
@@ -133,7 +133,8 @@ final class LocalIntelligenceInstaller: ObservableObject {
 
             if Task.isCancelled { status = .idle; return }
 
-            if needsModel {
+            // Verify any time the file is on disk — Rust's existence check can't detect a truncated GGUF from a cancelled prior run
+            if AppController.shared.manager.isLlmInstalled(modelId: Self.modelId) {
                 try verifyModelIntegrity()
             }
 

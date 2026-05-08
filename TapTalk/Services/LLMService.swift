@@ -108,7 +108,8 @@ struct LocalLLMClient: LLMBackendClient {
     func complete(systemPrompt: String, userMessage: String) async throws -> String {
         let server = LlamaServerManager.shared
         try await server.ensureRunning(modelPath: modelPath)
-        server.markActivity()
+        server.beginRequest()
+        defer { server.endRequest() }
         let http = CustomEndpointClient(baseURL: server.baseURL, model: "qwen2.5-1.5b", apiKey: "")
         return try await http.complete(systemPrompt: systemPrompt, userMessage: userMessage)
     }

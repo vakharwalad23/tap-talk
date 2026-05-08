@@ -5,7 +5,9 @@ enum KeychainService {
     private static let service = "com.tap-talk.app"
 
     static func save(key: String, account: String) throws {
-        let data = key.data(using: .utf8)!
+        guard let data = key.data(using: .utf8) else {
+            throw KeychainError.invalidEncoding
+        }
 
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -55,10 +57,12 @@ enum KeychainService {
 
 enum KeychainError: LocalizedError {
     case saveFailed(OSStatus)
+    case invalidEncoding
 
     var errorDescription: String? {
         switch self {
         case .saveFailed(let code): return "Keychain save failed (OSStatus \(code))"
+        case .invalidEncoding:      return "Keychain value could not be encoded as UTF-8"
         }
     }
 }

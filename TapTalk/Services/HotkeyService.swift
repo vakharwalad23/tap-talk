@@ -8,6 +8,7 @@ final class HotkeyService {
     private var runLoopSource: CFRunLoopSource?
     fileprivate var onKeyDown: (() -> Void)?
     fileprivate var onKeyUp: (() -> Void)?
+    private var healthTimer: Timer?
 
     private(set) var keyCode: UInt16 = UInt16(kVK_RightCommand)
     fileprivate(set) var isHeld = false
@@ -17,15 +18,23 @@ final class HotkeyService {
     fileprivate var onSmartKeyDown: (() -> Void)?
     fileprivate var onSmartKeyUp: (() -> Void)?
 
+    var isTapAlive: Bool {
+        guard let tap = eventTap else { return false }
+        return CGEvent.tapIsEnabled(tap: tap)
+    }
+
     private init() {}
 
     func register(keyDown: @escaping () -> Void, keyUp: @escaping () -> Void) {
         onKeyDown = keyDown
         onKeyUp = keyUp
         startTap()
+        startHealthCheck()
     }
 
     func unregister() {
+        healthTimer?.invalidate()
+        healthTimer = nil
         stopTap()
         onKeyDown = nil
         onKeyUp = nil
@@ -62,7 +71,8 @@ final class HotkeyService {
         }
     }
 
-    private func startTap() {
+    @discardableResult
+    private func startTap() -> Bool {
         stopTap()
 
         let mask: CGEventMask = 1 << CGEventType.flagsChanged.rawValue
@@ -75,13 +85,14 @@ final class HotkeyService {
             callback: hotkeyCallback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            return
+            return false
         }
 
         eventTap = tap
         runLoopSource = CFMachPortCreateRunLoopSource(nil, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        return true
     }
 
     private func stopTap() {
@@ -94,6 +105,31 @@ final class HotkeyService {
             eventTap = nil
         }
         isHeld = false
+        smartIsHeld = false
+    }
+
+    // Catches the "silent inert tap" failure mode where tapDisabledByTimeout never fires.
+    // Also recovers from taps disabled by system policy changes.
+    private func startHealthCheck() {
+        healthTimer?.invalidate()
+        let timer = Timer(timeInterval: 5.0, repeats: true) { [weak self] _ in
+            guard let self, self.onKeyDown != nil else { return }
+            guard !self.isHeld, !self.smartIsHeld else { return }
+
+            guard let tap = self.eventTap else {
+                self.startTap()
+                return
+            }
+
+            if !CGEvent.tapIsEnabled(tap: tap) {
+                CGEvent.tapEnable(tap: tap, enable: true)
+                if !CGEvent.tapIsEnabled(tap: tap) {
+                    self.startTap()
+                }
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        healthTimer = timer
     }
 }
 
@@ -103,13 +139,14 @@ private func hotkeyCallback(
     event: CGEvent,
     userInfo: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
-    guard let userInfo else { return Unmanaged.passRetained(event) }
+    // .listenOnly taps ignore the return value — passUnretained avoids leaking every event
+    guard let userInfo else { return Unmanaged.passUnretained(event) }
     let service = Unmanaged<HotkeyService>.fromOpaque(userInfo).takeUnretainedValue()
 
-    // macOS disables the tap if the callback runs slow or the app is throttled by App Nap.
-    // Re-enable on the spot so push-to-talk keeps working when the main window has been unfocused for a while.
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         if let tap = service.eventTap {
+            service.isHeld = false
+            service.smartIsHeld = false
             CGEvent.tapEnable(tap: tap, enable: true)
         }
         return Unmanaged.passUnretained(event)
@@ -141,5 +178,5 @@ private func hotkeyCallback(
         }
     }
 
-    return Unmanaged.passRetained(event)
+    return Unmanaged.passUnretained(event)
 }

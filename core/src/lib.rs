@@ -58,6 +58,11 @@ impl Recorder {
         self.inner.is_recording()
     }
 
+    /// Pre-creates the CoreAudio AudioUnit so the TCC mic dialog happens early.
+    pub fn warm_up(&self) -> Result<(), CoreError> {
+        self.inner.warm_up().map_err(|msg| CoreError::Audio { msg })
+    }
+
     pub fn start(&self) -> Result<(), CoreError> {
         self.inner.start().map_err(|msg| CoreError::Audio { msg })
     }

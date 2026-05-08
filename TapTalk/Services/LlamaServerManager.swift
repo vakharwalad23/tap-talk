@@ -16,9 +16,14 @@ final class LlamaServerManager {
 
     private(set) var isRunning = false
 
-    private var lastActivity: Date = Date()
     private var idleTask: Task<Void, Never>?
     private static let idleTimeout: TimeInterval = 600
+
+    // Activity counters guarded by activityLock — read by the idle task on a
+    // separate cooperative thread, written by LLM client calls on transcribe tasks.
+    private let activityLock = NSLock()
+    private var inFlightRequests: Int = 0
+    private var lastActivity: Date = Date()
 
     private var currentModelPath: String?
 
@@ -27,8 +32,37 @@ final class LlamaServerManager {
     // Ensure the server is running for the given model path.
     // No-op if already running for the same model; restarts on model swap.
     func ensureRunning(modelPath: String) async throws {
-        if isRunning, let proc = process, proc.isRunning, currentModelPath == modelPath { return }
+        if isRunning, let proc = process, proc.isRunning, currentModelPath == modelPath {
+            if await isServerReachable() { return }
+        }
         try await start(modelPath: modelPath)
+    }
+
+    // TCP probe — proc.isRunning lies briefly after external SIGKILL/OOM, so
+    // a fast connect attempt avoids hanging the next /health call for ~60s.
+    private func isServerReachable() async -> Bool {
+        await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
+            let conn = NWConnection(
+                host: "127.0.0.1",
+                port: NWEndpoint.Port(integerLiteral: UInt16(self.port)),
+                using: .tcp
+            )
+            var settled = false
+            let queue = DispatchQueue.global(qos: .userInitiated)
+            conn.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    if !settled { settled = true; conn.cancel(); cont.resume(returning: true) }
+                case .failed, .cancelled:
+                    if !settled { settled = true; cont.resume(returning: false) }
+                default: break
+                }
+            }
+            conn.start(queue: queue)
+            queue.asyncAfter(deadline: .now() + 0.1) {
+                if !settled { settled = true; conn.cancel(); cont.resume(returning: false) }
+            }
+        }
     }
 
     func start(modelPath: String) async throws {
@@ -88,19 +122,42 @@ final class LlamaServerManager {
     }
 
     func markActivity() {
+        activityLock.lock()
         lastActivity = Date()
+        activityLock.unlock()
+    }
+
+    func beginRequest() {
+        activityLock.lock()
+        inFlightRequests += 1
+        lastActivity = Date()
+        activityLock.unlock()
+    }
+
+    func endRequest() {
+        activityLock.lock()
+        if inFlightRequests > 0 { inFlightRequests -= 1 }
+        activityLock.unlock()
+    }
+
+    private func snapshotActivity() -> (inFlight: Int, lastActivity: Date) {
+        activityLock.lock()
+        defer { activityLock.unlock() }
+        return (inFlightRequests, lastActivity)
     }
 
     private func startIdleMonitor() {
         idleTask?.cancel()
-        lastActivity = Date()
+        markActivity()
         idleTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 60_000_000_000)
                 if Task.isCancelled { return }
                 guard let self = self else { return }
+                let snap = self.snapshotActivity()
                 if self.isRunning,
-                   Date().timeIntervalSince(self.lastActivity) > Self.idleTimeout {
+                   snap.inFlight == 0,
+                   Date().timeIntervalSince(snap.lastActivity) > Self.idleTimeout {
                     self.stop()
                     return
                 }
@@ -246,20 +303,16 @@ final class LlamaServerManager {
     // Extracts the macos-arm64 release tarball into `destDir` flat (strips top-level
     // versioned dir). llama-server uses @rpath = @loader_path, so its dylibs must
     // live in the same directory as the binary.
+    // Stages into a sibling dir then atomic-swaps so a killed tar can't leave a
+    // half-populated bin dir that still passes isBinaryInstalled().
     private func extractLlamaArchive(archiveURL: URL, into destDir: String) throws {
-        try? FileManager.default.createDirectory(atPath: destDir, withIntermediateDirectories: true)
-
-        // Earlier versions of this code created a stale `<destDir>/llama-server`
-        // directory on extract failure. Clear it before extracting a real binary.
-        let staleBinary = (destDir as NSString).appendingPathComponent("llama-server")
-        var isDir: ObjCBool = false
-        if FileManager.default.fileExists(atPath: staleBinary, isDirectory: &isDir), isDir.boolValue {
-            try? FileManager.default.removeItem(atPath: staleBinary)
-        }
+        let staging = (destDir as NSString).appendingPathComponent(".staging")
+        try? FileManager.default.removeItem(atPath: staging)
+        try FileManager.default.createDirectory(atPath: staging, withIntermediateDirectories: true)
 
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-        proc.arguments = ["-xzf", archiveURL.path, "-C", destDir, "--strip-components=1"]
+        proc.arguments = ["-xzf", archiveURL.path, "-C", staging, "--strip-components=1"]
         let errPipe = Pipe()
         proc.standardOutput = FileHandle.nullDevice
         proc.standardError  = errPipe
@@ -268,8 +321,18 @@ final class LlamaServerManager {
 
         if proc.terminationStatus != 0 {
             let err = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            try? FileManager.default.removeItem(atPath: staging)
             throw LlamaServerError.downloadFailed("tar failed: \(err.prefix(200))")
         }
+
+        let stagedBinary = (staging as NSString).appendingPathComponent("llama-server")
+        guard FileManager.default.fileExists(atPath: stagedBinary) else {
+            try? FileManager.default.removeItem(atPath: staging)
+            throw LlamaServerError.binaryNotFound
+        }
+
+        try? FileManager.default.removeItem(atPath: destDir)
+        try FileManager.default.moveItem(atPath: staging, toPath: destDir)
     }
 
     // Removes com.apple.quarantine xattr from every file under `dir`. Required so
@@ -292,7 +355,9 @@ final class LlamaServerManager {
     }
 
     private func fetchLatestReleaseInfo() async throws -> ReleaseInfo {
-        let apiURL = URL(string: "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest")!
+        guard let apiURL = URL(string: "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest") else {
+            throw LlamaServerError.downloadFailed("invalid GitHub API URL")
+        }
         var req = URLRequest(url: apiURL, timeoutInterval: 15)
         req.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
 
@@ -326,11 +391,16 @@ final class LlamaServerManager {
     // MARK: Readiness check
 
     private func waitForReady() async throws {
-        let url = URL(string: "\(baseURL)/health")!
+        guard let url = URL(string: "\(baseURL)/health") else {
+            throw LlamaServerError.startTimeout
+        }
         var attempts = 0
         while attempts < 180 {
             try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
-            if let _ = try? await URLSession.shared.data(from: url) {
+            // llama-server returns 503 while loading the model — only treat 200 as ready.
+            if let (_, response) = try? await URLSession.shared.data(from: url),
+               let http = response as? HTTPURLResponse,
+               http.statusCode == 200 {
                 return
             }
             attempts += 1
