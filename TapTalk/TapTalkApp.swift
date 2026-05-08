@@ -1,7 +1,9 @@
+import AppKit
 import SwiftUI
 
 @main
 struct TapTalkApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var recordingState = AppRecordingState.shared
 
     init() {
@@ -31,4 +33,11 @@ final class AppRecordingState: ObservableObject {
     static let shared = AppRecordingState()
     @Published var isRecording = false
     private init() {}
+}
+
+// Stops the llama-server subprocess on quit so it doesn't outlive TapTalk and hold port 8899.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillTerminate(_ notification: Notification) {
+        LlamaServerManager.shared.stop()
+    }
 }

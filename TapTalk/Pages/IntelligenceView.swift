@@ -3,6 +3,7 @@ import Carbon.HIToolbox
 
 struct IntelligenceView: View {
     @ObservedObject private var settings = SettingsStore.shared
+    @ObservedObject private var installer = LocalIntelligenceInstaller.shared
 
     // Dictionary editing
     @State private var addingSegment = false
@@ -14,18 +15,6 @@ struct IntelligenceView: View {
     @State private var llmApiKeySaved = false
     @State private var llmTestStatus: LLMTestStatus = .idle
     @State private var llmTestTask: Task<Void, Never>?
-
-    // Local model + binary download
-    @State private var localModelInstalled = false
-    @State private var localBinaryInstalled = false
-    @State private var localModelProgress: Double = 0
-    @State private var localBinaryProgress: Double = 0
-    @State private var localDownloadStatus: LocalDownloadStatus = .idle
-    @State private var localDownloadTask: Task<Void, Never>?
-
-    enum LocalDownloadStatus: Equatable {
-        case idle, downloadingModel, downloadingBinary, ready, failed(String)
-    }
 
     // Smart hotkey
     @State private var listeningSmartKey = false
@@ -50,11 +39,9 @@ struct IntelligenceView: View {
         .background(AppTheme.windowBg)
         .onAppear {
             llmApiKeyInput = settings.llmApiKey
-            localModelInstalled = AppController.shared.manager.isLlmInstalled(modelId: "qwen2.5-1.5b")
-            localBinaryInstalled = LlamaServerManager.shared.isBinaryInstalled()
-            if localModelInstalled && localBinaryInstalled { localDownloadStatus = .ready }
+            installer.reconcileFromDisk()
         }
-        .onDisappear { smartKeyCapture.stop(); llmTestTask?.cancel(); localDownloadTask?.cancel() }
+        .onDisappear { smartKeyCapture.stop(); llmTestTask?.cancel() }
     }
 
     // MARK: Page header
@@ -372,37 +359,15 @@ struct IntelligenceView: View {
 
     private var localBackendSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Model row
-            localAssetRow(
-                title: "Qwen 2.5 1.5B Instruct",
-                subtitle: "~986 MB · Whisper-quality on-device",
-                installed: localModelInstalled,
-                progress: localDownloadStatus == .downloadingModel ? localModelProgress : nil,
-                onDownload: { startLocalDownload(phase: .model) },
-                onDelete: { deleteLocalModel() },
-                downloading: localDownloadStatus == .downloadingModel
-            )
+            combinedLocalRow
 
-            Divider().background(AppTheme.divider)
-
-            // Server binary row
-            localAssetRow(
-                title: "llama-server binary",
-                subtitle: "~30 MB · Metal-accelerated inference",
-                installed: localBinaryInstalled,
-                progress: localDownloadStatus == .downloadingBinary ? localBinaryProgress : nil,
-                onDownload: { startLocalDownload(phase: .binary) },
-                onDelete: { deleteLlamaBinary() },
-                downloading: localDownloadStatus == .downloadingBinary
-            )
-
-            if case .ready = localDownloadStatus {
+            if case .ready = installer.status {
                 Label("Ready · using Metal GPU", systemImage: "checkmark.circle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.success)
             }
 
-            if case .failed(let msg) = localDownloadStatus {
+            if case .failed(let msg) = installer.status {
                 Label(msg, systemImage: "xmark.circle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.danger)
@@ -410,116 +375,97 @@ struct IntelligenceView: View {
         }
     }
 
-    private func localAssetRow(
-        title: String,
-        subtitle: String,
-        installed: Bool,
-        progress: Double?,
-        onDownload: @escaping () -> Void,
-        onDelete: @escaping () -> Void,
-        downloading: Bool
-    ) -> some View {
+    private var combinedLocalRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
+                    Text("Local Intelligence")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(AppTheme.primary)
-                    Text(subtitle)
+                    Text(localRowSubtitle)
                         .font(.system(size: 11))
                         .foregroundStyle(AppTheme.tertiary)
                 }
                 Spacer()
-                if installed {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(AppTheme.success)
-                            .font(.system(size: 13))
-                        Button("Delete", action: onDelete)
-                            .foregroundStyle(AppTheme.danger)
-                            .font(.system(size: 12))
-                            .buttonStyle(.plain)
-                    }
-                } else if downloading {
-                    Button("Cancel") {
-                        localDownloadTask?.cancel()
-                        localDownloadStatus = .idle
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .foregroundStyle(AppTheme.secondary)
-                } else {
-                    Button("Download", action: onDownload)
-                        .buttonStyle(.borderedProminent)
-                        .tint(Color(red: 0.58, green: 0.42, blue: 1.0))
-                        .controlSize(.small)
-                }
+                trailingControl
             }
 
-            if let p = progress {
-                ProgressView(value: p)
+            if case .downloading(let frac, _, _) = installer.status {
+                ProgressView(value: frac)
                     .progressViewStyle(.linear)
                     .tint(Color(red: 0.58, green: 0.42, blue: 1.0))
-                Text(String(format: "%.0f%%", p * 100))
+                Text(progressLabel)
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.tertiary)
             }
         }
     }
 
-    private enum LocalPhase { case model, binary }
-
-    private func startLocalDownload(phase: LocalPhase) {
-        let manager = AppController.shared.manager
-        localDownloadTask?.cancel()
-        localDownloadTask = Task {
-            do {
-                if phase == .model && !localModelInstalled {
-                    await MainActor.run { localDownloadStatus = .downloadingModel; localModelProgress = 0 }
-                    let cb = LlmProgressBridge { info in
-                        let p = info.totalBytes > 0 ? Double(info.bytesDownloaded) / Double(info.totalBytes) : 0
-                        DispatchQueue.main.async { self.localModelProgress = p }
-                    }
-                    // downloadLlm is blocking Rust — run off MainActor
-                    try await Task.detached { try manager.downloadLlm(modelId: "qwen2.5-1.5b", callback: cb) }.value
-                    await MainActor.run { localModelInstalled = true }
-                }
-
-                if phase == .binary && !localBinaryInstalled {
-                    await MainActor.run { localDownloadStatus = .downloadingBinary; localBinaryProgress = 0 }
-                    try await LlamaServerManager.shared.downloadBinary(
-                        to: LlamaServerManager.shared.binaryPath(),
-                        onProgress: { p in DispatchQueue.main.async { self.localBinaryProgress = p } }
-                    )
-                    await MainActor.run { localBinaryInstalled = true }
-                }
-
-                await MainActor.run {
-                    if localModelInstalled && localBinaryInstalled {
-                        localDownloadStatus = .ready
-                    } else {
-                        localDownloadStatus = .idle
-                    }
-                }
-            } catch {
-                await MainActor.run { localDownloadStatus = .failed(error.localizedDescription) }
+    private var localRowSubtitle: String {
+        switch installer.status {
+        case .ready:
+            return "On-device · running locally with Metal GPU"
+        case .preparing, .downloading:
+            return "Setting up local intelligence…"
+        default:
+            let pending = installer.pendingDownloadBytes()
+            if pending == 0 {
+                return "On-device · runs offline"
             }
+            return "On-device · ~\(formatBytes(pending)) download, runs offline"
         }
     }
 
-    private func deleteLocalModel() {
-        LlamaServerManager.shared.stop()
-        try? AppController.shared.manager.deleteLlm(modelId: "qwen2.5-1.5b")
-        localModelInstalled = false
-        if localDownloadStatus == .ready { localDownloadStatus = .idle }
+    @ViewBuilder
+    private var trailingControl: some View {
+        switch installer.status {
+        case .idle:
+            Button("Download") { installer.install() }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(red: 0.58, green: 0.42, blue: 1.0))
+                .controlSize(.small)
+        case .preparing:
+            HStack(spacing: 6) {
+                ProgressView().scaleEffect(0.6).frame(width: 12, height: 12)
+                Text("Preparing…")
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.tertiary)
+            }
+        case .downloading:
+            Button("Cancel") { installer.cancel() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .foregroundStyle(AppTheme.secondary)
+        case .ready:
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(AppTheme.success)
+                    .font(.system(size: 13))
+                Button("Remove") { installer.remove() }
+                    .foregroundStyle(AppTheme.danger)
+                    .font(.system(size: 12))
+                    .buttonStyle(.plain)
+            }
+        case .failed:
+            Button("Retry") { installer.retry() }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(red: 0.58, green: 0.42, blue: 1.0))
+                .controlSize(.small)
+        }
     }
 
-    private func deleteLlamaBinary() {
-        LlamaServerManager.shared.stop()
-        let path = LlamaServerManager.shared.binaryPath()
-        try? FileManager.default.removeItem(atPath: path)
-        localBinaryInstalled = false
-        if localDownloadStatus == .ready { localDownloadStatus = .idle }
+    private var progressLabel: String {
+        guard case .downloading(let frac, let done, let total) = installer.status else { return "" }
+        let pct = Int((frac * 100).rounded())
+        return "Setting up local intelligence…  \(pct)%  ·  \(formatBytes(done)) / \(formatBytes(total))"
+    }
+
+    private func formatBytes(_ bytes: UInt64) -> String {
+        let mb = Double(bytes) / 1_048_576
+        if mb >= 1024 {
+            return String(format: "%.2f GB", mb / 1024)
+        }
+        return String(format: "%.0f MB", mb)
     }
 
     @ViewBuilder

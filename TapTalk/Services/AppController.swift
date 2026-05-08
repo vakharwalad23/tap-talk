@@ -1,6 +1,7 @@
 import SwiftUI
 import Carbon.HIToolbox
 import AVFoundation
+import Combine
 
 /// App-level singleton. Owns recorder, transcriber, state, and hotkey registration.
 /// Lives for the full app lifetime — independent of any window.
@@ -17,6 +18,7 @@ final class AppController: ObservableObject {
     private let settings = SettingsStore.shared
     private var transcribeTask:    Task<Void, Never>?
     private var permissionPoller:  Timer?
+    private var settingsCancellables: Set<AnyCancellable> = []
 
     private init() {
         // Directory creation failure is unrecoverable — app cannot function without models dir
@@ -39,6 +41,20 @@ final class AppController: ObservableObject {
         refresh()
         FloatingPillController.shared.hide()
         resolveMicThenSetupHotkey()
+        observeBackendChanges()
+    }
+
+    // dropFirst skips @Published replay on subscribe — avoids stop() at launch when nothing is running
+    private func observeBackendChanges() {
+        settings.$llmBackend
+            .combineLatest(settings.$llmEnabled)
+            .dropFirst()
+            .sink { backend, enabled in
+                if !(backend == .local && enabled) {
+                    LlamaServerManager.shared.stop()
+                }
+            }
+            .store(in: &settingsCancellables)
     }
 
     // Ensures mic permission is resolved before the hotkey goes live.
@@ -166,7 +182,9 @@ final class AppController: ObservableObject {
         let smartMode     = state.smartMode
         let segments      = settings.dictionarySegments
         let llmEnabled    = settings.llmEnabled
+        let llmBackend    = settings.llmBackend
         let llmClient     = makeLLMClient(settings: settings)
+        let llmMissingForSmart = smartMode && llmEnabled && llmClient == nil && llmBackend == .local
 
         transcribeTask = Task.detached {
             do {
@@ -227,7 +245,9 @@ final class AppController: ObservableObject {
                         self.state.transcriptLang = result.language
                         self.state.transcriptMs   = result.durationMs
                         self.state.audioDuration  = audio.durationSecs
-                        self.state.status         = "Done"
+                        self.state.status         = llmMissingForSmart
+                            ? "Local model not installed — pasted transcript only"
+                            : "Done"
                         if self.state.hotkeyTriggered {
                             PasteService.paste(processed)
                             FloatingPillController.shared.show(state: .done)
