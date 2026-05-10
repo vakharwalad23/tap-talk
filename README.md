@@ -25,12 +25,12 @@ It's also fast. On Apple Silicon, even the largest Whisper model runs with low l
 ## Features
 
 - **Four model tiers** — Tiny, Base, Small, and Large v3. Trade speed for accuracy depending on your needs.
-- **Multilingual** — English plus 13 Indian languages including Hindi, Tamil, Telugu, Kannada, and more.
+- **Multilingual** — Supports a wide range of languages out of the box.
 - **Neural Engine acceleration** — Core ML integration for hardware-accelerated inference on Apple Silicon.
 - **Global push-to-talk** — A system-wide hotkey that works from any application.
 - **Auto-paste** — Transcribed text is automatically inserted into the focused text field.
 - **Word dictionary** — Custom replacement rules organized by category (technical jargon, proper nouns, shorthand) applied as post-processing.
-- **Smart rewriting** — Optional LLM-powered post-processing to clean up grammar and formatting.
+- **Smart Mode** — TapTalk reads the context of where you're typing and rewrites your words to fit. Dropping a message in Slack? Casual. Writing in Notion? Clean prose. Just speak your thought, and it lands right.
 - **Fully native** — SwiftUI and Rust. No Electron, no WebView, no web tech.
 
 ## Requirements
@@ -41,10 +41,16 @@ It's also fast. On Apple Silicon, even the largest Whisper model runs with low l
 - Rust 1.77 or later
 - [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 
+## Download
+
+Pre-built DMG is available on the [Releases](https://github.com/vakharwalad23/tap-talk/releases) page.
+
+> **Note:** TapTalk is not yet notarized. If macOS blocks the app on first launch, right-click → Open to bypass it. Notarization is coming in a future release.
+
 ## Getting Started
 
 ```bash
-git clone https://github.com/AiSaraS/tap-talk.git
+git clone https://github.com/vakharwalad23/tap-talk.git
 cd tap-talk
 make run
 ```
