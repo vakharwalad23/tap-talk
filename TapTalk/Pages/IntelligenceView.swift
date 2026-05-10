@@ -145,8 +145,18 @@ struct IntelligenceView: View {
     private func entryRow(segIdx: Int, entryIdx: Int) -> some View {
         HStack(spacing: 8) {
             TextField("From", text: Binding(
-                get: { settings.dictionarySegments[segIdx].entries[entryIdx].from },
-                set: { settings.dictionarySegments[segIdx].entries[entryIdx].from = $0 }
+                get: {
+                    guard segIdx < settings.dictionarySegments.count,
+                          entryIdx < settings.dictionarySegments[segIdx].entries.count
+                    else { return "" }
+                    return settings.dictionarySegments[segIdx].entries[entryIdx].from
+                },
+                set: {
+                    guard segIdx < settings.dictionarySegments.count,
+                          entryIdx < settings.dictionarySegments[segIdx].entries.count
+                    else { return }
+                    settings.dictionarySegments[segIdx].entries[entryIdx].from = $0
+                }
             ))
             .textFieldStyle(.plain)
             .font(.system(size: 12, design: .monospaced))
@@ -161,8 +171,18 @@ struct IntelligenceView: View {
                 .foregroundStyle(AppTheme.tertiary)
 
             TextField("To", text: Binding(
-                get: { settings.dictionarySegments[segIdx].entries[entryIdx].to },
-                set: { settings.dictionarySegments[segIdx].entries[entryIdx].to = $0 }
+                get: {
+                    guard segIdx < settings.dictionarySegments.count,
+                          entryIdx < settings.dictionarySegments[segIdx].entries.count
+                    else { return "" }
+                    return settings.dictionarySegments[segIdx].entries[entryIdx].to
+                },
+                set: {
+                    guard segIdx < settings.dictionarySegments.count,
+                          entryIdx < settings.dictionarySegments[segIdx].entries.count
+                    else { return }
+                    settings.dictionarySegments[segIdx].entries[entryIdx].to = $0
+                }
             ))
             .textFieldStyle(.plain)
             .font(.system(size: 12, design: .monospaced))

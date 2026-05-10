@@ -306,7 +306,8 @@ final class LlamaServerManager {
     // Stages into a sibling dir then atomic-swaps so a killed tar can't leave a
     // half-populated bin dir that still passes isBinaryInstalled().
     private func extractLlamaArchive(archiveURL: URL, into destDir: String) throws {
-        let staging = (destDir as NSString).appendingPathComponent(".staging")
+        let parent = (destDir as NSString).deletingLastPathComponent
+        let staging = (parent as NSString).appendingPathComponent(".staging")
         try? FileManager.default.removeItem(atPath: staging)
         try FileManager.default.createDirectory(atPath: staging, withIntermediateDirectories: true)
 
