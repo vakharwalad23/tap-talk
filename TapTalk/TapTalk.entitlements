@@ -2,9 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- App Sandbox off — AX paste API requires unsandboxed access -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+	<!-- Microphone for audio capture -->
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
+	<!-- Outbound network for model downloads -->
 	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- Required for Rust JIT codegen paths in release builds -->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<!-- Required to load Rust static lib without Apple-signed dylibs -->
+	<key>com.apple.security.cs.disable-library-validation</key>
 	<true/>
 </dict>
 </plist>

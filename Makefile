@@ -35,8 +35,10 @@ release:
 		ONLY_ACTIVE_ARCH=NO 2>&1 | tail -5
 
 notarize: release
-	xcrun notarytool submit \
+	ditto -c -k --keepParent \
 		build/Build/Products/Release/TapTalk.app \
+		build/TapTalk.zip
+	xcrun notarytool submit build/TapTalk.zip \
 		--keychain-profile "notarytool-profile" \
 		--wait
 

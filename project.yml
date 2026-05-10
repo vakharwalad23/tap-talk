@@ -48,19 +48,16 @@ targets:
           - "$(PROJECT_DIR)/TapTalk/Generated"
         SWIFT_OBJC_BRIDGING_HEADER: "TapTalk/BridgingHeader.h"
         ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: TapTalk/TapTalk.entitlements
       configs:
         Debug:
           CODE_SIGN_IDENTITY: "-"
           CODE_SIGN_STYLE: Manual
         Release:
           CODE_SIGN_IDENTITY: "Developer ID Application"
-          CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_STYLE: Manual
           DEVELOPMENT_TEAM: "$(DEVELOPMENT_TEAM)"
-    entitlements:
-      path: TapTalk/TapTalk.entitlements
-      properties:
-        com.apple.security.device.audio-input: true
-        com.apple.security.network.client: true
+          OTHER_CODE_SIGN_FLAGS: "--timestamp --options=runtime"
     info:
       path: TapTalk/Info.plist
       properties:
