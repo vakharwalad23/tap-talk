@@ -51,11 +51,30 @@ dmg: notarize staple
 		-srcfolder build/Build/Products/Release/TapTalk.app \
 		-ov -format UDZO dist/TapTalk-1.0.dmg
 
-dmg-unsigned: release
+dmg-unsigned:
+	cd core && cargo build --release
+	cd core && cargo run --release --bin uniffi-bindgen generate \
+		--library target/release/libtap_talk_core.a \
+		--language swift --out-dir ../TapTalk/Generated
+	xcodegen generate
+	xcodebuild -project TapTalk.xcodeproj -scheme TapTalk \
+		-configuration Release -derivedDataPath build \
+		ONLY_ACTIVE_ARCH=YES \
+		CODE_SIGN_IDENTITY="-" \
+		CODE_SIGNING_REQUIRED=NO \
+		CODE_SIGNING_ALLOWED=NO 2>&1 | tail -5
 	mkdir -p dist
-	hdiutil create -volname "TapTalk" \
-		-srcfolder build/Build/Products/Release/TapTalk.app \
-		-ov -format UDZO dist/TapTalk-1.0.dmg
+	create-dmg \
+		--volname "TapTalk" \
+		--volicon "resources/TapTalk.icns" \
+		--background "resources/dmg-background.png" \
+		--window-size 540 380 \
+		--icon-size 128 \
+		--icon "TapTalk.app" 130 180 \
+		--app-drop-link 400 180 \
+		--no-internet-enable \
+		dist/TapTalk-1.0.dmg \
+		build/Build/Products/Release/TapTalk.app
 
 clean:
 	cd core && cargo clean

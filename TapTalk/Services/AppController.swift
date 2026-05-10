@@ -24,6 +24,7 @@ final class AppController: ObservableObject {
     private var appNapToken: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
     private var didBecomeActiveObserver: NSObjectProtocol?
+    private var hasRequestedAccessibilityPermission = false
 
     private init() {
         guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
@@ -328,8 +329,11 @@ final class AppController: ObservableObject {
         guard !state.recording else { return }
         guard AccessibilityService.hasPermission else {
             state.hotkeyActive = false
-            AccessibilityService.requestPermission()
-            startPermissionPoller()
+            if !hasRequestedAccessibilityPermission {
+                hasRequestedAccessibilityPermission = true
+                AccessibilityService.requestPermission()
+                startPermissionPoller()
+            }
             return
         }
 
@@ -372,9 +376,33 @@ final class AppController: ObservableObject {
         guard permissionPoller == nil else { return }
         let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
             guard AccessibilityService.hasPermission else { return }
-            DispatchQueue.main.async { self?.setupHotkey() }
+            DispatchQueue.main.async {
+                self?.hasRequestedAccessibilityPermission = false
+                self?.setupHotkey()
+                // tapCreate fails for unsigned apps until the process restarts after
+                // the first-ever accessibility grant — prompt restart if tap is still dead
+                if self?.state.hotkeyActive == false {
+                    self?.promptRestartForAccessibility()
+                }
+            }
         }
         RunLoop.main.add(timer, forMode: .common)
         permissionPoller = timer
+    }
+
+    private func promptRestartForAccessibility() {
+        permissionPoller?.invalidate()
+        permissionPoller = nil
+        let alert = NSAlert()
+        alert.messageText = "Restart Required"
+        alert.informativeText = "TapTalk needs to restart to activate the global hotkey after accessibility permission is granted."
+        alert.addButton(withTitle: "Restart Now")
+        alert.addButton(withTitle: "Later")
+        if alert.runModal() == .alertFirstButtonReturn {
+            let url = URL(fileURLWithPath: Bundle.main.bundlePath)
+            let config = NSWorkspace.OpenConfiguration()
+            NSWorkspace.shared.openApplication(at: url, configuration: config)
+            NSApp.terminate(nil)
+        }
     }
 }
