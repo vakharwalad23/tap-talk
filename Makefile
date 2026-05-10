@@ -1,4 +1,4 @@
-.PHONY: all rust bindings xcode build run kill clean release notarize staple dmg
+.PHONY: all rust bindings xcode build run kill clean release notarize staple dmg dmg-unsigned
 
 all: build
 
@@ -46,6 +46,12 @@ staple:
 	xcrun stapler staple build/Build/Products/Release/TapTalk.app
 
 dmg: notarize staple
+	mkdir -p dist
+	hdiutil create -volname "TapTalk" \
+		-srcfolder build/Build/Products/Release/TapTalk.app \
+		-ov -format UDZO dist/TapTalk-1.0.dmg
+
+dmg-unsigned: release
 	mkdir -p dist
 	hdiutil create -volname "TapTalk" \
 		-srcfolder build/Build/Products/Release/TapTalk.app \
