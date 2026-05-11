@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="TapTalk/Assets.xcassets/AppIcon.appiconset/icon_1024x1024.png" width="120" alt="TapTalk" />
+
 # TapTalk
 
 **Local speech-to-text for macOS. Press a key, speak, paste. Nothing leaves your device.**
