@@ -49,6 +49,16 @@ Pre-built DMG is available on the [Releases](https://github.com/vakharwalad23/ta
 
 > **Note:** TapTalk is not yet notarized. If macOS blocks the app on first launch, right-click → Open to bypass it. Notarization is coming in a future release.
 
+## Troubleshooting
+
+**"App is damaged and can't be opened"**
+
+This is Gatekeeper being cautious, not actual corruption. After copying `TapTalk.app` to `/Applications`, remove the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/TapTalk.app"
+```
+
 ## Getting Started
 
 ```bash
