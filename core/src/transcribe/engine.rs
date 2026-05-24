@@ -70,11 +70,9 @@ impl WhisperEngine {
         params.set_single_segment(false);
         params.set_n_threads(self.chip.performance_cores.max(2) as i32);
 
-        // Encoder cost scales with audio_ctx tokens. ~50 tokens per second of audio.
-        // Default 1500 over-processes short utterances; cap trims it without affecting long clips.
-        let secs = (samples.len() as f32 / 16_000.0).ceil() as i32;
-        let audio_ctx = ((secs * 50) + 64).clamp(256, 1500);
-        params.set_audio_ctx(audio_ctx);
+        // Do NOT set audio_ctx: the Core ML encoder (.mlmodelc) is compiled for a fixed
+        // 1500-token context, and a custom value feeds it the wrong shape, producing
+        // garbage / truncated transcripts. Leave it at the whisper default.
 
         match language {
             Some(lang) => params.set_language(Some(lang)),
@@ -103,12 +101,11 @@ impl WhisperEngine {
 
         #[cfg(debug_assertions)]
         eprintln!(
-            "tt-perf total={}ms cores={} family={:?} audio_ctx={} secs={}",
+            "tt-perf total={}ms cores={} family={:?} samples={}",
             duration_ms,
             self.chip.performance_cores,
             self.chip.family,
-            audio_ctx,
-            secs,
+            samples.len(),
         );
 
         Ok(TranscriptionResult {
