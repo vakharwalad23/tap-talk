@@ -58,6 +58,10 @@ impl WhisperEngine {
         self.tier_id
     }
 
+    pub fn chip_family(&self) -> ChipFamily {
+        self.chip.family
+    }
+
     // Sets the non-language params shared by transcribe and warmup. Returns the
     // computed audio_ctx so callers can log it.
     fn apply_common_params(&self, params: &mut FullParams, sample_len: usize) -> i32 {

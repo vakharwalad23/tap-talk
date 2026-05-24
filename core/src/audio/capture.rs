@@ -6,6 +6,7 @@ const TARGET_SAMPLE_RATE: u32 = 16_000;
 const LEVEL_EMIT_HZ: u32 = 30;
 
 type LevelFn = Box<dyn Fn(f32) + Send>;
+type SampleFn = Box<dyn Fn(&[f32]) + Send>;
 
 struct PersistentStream {
     stream: cpal::Stream,
@@ -22,6 +23,7 @@ pub struct AudioRecorder {
     buffer: Arc<Mutex<Vec<f32>>>,
     stream_state: Mutex<Option<PersistentStream>>,
     level_sink: Arc<Mutex<Option<LevelFn>>>,
+    sample_sink: Arc<Mutex<Option<SampleFn>>>,
 }
 
 impl AudioRecorder {
@@ -31,6 +33,7 @@ impl AudioRecorder {
             buffer: Arc::new(Mutex::new(Vec::with_capacity(16_000 * 30))),
             stream_state: Mutex::new(None),
             level_sink: Arc::new(Mutex::new(None)),
+            sample_sink: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -38,10 +41,24 @@ impl AudioRecorder {
         self.recording.load(Ordering::Relaxed)
     }
 
+    // Source-rate sample rate of the active stream, or 0 if not yet created.
+    pub fn source_sample_rate(&self) -> u32 {
+        self.stream_state.lock().ok()
+            .and_then(|g| g.as_ref().map(|s| s.source_sample_rate))
+            .unwrap_or(0)
+    }
+
     // Registers a sink for live mic RMS (~30 Hz) used to drive the pill animation.
     // Read by the audio thread each emit tick, so it can be set before or after the stream exists.
     pub fn set_level_callback(&self, callback: LevelFn) {
         if let Ok(mut guard) = self.level_sink.lock() {
+            *guard = Some(callback);
+        }
+    }
+
+    // Registers a sink that receives source-rate mono buffers for streaming transcription.
+    pub fn set_sample_callback(&self, callback: SampleFn) {
+        if let Ok(mut guard) = self.sample_sink.lock() {
             *guard = Some(callback);
         }
     }
@@ -68,6 +85,7 @@ impl AudioRecorder {
         let buf_ref = Arc::clone(&self.buffer);
         let rec_ref = Arc::clone(&self.recording);
         let level_ref = Arc::clone(&self.level_sink);
+        let sample_ref = Arc::clone(&self.sample_sink);
         let emit_interval = (source_rate / LEVEL_EMIT_HZ).max(1);
         let mut frames_since_emit: u32 = 0;
 
@@ -75,14 +93,20 @@ impl AudioRecorder {
             &config.into(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 if !rec_ref.load(Ordering::Relaxed) { return; }
-                if let Ok(mut buf) = buf_ref.try_lock() {
-                    if channels == 1 {
-                        buf.extend_from_slice(data);
-                    } else {
-                        for frame in data.chunks(channels) {
-                            let sum: f32 = frame.iter().sum();
-                            buf.push(sum / channels as f32);
-                        }
+
+                // Mono-mix once, then fan out to the recording buffer and the stream sink.
+                if channels == 1 {
+                    if let Ok(mut buf) = buf_ref.try_lock() { buf.extend_from_slice(data); }
+                    if let Ok(guard) = sample_ref.try_lock() {
+                        if let Some(ref sink) = *guard { sink(data); }
+                    }
+                } else {
+                    let mono: Vec<f32> = data.chunks(channels)
+                        .map(|frame| frame.iter().sum::<f32>() / channels as f32)
+                        .collect();
+                    if let Ok(mut buf) = buf_ref.try_lock() { buf.extend_from_slice(&mono); }
+                    if let Ok(guard) = sample_ref.try_lock() {
+                        if let Some(ref sink) = *guard { sink(&mono); }
                     }
                 }
 
@@ -174,6 +198,34 @@ impl AudioRecorder {
         }
 
         resample(&samples, source_rate, TARGET_SAMPLE_RATE)
+    }
+
+    // Stops capture and returns only the duration, skipping resample + VAD trim.
+    // Used by the streaming path, which has already consumed the audio live.
+    pub fn stop_discard(&self) -> Result<f32, String> {
+        if !self.recording.load(Ordering::Relaxed) {
+            return Err("not recording".into());
+        }
+        self.recording.store(false, Ordering::Relaxed);
+
+        let source_rate = {
+            let guard = self.stream_state.lock().map_err(|e| format!("lock: {e}"))?;
+            if let Some(ref s) = *guard {
+                let _ = s.stream.pause();
+            }
+            guard.as_ref()
+                .map(|s| s.source_sample_rate)
+                .unwrap_or(TARGET_SAMPLE_RATE)
+        };
+
+        let len = {
+            let mut buf = self.buffer.lock().map_err(|e| format!("buffer lock: {e}"))?;
+            let n = buf.len();
+            buf.clear();
+            n
+        };
+
+        Ok(len as f32 / source_rate as f32)
     }
 }
 
