@@ -143,12 +143,6 @@ impl Transcriber {
         let engine = transcribe::WhisperEngine::load(tier, std::path::Path::new(&models_dir))
             .map_err(|msg| CoreError::Model { msg })?;
 
-        // Warm the encoder/ANE before the model is marked ready. Non-fatal — a cold
-        // first clip still works, just slower. Runs on the caller's background thread.
-        if let Err(e) = engine.warmup() {
-            eprintln!("tt-warmup: {e}");
-        }
-
         let mut guard = self.engine.lock().map_err(|e| CoreError::Model { msg: format!("{e}") })?;
         *guard = Some(engine);
         Ok(())

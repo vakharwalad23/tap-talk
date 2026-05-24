@@ -1,14 +1,12 @@
 use std::path::Path;
 use std::sync::Mutex;
-use whisper_rs::{
-    FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters, WhisperState,
-};
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use super::tiers;
 use crate::platform::{self, ChipFamily, ChipInfo};
 
 pub struct WhisperEngine {
-    state: Mutex<WhisperState>,
+    ctx: Mutex<WhisperContext>,
     tier_id: u8,
     chip: ChipInfo,
 }
@@ -43,12 +41,8 @@ impl WhisperEngine {
         let ctx = WhisperContext::new_with_params(path_str, params)
             .map_err(|e| format!("failed to load model: {e}"))?;
 
-        // Reused across every transcription so the decoder state isn't reallocated
-        // per clip. WhisperState owns an Arc to the context, keeping the model loaded.
-        let state = ctx.create_state().map_err(|e| format!("state: {e}"))?;
-
         Ok(Self {
-            state: Mutex::new(state),
+            ctx: Mutex::new(ctx),
             tier_id,
             chip,
         })
@@ -58,45 +52,6 @@ impl WhisperEngine {
         self.tier_id
     }
 
-    // Sets the non-language params shared by transcribe and warmup. Returns the
-    // computed audio_ctx so callers can log it.
-    fn apply_common_params(&self, params: &mut FullParams, sample_len: usize) -> i32 {
-        params.set_print_special(false);
-        params.set_print_progress(false);
-        params.set_print_realtime(false);
-        params.set_print_timestamps(false);
-        params.set_single_segment(false);
-        params.set_n_threads(self.chip.performance_cores.max(2) as i32);
-
-        // The WhisperState is reused across clips for speed. whisper.cpp defaults to
-        // conditioning each decode on the previous one's tokens, which with a reused
-        // state would leak the previous clip's text into the next. Disable it so every
-        // decode is independent.
-        params.set_no_context(true);
-        params.set_suppress_blank(true);
-        params.set_suppress_nst(true);
-
-        // Encoder cost scales with audio_ctx tokens. ~50 tokens per second of audio.
-        // Default 1500 over-processes short utterances; cap trims it without affecting long clips.
-        let secs = (sample_len as f32 / 16_000.0).ceil() as i32;
-        let audio_ctx = ((secs * 50) + 64).clamp(256, 1500);
-        params.set_audio_ctx(audio_ctx);
-        audio_ctx
-    }
-
-    // Runs one inference over silence at load time to trigger Core ML encoder JIT
-    // and ANE warm-up, so the first real clip isn't cold.
-    pub fn warmup(&self) -> Result<(), String> {
-        let silence = vec![0.0f32; 16_000];
-        let mut state = self.state.lock().map_err(|e| format!("lock: {e}"))?;
-        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-        self.apply_common_params(&mut params, silence.len());
-        params.set_language(Some("en"));
-        state.full(params, &silence)
-            .map_err(|e| format!("warmup failed: {e}"))?;
-        Ok(())
-    }
-
     pub fn transcribe(
         &self,
         samples: &[f32],
@@ -104,10 +59,22 @@ impl WhisperEngine {
     ) -> Result<TranscriptionResult, String> {
         let start = std::time::Instant::now();
 
-        let mut state = self.state.lock().map_err(|e| format!("lock: {e}"))?;
+        let ctx = self.ctx.lock().map_err(|e| format!("lock: {e}"))?;
+        let mut state = ctx.create_state().map_err(|e| format!("state: {e}"))?;
 
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-        let _audio_ctx = self.apply_common_params(&mut params, samples.len());
+        params.set_print_special(false);
+        params.set_print_progress(false);
+        params.set_print_realtime(false);
+        params.set_print_timestamps(false);
+        params.set_single_segment(false);
+        params.set_n_threads(self.chip.performance_cores.max(2) as i32);
+
+        // Encoder cost scales with audio_ctx tokens. ~50 tokens per second of audio.
+        // Default 1500 over-processes short utterances; cap trims it without affecting long clips.
+        let secs = (samples.len() as f32 / 16_000.0).ceil() as i32;
+        let audio_ctx = ((secs * 50) + 64).clamp(256, 1500);
+        params.set_audio_ctx(audio_ctx);
 
         match language {
             Some(lang) => params.set_language(Some(lang)),
@@ -136,12 +103,12 @@ impl WhisperEngine {
 
         #[cfg(debug_assertions)]
         eprintln!(
-            "tt-perf total={}ms cores={} family={:?} audio_ctx={} samples={}",
+            "tt-perf total={}ms cores={} family={:?} audio_ctx={} secs={}",
             duration_ms,
             self.chip.performance_cores,
             self.chip.family,
-            _audio_ctx,
-            samples.len(),
+            audio_ctx,
+            secs,
         );
 
         Ok(TranscriptionResult {
