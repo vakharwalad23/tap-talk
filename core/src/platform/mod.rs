@@ -1,3 +1,3 @@
 mod chip;
 
-pub use chip::{detect, ChipFamily, ChipInfo};
+pub use chip::{detect, ChipInfo};

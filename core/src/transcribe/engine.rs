@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use super::tiers;
-use crate::platform::{self, ChipFamily, ChipInfo};
+use crate::platform::{self, ChipInfo};
 
 pub struct WhisperEngine {
     ctx: Mutex<WhisperContext>,
@@ -32,9 +32,9 @@ impl WhisperEngine {
 
         let chip = platform::detect();
         let mut params = WhisperContextParameters::default();
-        // M1 GPU is known to be flaky with flash-attention on some attention shapes.
-        // Enable only on M2+ where it's stable and yields ~20% encoder speedup.
-        if matches!(chip.family, ChipFamily::M2 | ChipFamily::M3 | ChipFamily::M4 | ChipFamily::M5) {
+        // M1 GPU is flaky with flash-attention on some attention shapes; M2 and newer
+        // are stable and gain ~20% encoder speedup.
+        if chip.family.supports_flash_attn() {
             params.flash_attn(true);
         }
 
