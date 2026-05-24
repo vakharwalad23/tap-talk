@@ -1,6 +1,7 @@
 mod audio;
 mod llm;
 mod models;
+mod platform;
 mod transcribe;
 
 uniffi::setup_scaffolding!();
@@ -202,12 +203,20 @@ pub fn transcribe_cloud(
 
 // --- Model Manager ---
 
+#[derive(uniffi::Enum)]
+pub enum DownloadPhase {
+    Ggml,
+    CoreMl,
+    Complete,
+}
+
 #[derive(uniffi::Record)]
 pub struct DownloadProgressInfo {
     pub tier: u8,
     pub bytes_downloaded: u64,
     pub total_bytes: u64,
     pub done: bool,
+    pub phase: DownloadPhase,
 }
 
 #[uniffi::export(callback_interface)]
@@ -238,18 +247,27 @@ impl ModelManager {
         self.inner.is_installed(tier)
     }
 
+    pub fn is_coreml_installed(&self, tier: u8) -> bool {
+        self.inner.is_coreml_installed(tier)
+    }
+
     pub fn installed_tiers(&self) -> Vec<u8> {
         self.inner.installed_tiers()
     }
 
+    pub fn installed_tiers_missing_coreml(&self) -> Vec<u8> {
+        self.inner.installed_tiers_missing_coreml()
+    }
+
     pub fn download(&self, tier: u8, callback: Box<dyn DownloadProgressCallback>) -> Result<(), CoreError> {
         self.inner.download(tier, &|progress| {
-            callback.on_progress(DownloadProgressInfo {
-                tier: progress.tier,
-                bytes_downloaded: progress.bytes_downloaded,
-                total_bytes: progress.total_bytes,
-                done: matches!(progress.status, models::manager::DownloadStatus::Complete),
-            });
+            callback.on_progress(map_progress(&progress));
+        }).map_err(|msg| CoreError::Model { msg })
+    }
+
+    pub fn download_coreml_only(&self, tier: u8, callback: Box<dyn DownloadProgressCallback>) -> Result<(), CoreError> {
+        self.inner.download_coreml_only(tier, &|progress| {
+            callback.on_progress(map_progress(&progress));
         }).map_err(|msg| CoreError::Model { msg })
     }
 
@@ -283,6 +301,21 @@ impl ModelManager {
 
     pub fn delete_llm(&self, model_id: String) -> Result<(), CoreError> {
         self.inner.delete_llm(&model_id).map_err(|msg| CoreError::Model { msg })
+    }
+}
+
+fn map_progress(progress: &models::manager::DownloadProgress) -> DownloadProgressInfo {
+    let (done, phase) = match progress.status {
+        models::manager::DownloadStatus::Downloading => (false, DownloadPhase::Ggml),
+        models::manager::DownloadStatus::DownloadingCoreMl => (false, DownloadPhase::CoreMl),
+        models::manager::DownloadStatus::Complete => (true, DownloadPhase::Complete),
+    };
+    DownloadProgressInfo {
+        tier: progress.tier,
+        bytes_downloaded: progress.bytes_downloaded,
+        total_bytes: progress.total_bytes,
+        done,
+        phase,
     }
 }
 

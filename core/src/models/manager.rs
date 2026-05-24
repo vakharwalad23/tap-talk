@@ -22,6 +22,7 @@ pub struct DownloadProgress {
 
 pub enum DownloadStatus {
     Downloading,
+    DownloadingCoreMl,
     Complete,
 }
 
@@ -51,9 +52,24 @@ impl ModelManager {
         self.models_dir.join(t.ggml_filename).exists()
     }
 
+    pub fn is_coreml_installed(&self, tier: u8) -> bool {
+        let Some(t) = TIERS.iter().find(|t| t.id == tier) else { return false };
+        self.models_dir.join(t.coreml_filename).is_dir()
+    }
+
     pub fn installed_tiers(&self) -> Vec<u8> {
         TIERS.iter()
             .filter(|t| self.models_dir.join(t.ggml_filename).exists())
+            .map(|t| t.id)
+            .collect()
+    }
+
+    pub fn installed_tiers_missing_coreml(&self) -> Vec<u8> {
+        TIERS.iter()
+            .filter(|t| {
+                self.models_dir.join(t.ggml_filename).exists()
+                    && !self.models_dir.join(t.coreml_filename).is_dir()
+            })
             .map(|t| t.id)
             .collect()
     }
@@ -66,27 +82,75 @@ impl ModelManager {
         let t = TIERS.iter().find(|t| t.id == tier)
             .ok_or_else(|| format!("unknown tier: {tier}"))?;
 
-        // Prevent concurrent downloads
-        {
-            let mut active = self.active_download.lock()
-                .map_err(|e| format!("lock: {e}"))?;
-            if active.is_some() {
-                return Err("download already in progress".into());
+        self.claim_active(tier)?;
+
+        let ggml_result = self.download_ggml(tier, t.ggml_filename, progress_cb);
+
+        if ggml_result.is_ok() {
+            // Core ML encoder is a perf optimization, not a correctness requirement.
+            // Failures here must not abort the install — `.bin` alone still transcribes.
+            if let Err(e) = self.download_coreml_inner(tier, t.coreml_filename, progress_cb) {
+                eprintln!("tt-coreml: download failed for tier {tier}: {e}");
             }
-            *active = Some(tier);
         }
 
-        let result = self.download_file(tier, t.ggml_filename, progress_cb);
+        self.release_active();
 
-        // Clear active download
+        ggml_result?;
+
+        progress_cb(DownloadProgress {
+            tier,
+            bytes_downloaded: 0,
+            total_bytes: 0,
+            status: DownloadStatus::Complete,
+        });
+        Ok(())
+    }
+
+    pub fn download_coreml_only(
+        &self,
+        tier: u8,
+        progress_cb: &dyn Fn(DownloadProgress),
+    ) -> Result<(), String> {
+        let t = TIERS.iter().find(|t| t.id == tier)
+            .ok_or_else(|| format!("unknown tier: {tier}"))?;
+
+        if !self.models_dir.join(t.ggml_filename).exists() {
+            return Err(format!("ggml model not installed for tier {tier}"));
+        }
+
+        self.claim_active(tier)?;
+        let result = self.download_coreml_inner(tier, t.coreml_filename, progress_cb);
+        self.release_active();
+
+        result?;
+
+        progress_cb(DownloadProgress {
+            tier,
+            bytes_downloaded: 0,
+            total_bytes: 0,
+            status: DownloadStatus::Complete,
+        });
+        Ok(())
+    }
+
+    fn claim_active(&self, tier: u8) -> Result<(), String> {
+        let mut active = self.active_download.lock()
+            .map_err(|e| format!("lock: {e}"))?;
+        if active.is_some() {
+            return Err("download already in progress".into());
+        }
+        *active = Some(tier);
+        Ok(())
+    }
+
+    fn release_active(&self) {
         if let Ok(mut active) = self.active_download.lock() {
             *active = None;
         }
-
-        result
     }
 
-    fn download_file(
+    fn download_ggml(
         &self,
         tier: u8,
         filename: &str,
@@ -96,56 +160,67 @@ impl ModelManager {
         let dest = self.models_dir.join(filename);
         let partial = self.models_dir.join(format!("{filename}.partial"));
 
-        let agent = ureq::Agent::new_with_defaults();
-        let response = agent.get(&url).call()
-            .map_err(|e| format!("download request failed: {e}"))?;
-
-        let total_bytes = response.headers().get("content-length")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse::<u64>().ok())
-            .unwrap_or(0);
-
-        let mut file = fs::File::create(&partial)
-            .map_err(|e| format!("create file: {e}"))?;
-
-        let mut reader = response.into_body().into_reader();
-        let mut buf = vec![0u8; 64 * 1024];
-        let mut downloaded: u64 = 0;
-
-        loop {
-            let n = std::io::Read::read(&mut reader, &mut buf)
-                .map_err(|e| format!("read: {e}"))?;
-
-            if n == 0 { break; }
-
-            file.write_all(&buf[..n])
-                .map_err(|e| format!("write: {e}"))?;
-
-            downloaded += n as u64;
-
+        let on_progress = |bytes_downloaded: u64, total_bytes: u64| {
             progress_cb(DownloadProgress {
                 tier,
-                bytes_downloaded: downloaded,
+                bytes_downloaded,
                 total_bytes,
                 status: DownloadStatus::Downloading,
             });
-        }
+        };
 
-        file.flush().map_err(|e| format!("flush: {e}"))?;
-        drop(file);
+        stream_to_file(&url, &partial, &on_progress)?;
 
-        // Rename partial to final; remove stale .partial on failure
         fs::rename(&partial, &dest).map_err(|e| {
             let _ = fs::remove_file(&partial);
             format!("rename: {e}")
         })?;
 
-        progress_cb(DownloadProgress {
-            tier,
-            bytes_downloaded: downloaded,
-            total_bytes,
-            status: DownloadStatus::Complete,
-        });
+        Ok(())
+    }
+
+    fn download_coreml_inner(
+        &self,
+        tier: u8,
+        coreml_name: &str,
+        progress_cb: &dyn Fn(DownloadProgress),
+    ) -> Result<(), String> {
+        let url = format!("{HF_BASE_URL}/{coreml_name}.zip");
+        let zip_partial = self.models_dir.join(format!("{coreml_name}.zip.partial"));
+        let zip_path = self.models_dir.join(format!("{coreml_name}.zip"));
+        let bundle_dir = self.models_dir.join(coreml_name);
+
+        let on_progress = |bytes_downloaded: u64, total_bytes: u64| {
+            progress_cb(DownloadProgress {
+                tier,
+                bytes_downloaded,
+                total_bytes,
+                status: DownloadStatus::DownloadingCoreMl,
+            });
+        };
+
+        let stream_result = stream_to_file(&url, &zip_partial, &on_progress);
+        if let Err(e) = stream_result {
+            let _ = fs::remove_file(&zip_partial);
+            return Err(e);
+        }
+
+        fs::rename(&zip_partial, &zip_path).map_err(|e| {
+            let _ = fs::remove_file(&zip_partial);
+            format!("rename zip: {e}")
+        })?;
+
+        let extract_result = extract_zip(&zip_path, &self.models_dir);
+        let _ = fs::remove_file(&zip_path);
+
+        if let Err(e) = extract_result {
+            let _ = fs::remove_dir_all(&bundle_dir);
+            return Err(e);
+        }
+
+        if !bundle_dir.is_dir() {
+            return Err(format!("extracted archive missing {coreml_name}/"));
+        }
 
         Ok(())
     }
@@ -181,38 +256,16 @@ impl ModelManager {
         let dest = self.models_dir.join(spec.filename);
         let partial = self.models_dir.join(format!("{}.partial", spec.filename));
 
-        let agent = ureq::Agent::new_with_defaults();
-        let response = agent.get(spec.url).call()
-            .map_err(|e| format!("download request failed: {e}"))?;
-
-        let total_bytes = response.headers().get("content-length")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.parse::<u64>().ok())
-            .unwrap_or(0);
-
-        let mut file = fs::File::create(&partial)
-            .map_err(|e| format!("create file: {e}"))?;
-
-        let mut reader = response.into_body().into_reader();
-        let mut buf = vec![0u8; 64 * 1024];
-        let mut downloaded: u64 = 0;
-
-        loop {
-            let n = std::io::Read::read(&mut reader, &mut buf)
-                .map_err(|e| format!("read: {e}"))?;
-            if n == 0 { break; }
-            file.write_all(&buf[..n]).map_err(|e| format!("write: {e}"))?;
-            downloaded += n as u64;
+        let on_progress = |bytes_downloaded: u64, total_bytes: u64| {
             progress_cb(LlmDownloadProgress {
                 model_id: model_id.to_string(),
-                bytes_downloaded: downloaded,
+                bytes_downloaded,
                 total_bytes,
                 done: false,
             });
-        }
+        };
 
-        file.flush().map_err(|e| format!("flush: {e}"))?;
-        drop(file);
+        stream_to_file(spec.url, &partial, &on_progress)?;
 
         fs::rename(&partial, &dest).map_err(|e| {
             let _ = fs::remove_file(&partial);
@@ -221,8 +274,8 @@ impl ModelManager {
 
         progress_cb(LlmDownloadProgress {
             model_id: model_id.to_string(),
-            bytes_downloaded: downloaded,
-            total_bytes,
+            bytes_downloaded: 0,
+            total_bytes: 0,
             done: true,
         });
 
@@ -248,7 +301,6 @@ impl ModelManager {
             fs::remove_file(&path).map_err(|e| format!("delete: {e}"))?;
         }
 
-        // Also remove Core ML model if present
         let coreml_path = self.models_dir.join(t.coreml_filename);
         if coreml_path.exists() {
             fs::remove_dir_all(&coreml_path).map_err(|e| format!("delete coreml: {e}"))?;
@@ -256,4 +308,66 @@ impl ModelManager {
 
         Ok(())
     }
+}
+
+fn stream_to_file(
+    url: &str,
+    partial: &Path,
+    on_progress: &dyn Fn(u64, u64),
+) -> Result<u64, String> {
+    let agent = ureq::Agent::new_with_defaults();
+    let response = agent.get(url).call()
+        .map_err(|e| format!("download request failed: {e}"))?;
+
+    let total_bytes = response.headers().get("content-length")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(0);
+
+    let mut file = fs::File::create(partial)
+        .map_err(|e| format!("create file: {e}"))?;
+
+    let mut reader = response.into_body().into_reader();
+    let mut buf = vec![0u8; 64 * 1024];
+    let mut downloaded: u64 = 0;
+
+    loop {
+        let n = std::io::Read::read(&mut reader, &mut buf)
+            .map_err(|e| format!("read: {e}"))?;
+        if n == 0 { break; }
+        file.write_all(&buf[..n]).map_err(|e| format!("write: {e}"))?;
+        downloaded += n as u64;
+        on_progress(downloaded, total_bytes);
+    }
+
+    file.flush().map_err(|e| format!("flush: {e}"))?;
+    drop(file);
+    Ok(downloaded)
+}
+
+fn extract_zip(zip_path: &Path, dest_root: &Path) -> Result<(), String> {
+    let file = fs::File::open(zip_path).map_err(|e| format!("open zip: {e}"))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("read zip: {e}"))?;
+
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).map_err(|e| format!("zip entry {i}: {e}"))?;
+        let Some(rel_path) = entry.enclosed_name() else {
+            return Err(format!("zip entry {} has unsafe path", entry.name()));
+        };
+        let out_path = dest_root.join(&rel_path);
+
+        if entry.is_dir() {
+            fs::create_dir_all(&out_path).map_err(|e| format!("mkdir: {e}"))?;
+            continue;
+        }
+
+        if let Some(parent) = out_path.parent() {
+            fs::create_dir_all(parent).map_err(|e| format!("mkdir parent: {e}"))?;
+        }
+        let mut out_file = fs::File::create(&out_path)
+            .map_err(|e| format!("create {}: {e}", out_path.display()))?;
+        std::io::copy(&mut entry, &mut out_file)
+            .map_err(|e| format!("write {}: {e}", out_path.display()))?;
+    }
+    Ok(())
 }
