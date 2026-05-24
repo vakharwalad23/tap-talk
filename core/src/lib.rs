@@ -262,14 +262,15 @@ impl Transcriber {
     }
 
     pub fn finalize_stream(&self) {
-        // Stop feeding first so no samples arrive after the finalize marker.
-        if let Ok(mut f) = self.feeder.lock() {
-            *f = None;
-        }
+        // Send Finalize first; the worker drains any still-queued samples (incl. an
+        // in-flight buffer from stop) before decoding the tail. Then stop new feeds.
         if let Ok(guard) = self.stream.lock() {
             if let Some(ref session) = *guard {
                 session.finalize();
             }
+        }
+        if let Ok(mut f) = self.feeder.lock() {
+            *f = None;
         }
     }
 

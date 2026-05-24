@@ -117,9 +117,25 @@ impl StreamingSession {
                                     last_committed = vad_cursor;
                                     silence_chunks = 0;
                                 }
+
+                                // Compact committed audio so memory stays bounded to one
+                                // pending segment regardless of how long the key is held.
+                                if last_committed > 0 {
+                                    buf16.drain(..last_committed);
+                                    vad_cursor -= last_committed;
+                                    last_committed = 0;
+                                }
                             }
                         }
                         StreamMsg::Finalize => {
+                            // Drain any audio still queued (including a buffer the audio
+                            // thread sent mid-stop) and flush the resampler's tail.
+                            while let Ok(StreamMsg::Samples(s)) = rx.try_recv() {
+                                append_resampled(resampler.as_mut(), &s, &mut buf16);
+                            }
+                            if let Some(rs) = resampler.as_mut() {
+                                rs.flush(&mut buf16);
+                            }
                             if last_committed < buf16.len() {
                                 decode_segment(&engine, &buf16[last_committed..], lang, &mut texts);
                             }
@@ -188,6 +204,7 @@ fn append_resampled(resampler: Option<&mut StreamResampler>, input: &[f32], out:
 struct StreamResampler {
     inner: SincFixedIn<f32>,
     chunk: usize,
+    ratio: f64,
     pending: Vec<f32>,
 }
 
@@ -204,7 +221,7 @@ impl StreamResampler {
         let ratio = TARGET_RATE as f64 / source_rate as f64;
         let inner = SincFixedIn::<f32>::new(ratio, 2.0, params, chunk, 1)
             .map_err(|e| format!("stream resampler init: {e}"))?;
-        Ok(Self { inner, chunk, pending: Vec::with_capacity(chunk * 2) })
+        Ok(Self { inner, chunk, ratio, pending: Vec::with_capacity(chunk * 2) })
     }
 
     fn push(&mut self, input: &[f32], out: &mut Vec<f32>) {
@@ -214,6 +231,20 @@ impl StreamResampler {
             if let Ok(res) = self.inner.process(&[block], None) {
                 out.extend_from_slice(&res[0]);
             }
+        }
+    }
+
+    // Flushes the sub-chunk remainder so the trailing audio isn't lost on finalize.
+    fn flush(&mut self, out: &mut Vec<f32>) {
+        if self.pending.is_empty() {
+            return;
+        }
+        let valid = self.pending.len();
+        let mut block = std::mem::take(&mut self.pending);
+        block.resize(self.chunk, 0.0);
+        if let Ok(res) = self.inner.process(&[block], None) {
+            let keep = ((valid as f64) * self.ratio).ceil() as usize;
+            out.extend_from_slice(&res[0][..keep.min(res[0].len())]);
         }
     }
 }

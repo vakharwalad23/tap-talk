@@ -318,7 +318,8 @@ final class AppController: ObservableObject {
                         return
                     }
                     self.transcriber.finalizeStream()
-                    let text = await bridge.awaitFinal()
+                    let text = await bridge.awaitFinal(timeout: 12)
+                    self.transcriber.cancelStream()  // free the finished worker + callback
                     result = TranscriptionResult(text: text, language: "unknown", durationMs: 0)
                 } else {
                     let audio = try self.recorder.stop()
@@ -532,5 +533,17 @@ private final class StreamResultBridge: TranscriptionCallback, @unchecked Sendab
                 lock.unlock()
             }
         }
+    }
+
+    // Resolves to "" if the worker goes silent (e.g. cancelled before finalize), so
+    // the awaiting task can never hang forever.
+    func awaitFinal(timeout: TimeInterval) async -> String {
+        let timeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            self?.resolve("")
+        }
+        let text = await awaitFinal()
+        timeoutTask.cancel()
+        return text
     }
 }
