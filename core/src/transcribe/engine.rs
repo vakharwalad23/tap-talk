@@ -9,6 +9,9 @@ pub struct WhisperEngine {
     ctx: Mutex<WhisperContext>,
     tier_id: u8,
     chip: ChipInfo,
+    // Whether the Core ML encoder bundle is present (whisper.cpp auto-loads it). It has a
+    // fixed audio context, so audio_ctx tuning is only applied on the pure-Metal path.
+    coreml_present: bool,
 }
 
 pub struct TranscriptionResult {
@@ -30,6 +33,9 @@ impl WhisperEngine {
         let path_str = model_path.to_str()
             .ok_or_else(|| "model path contains non-UTF-8 characters".to_string())?;
 
+        // whisper.cpp auto-loads a sibling `<name>-encoder.mlmodelc` if present.
+        let coreml_present = models_dir.join(tier.coreml_filename).is_dir();
+
         let chip = platform::detect();
         let mut params = WhisperContextParameters::default();
         // M1 GPU is flaky with flash-attention on some attention shapes; M2 and newer
@@ -45,6 +51,7 @@ impl WhisperEngine {
             ctx: Mutex::new(ctx),
             tier_id,
             chip,
+            coreml_present,
         })
     }
 
@@ -70,9 +77,15 @@ impl WhisperEngine {
         params.set_single_segment(false);
         params.set_n_threads(self.chip.performance_cores.max(2) as i32);
 
-        // Do NOT set audio_ctx: the Core ML encoder (.mlmodelc) is compiled for a fixed
-        // 1500-token context, and a custom value feeds it the wrong shape, producing
-        // garbage / truncated transcripts. Leave it at the whisper default.
+        // audio_ctx trims the encoder to the clip length (~50 tokens/sec) for faster
+        // short-clip encoding — but ONLY on the Metal path. The Core ML encoder is
+        // compiled for a fixed 1500-token context; a custom value feeds it the wrong
+        // shape and yields garbage, so it's left at the default when Core ML is present.
+        if !self.coreml_present {
+            let secs = (samples.len() as f32 / 16_000.0).ceil() as i32;
+            let audio_ctx = ((secs * 50) + 64).clamp(256, 1500);
+            params.set_audio_ctx(audio_ctx);
+        }
 
         match language {
             Some(lang) => params.set_language(Some(lang)),

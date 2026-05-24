@@ -62,7 +62,7 @@ struct ModelDownloader: View {
                 Text("Boost transcription speed")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppTheme.primary)
-                Text("Add Neural Engine acceleration to installed models. Transcription runs up to 3× faster on Apple Silicon.")
+                Text("Runs transcription on the Neural Engine — much faster. Trade-off: it roughly doubles each model's disk space (e.g. ~+1.2 GB for Large). You can remove it anytime to get the space back.")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -242,7 +242,7 @@ struct ModelDownloader: View {
             }
             .buttonStyle(.plain)
             .disabled(downloading != nil)
-            .help("Download Neural Engine optimization for faster transcription")
+            .help("Faster transcription via the Neural Engine. Uses more disk (~doubles the model size); removable anytime.")
         }
     }
 
