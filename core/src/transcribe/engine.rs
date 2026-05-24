@@ -72,6 +72,14 @@ impl WhisperEngine {
         params.set_single_segment(false);
         params.set_n_threads(self.chip.performance_cores.max(2) as i32);
 
+        // The WhisperState is reused across clips and streaming segments. whisper.cpp
+        // defaults to conditioning each decode on the previous one's tokens, which with
+        // a reused state causes repetition loops within a run and past-run text bleeding
+        // into the next. Disable it so every decode is independent.
+        params.set_no_context(true);
+        params.set_suppress_blank(true);
+        params.set_suppress_nst(true);
+
         // Encoder cost scales with audio_ctx tokens. ~50 tokens per second of audio.
         // Default 1500 over-processes short utterances; cap trims it without affecting long clips.
         let secs = (sample_len as f32 / 16_000.0).ceil() as i32;

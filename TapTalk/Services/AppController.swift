@@ -30,7 +30,10 @@ final class AppController: ObservableObject {
     private var didAttachStream = false
 
     private let maxRecordingSeconds: TimeInterval = 120
-    private let useStreaming = true
+    // Segment-streaming produced poor quality (Whisper hallucinates on short isolated
+    // clips). Disabled in favor of the reliable full-context batch decode while proper
+    // live streaming (LocalAgreement) is built.
+    private let useStreaming = false
 
     private init() {
         guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
