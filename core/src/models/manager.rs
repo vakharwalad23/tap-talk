@@ -84,15 +84,10 @@ impl ModelManager {
 
         self.claim_active(tier)?;
 
+        // Only the ggml model is fetched here, so the base install stays small and the
+        // model works immediately. The Core ML encoder (~doubles disk) is opt-in via
+        // download_coreml_only, surfaced in the UI as a per-tier "Optimize" action.
         let ggml_result = self.download_ggml(tier, t.ggml_filename, progress_cb);
-
-        if ggml_result.is_ok() {
-            // Core ML encoder is a perf optimization, not a correctness requirement.
-            // Failures here must not abort the install — `.bin` alone still transcribes.
-            if let Err(e) = self.download_coreml_inner(tier, t.coreml_filename, progress_cb) {
-                eprintln!("tt-coreml: download failed for tier {tier}: {e}");
-            }
-        }
 
         self.release_active();
 
@@ -303,6 +298,26 @@ impl ModelManager {
 
         let coreml_path = self.models_dir.join(t.coreml_filename);
         if coreml_path.exists() {
+            fs::remove_dir_all(&coreml_path).map_err(|e| format!("delete coreml: {e}"))?;
+        }
+
+        Ok(())
+    }
+
+    /// Removes ONLY the Core ML encoder bundle, reclaiming disk while keeping the
+    /// ggml model fully usable (encoder falls back to GPU). The `.bin` is never touched.
+    pub fn delete_coreml(&self, tier: u8) -> Result<(), String> {
+        let t = TIERS.iter().find(|t| t.id == tier)
+            .ok_or_else(|| format!("unknown tier: {tier}"))?;
+
+        let coreml_path = self.models_dir.join(t.coreml_filename);
+
+        // Safety: only ever remove a `.mlmodelc` directory. Never a file (the `.bin`
+        // is a file), and never if the name isn't the expected Core ML bundle.
+        if !t.coreml_filename.ends_with(".mlmodelc") {
+            return Err("unexpected coreml filename".into());
+        }
+        if coreml_path.is_dir() {
             fs::remove_dir_all(&coreml_path).map_err(|e| format!("delete coreml: {e}"))?;
         }
 

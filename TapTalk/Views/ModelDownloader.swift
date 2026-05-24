@@ -13,9 +13,14 @@ struct ModelDownloader: View {
     @State private var totalMB: Double = 0
     @State private var bannerDismissed: Bool = UserDefaults.standard.bool(forKey: bannerDismissedKey)
     @State private var coremlQueue: [UInt8] = []
+    @State private var pendingCoremlRemoval: UInt8? = nil
 
     private static let bannerDismissedKey = "tt.coreml.banner.dismissed"
     private let tiers = availableTiers()
+
+    private func hasCoreml(_ tierId: UInt8) -> Bool {
+        installedTiers.contains(tierId) && !missingCoreml.contains(tierId)
+    }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -29,6 +34,21 @@ struct ModelDownloader: View {
             }
         }
         .onAppear { refreshInstalled() }
+        .alert(
+            "Remove Neural Engine optimization?",
+            isPresented: Binding(
+                get: { pendingCoremlRemoval != nil },
+                set: { if !$0 { pendingCoremlRemoval = nil } }
+            )
+        ) {
+            Button("Cancel", role: .cancel) { pendingCoremlRemoval = nil }
+            Button("Remove", role: .destructive) {
+                if let tier = pendingCoremlRemoval { removeOptimization(tier) }
+                pendingCoremlRemoval = nil
+            }
+        } message: {
+            Text("This reclaims disk space and keeps the model fully usable — transcription just runs on the GPU instead of the Neural Engine. The model itself is not deleted.")
+        }
     }
 
     private var coremlBanner: some View {
@@ -166,6 +186,8 @@ struct ModelDownloader: View {
 
     private func installedView(_ tierId: UInt8) -> some View {
         HStack(spacing: 10) {
+            optimizationControl(tierId)
+
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(AppTheme.success)
@@ -183,6 +205,44 @@ struct ModelDownloader: View {
                     .foregroundStyle(AppTheme.danger)
             }
             .buttonStyle(.plain)
+            .help("Delete model")
+        }
+    }
+
+    @ViewBuilder
+    private func optimizationControl(_ tierId: UInt8) -> some View {
+        if hasCoreml(tierId) {
+            // Optimization present — green badge that, when clicked, offers to reclaim space.
+            Button { pendingCoremlRemoval = tierId } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "bolt.fill").font(.system(size: 8))
+                    Text("Neural Engine").font(.system(size: 9, weight: .bold))
+                }
+                .foregroundStyle(AppTheme.success)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2.5)
+                .background(AppTheme.success.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+            .disabled(downloading != nil)
+            .help("Neural Engine optimization on — click to remove and reclaim disk")
+        } else {
+            // ggml installed but no encoder bundle — offer to add it.
+            Button { enableOptimization(tierId) } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "bolt").font(.system(size: 8))
+                    Text("Speed up").font(.system(size: 9, weight: .bold))
+                }
+                .foregroundStyle(AppTheme.accent)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2.5)
+                .background(AppTheme.accent.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+            .disabled(downloading != nil)
+            .help("Download Neural Engine optimization for faster transcription")
         }
     }
 
@@ -248,6 +308,20 @@ struct ModelDownloader: View {
     private func startCoremlMigration() {
         coremlQueue = Array(missingCoreml).sorted()
         processCoremlQueue()
+    }
+
+    // Per-tier opt-in download of the Neural Engine encoder.
+    private func enableOptimization(_ tier: UInt8) {
+        guard downloading == nil else { return }
+        coremlQueue = [tier]
+        processCoremlQueue()
+    }
+
+    // Removes ONLY the Core ML encoder bundle; the ggml model stays installed.
+    private func removeOptimization(_ tier: UInt8) {
+        try? manager.deleteCoreml(tier: tier)
+        refreshInstalled()
+        onModelChanged()
     }
 
     private func processCoremlQueue() {

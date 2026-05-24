@@ -392,6 +392,11 @@ impl ModelManager {
         self.inner.delete(tier).map_err(|msg| CoreError::Model { msg })
     }
 
+    /// Removes only the Core ML encoder optimization for a tier; keeps the ggml model.
+    pub fn delete_coreml(&self, tier: u8) -> Result<(), CoreError> {
+        self.inner.delete_coreml(tier).map_err(|msg| CoreError::Model { msg })
+    }
+
     pub fn is_llm_installed(&self, model_id: String) -> bool {
         self.inner.is_llm_installed(&model_id)
     }
