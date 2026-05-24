@@ -5,31 +5,6 @@ const CHUNK_SIZE: usize = 512;
 const SPEECH_THRESHOLD: f32 = 0.5;
 const PAD_CHUNKS: usize = 4;
 
-/// Samples per VAD chunk at 16 kHz (~32 ms).
-pub const VAD_CHUNK_SIZE: usize = CHUNK_SIZE;
-
-/// A persistent Silero detector for streaming, fed one 512-sample chunk at a time
-/// in order (the model is recurrent, so call order matters).
-pub struct SileroVad {
-    inner: VoiceActivityDetector,
-    threshold: f32,
-}
-
-impl SileroVad {
-    pub fn new(threshold: f32) -> Result<Self, String> {
-        let inner = VoiceActivityDetector::builder()
-            .sample_rate(SAMPLE_RATE)
-            .chunk_size(CHUNK_SIZE)
-            .build()
-            .map_err(|e| format!("vad init: {e}"))?;
-        Ok(Self { inner, threshold })
-    }
-
-    pub fn is_speech(&mut self, chunk: &[f32]) -> bool {
-        self.inner.predict(chunk.iter().copied()) >= self.threshold
-    }
-}
-
 /// Remove leading and trailing silence from 16kHz mono samples
 pub fn trim_silence(samples: &[f32]) -> Result<Vec<f32>, String> {
     if samples.len() < CHUNK_SIZE {

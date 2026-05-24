@@ -58,10 +58,6 @@ impl WhisperEngine {
         self.tier_id
     }
 
-    pub fn chip_family(&self) -> ChipFamily {
-        self.chip.family
-    }
-
     // Sets the non-language params shared by transcribe and warmup. Returns the
     // computed audio_ctx so callers can log it.
     fn apply_common_params(&self, params: &mut FullParams, sample_len: usize) -> i32 {
@@ -72,10 +68,10 @@ impl WhisperEngine {
         params.set_single_segment(false);
         params.set_n_threads(self.chip.performance_cores.max(2) as i32);
 
-        // The WhisperState is reused across clips and streaming segments. whisper.cpp
-        // defaults to conditioning each decode on the previous one's tokens, which with
-        // a reused state causes repetition loops within a run and past-run text bleeding
-        // into the next. Disable it so every decode is independent.
+        // The WhisperState is reused across clips for speed. whisper.cpp defaults to
+        // conditioning each decode on the previous one's tokens, which with a reused
+        // state would leak the previous clip's text into the next. Disable it so every
+        // decode is independent.
         params.set_no_context(true);
         params.set_suppress_blank(true);
         params.set_suppress_nst(true);

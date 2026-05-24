@@ -69,11 +69,6 @@ impl Recorder {
         self.inner.set_level_callback(Box::new(move |rms| callback.on_level(rms)));
     }
 
-    /// Source-rate of the active capture stream (0 until warmed/started).
-    pub fn source_sample_rate(&self) -> u32 {
-        self.inner.source_sample_rate()
-    }
-
     /// Pre-creates the CoreAudio AudioUnit so the TCC mic dialog happens early.
     pub fn warm_up(&self) -> Result<(), CoreError> {
         self.inner.warm_up().map_err(|msg| CoreError::Audio { msg })
@@ -81,12 +76,6 @@ impl Recorder {
 
     pub fn start(&self) -> Result<(), CoreError> {
         self.inner.start().map_err(|msg| CoreError::Audio { msg })
-    }
-
-    /// Stops capture and returns the recording duration only, skipping resample and
-    /// VAD trim. For the streaming path, which has already consumed the audio live.
-    pub fn stop_discard(&self) -> Result<f32, CoreError> {
-        self.inner.stop_discard().map_err(|msg| CoreError::Audio { msg })
     }
 
     pub fn stop(&self) -> Result<RecordingResult, CoreError> {
@@ -130,19 +119,9 @@ pub fn available_tiers() -> Vec<ModelTierInfo> {
     }).collect()
 }
 
-#[uniffi::export(callback_interface)]
-pub trait TranscriptionCallback: Send + Sync {
-    fn on_final(&self, result: TranscriptionResult);
-    fn on_error(&self, message: String);
-}
-
-type SharedFeeder = std::sync::Arc<std::sync::Mutex<Option<transcribe::StreamFeeder>>>;
-
 #[derive(uniffi::Object)]
 pub struct Transcriber {
-    engine: std::sync::Mutex<Option<std::sync::Arc<transcribe::WhisperEngine>>>,
-    stream: std::sync::Mutex<Option<transcribe::StreamingSession>>,
-    feeder: SharedFeeder,
+    engine: std::sync::Mutex<Option<transcribe::WhisperEngine>>,
 }
 
 impl Default for Transcriber {
@@ -157,23 +136,7 @@ impl Transcriber {
     pub fn new() -> Self {
         Self {
             engine: std::sync::Mutex::new(None),
-            stream: std::sync::Mutex::new(None),
-            feeder: std::sync::Arc::new(std::sync::Mutex::new(None)),
         }
-    }
-
-    /// Wires the recorder's audio thread to push samples straight into this
-    /// transcriber's streaming worker (pure Rust — never touches the main thread).
-    /// Call once after both objects exist.
-    pub fn attach_recorder(&self, recorder: &Recorder) {
-        let feeder = std::sync::Arc::clone(&self.feeder);
-        recorder.inner.set_sample_callback(Box::new(move |samples| {
-            if let Ok(guard) = feeder.try_lock() {
-                if let Some(ref f) = *guard {
-                    f.feed(samples);
-                }
-            }
-        }));
     }
 
     pub fn load_model(&self, tier: u8, models_dir: String) -> Result<(), CoreError> {
@@ -187,7 +150,7 @@ impl Transcriber {
         }
 
         let mut guard = self.engine.lock().map_err(|e| CoreError::Model { msg: format!("{e}") })?;
-        *guard = Some(std::sync::Arc::new(engine));
+        *guard = Some(engine);
         Ok(())
     }
 
@@ -219,70 +182,6 @@ impl Transcriber {
             language: result.language,
             duration_ms: result.duration_ms,
         })
-    }
-
-    /// Begins a streaming session that transcribes speech segments during the hold.
-    /// Feed source-rate mono samples via `feed_samples`, then call `finalize_stream`.
-    pub fn start_stream(
-        &self,
-        source_rate: u32,
-        language: Option<String>,
-        callback: Box<dyn TranscriptionCallback>,
-    ) -> Result<(), CoreError> {
-        let engine = {
-            let guard = self.engine.lock()
-                .map_err(|e| CoreError::Transcription { msg: format!("{e}") })?;
-            guard.as_ref().cloned()
-                .ok_or_else(|| CoreError::Model { msg: "no model loaded".into() })?
-        };
-
-        let cb = std::sync::Arc::new(callback);
-        let cb_final = std::sync::Arc::clone(&cb);
-        let cb_error = std::sync::Arc::clone(&cb);
-
-        let (session, feeder) = transcribe::StreamingSession::start(
-            engine,
-            source_rate,
-            language,
-            Box::new(move |text| cb_final.on_final(TranscriptionResult {
-                text,
-                language: "unknown".into(),
-                duration_ms: 0,
-            })),
-            Box::new(move |msg| cb_error.on_error(msg)),
-        ).map_err(|msg| CoreError::Transcription { msg })?;
-
-        if let Ok(mut f) = self.feeder.lock() {
-            *f = Some(feeder);
-        }
-        let mut guard = self.stream.lock()
-            .map_err(|e| CoreError::Transcription { msg: format!("{e}") })?;
-        *guard = Some(session);
-        Ok(())
-    }
-
-    pub fn finalize_stream(&self) {
-        // Send Finalize first; the worker drains any still-queued samples (incl. an
-        // in-flight buffer from stop) before decoding the tail. Then stop new feeds.
-        if let Ok(guard) = self.stream.lock() {
-            if let Some(ref session) = *guard {
-                session.finalize();
-            }
-        }
-        if let Ok(mut f) = self.feeder.lock() {
-            *f = None;
-        }
-    }
-
-    pub fn cancel_stream(&self) {
-        if let Ok(mut f) = self.feeder.lock() {
-            *f = None;
-        }
-        if let Ok(mut guard) = self.stream.lock() {
-            if let Some(session) = guard.take() {
-                session.cancel();
-            }
-        }
     }
 }
 

@@ -26,14 +26,8 @@ final class AppController: ObservableObject {
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var hasRequestedAccessibilityPermission = false
     private var recordingWatchdog: DispatchWorkItem?
-    private var streamBridge: StreamResultBridge?
-    private var didAttachStream = false
 
     private let maxRecordingSeconds: TimeInterval = 120
-    // Segment-streaming produced poor quality (Whisper hallucinates on short isolated
-    // clips). Disabled in favor of the reliable full-context batch decode while proper
-    // live streaming (LocalAgreement) is built.
-    private let useStreaming = false
 
     private init() {
         guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
@@ -197,9 +191,6 @@ final class AppController: ObservableObject {
         if state.transcribing { cancelTranscription() }
         do {
             try recorder.start()
-            if useStreaming, settings.transcriptionEngine == .local {
-                startStreamingSession(language: settings.selectedLanguage)
-            }
             state.beginRecording(hotkey: hotkey, smart: smart)
             state.status = "Recording..."
             AppRecordingState.shared.isRecording = true
@@ -207,26 +198,6 @@ final class AppController: ObservableObject {
             startRecordingWatchdog()
         } catch {
             state.status = "Error: \(error.localizedDescription)"
-        }
-    }
-
-    private func ensureStreamAttached() {
-        guard !didAttachStream else { return }
-        transcriber.attachRecorder(recorder: recorder)
-        didAttachStream = true
-    }
-
-    // Transcribes speech segments during the hold so release→paste is near-instant.
-    private func startStreamingSession(language: String?) {
-        ensureStreamAttached()
-        let rate = recorder.sourceSampleRate()
-        guard rate > 0 else { streamBridge = nil; return }
-        let bridge = StreamResultBridge()
-        do {
-            try transcriber.startStream(sourceRate: rate, language: language, callback: bridge)
-            streamBridge = bridge
-        } catch {
-            streamBridge = nil
         }
     }
 
@@ -247,20 +218,9 @@ final class AppController: ObservableObject {
         recordingWatchdog = nil
     }
 
-    private func cancelOnMain() async {
-        await MainActor.run {
-            self.state.cancel()
-            self.state.status = "Cancelled"
-            FloatingPillController.shared.hide()
-        }
-    }
-
     func cancelRecording() {
         guard state.recording else { return }
         cancelRecordingWatchdog()
-        transcriber.cancelStream()
-        streamBridge?.resolve("")
-        streamBridge = nil
         _ = try? recorder.stop()
         state.cancel()
         state.status = "Cancelled"
@@ -271,9 +231,6 @@ final class AppController: ObservableObject {
     func cancelTranscription() {
         transcribeTask?.cancel()
         transcribeTask = nil
-        transcriber.cancelStream()
-        streamBridge?.resolve("")
-        streamBridge = nil
         state.cancel()
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.hide()
@@ -301,49 +258,33 @@ final class AppController: ObservableObject {
         let llmClient  = makeLLMClient(settings: settings)
         let llmMissingForSmart = smartMode && llmEnabled && llmClient == nil && llmBackend == .local
 
-        let bridge = streamBridge
-        streamBridge = nil
-
         transcribeTask = Task.detached { [weak self] in
             guard let self = self else { return }
             do {
-                let result: TranscriptionResult
-                let audioDuration: Float
+                let audio = try self.recorder.stop()
 
-                if let bridge = bridge {
-                    // Streaming: audio was consumed live, so skip the heavy stop()
-                    // (resample + VAD trim). Finalize decodes only the trailing segment.
-                    audioDuration = try self.recorder.stopDiscard()
-                    if Task.isCancelled {
-                        self.transcriber.cancelStream()
-                        bridge.resolve("")
-                        await self.cancelOnMain()
-                        return
+                if Task.isCancelled {
+                    await MainActor.run {
+                        self.state.cancel()
+                        self.state.status = "Cancelled"
+                        FloatingPillController.shared.hide()
                     }
-                    self.transcriber.finalizeStream()
-                    let text = await bridge.awaitFinal(timeout: 12)
-                    self.transcriber.cancelStream()  // free the finished worker + callback
-                    result = TranscriptionResult(text: text, language: "unknown", durationMs: 0)
+                    return
+                }
+
+                let result: TranscriptionResult
+                if engine == .cloud {
+                    result = try transcribeCloud(
+                        samples: audio.samples,
+                        language: lang,
+                        model: cloudModel,
+                        apiKey: apiKey
+                    )
                 } else {
-                    let audio = try self.recorder.stop()
-                    if Task.isCancelled {
-                        await self.cancelOnMain()
-                        return
-                    }
-                    audioDuration = audio.durationSecs
-                    if engine == .cloud {
-                        result = try transcribeCloud(
-                            samples: audio.samples,
-                            language: lang,
-                            model: cloudModel,
-                            apiKey: apiKey
-                        )
-                    } else {
-                        result = try self.transcriber.transcribe(
-                            samples: audio.samples,
-                            language: lang
-                        )
-                    }
+                    result = try self.transcriber.transcribe(
+                        samples: audio.samples,
+                        language: lang
+                    )
                 }
 
                 if Task.isCancelled { return }
@@ -376,7 +317,7 @@ final class AppController: ObservableObject {
                         self.state.transcriptText = processed
                         self.state.transcriptLang = result.language
                         self.state.transcriptMs   = result.durationMs
-                        self.state.audioDuration  = audioDuration
+                        self.state.audioDuration  = audio.durationSecs
                         self.state.finish()
                         if let err = rewriteError {
                             self.state.status = "Smart rewrite failed: \(err)"
@@ -496,57 +437,5 @@ private final class PillLevelHandler: AudioLevelCallback {
         DispatchQueue.main.async {
             FloatingPillController.shared.setLevel(rms)
         }
-    }
-}
-
-// Bridges the Rust streaming on_final/on_error callback (fired from a worker thread)
-// into a single awaitable result. Resolves once; later calls are ignored.
-private final class StreamResultBridge: TranscriptionCallback, @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<String, Never>?
-    private var pending: String?
-    private var resolved = false
-
-    func onFinal(result: TranscriptionResult) { resolve(result.text) }
-    func onError(message: String) { resolve("") }
-
-    func resolve(_ text: String) {
-        lock.lock()
-        if resolved { lock.unlock(); return }
-        resolved = true
-        if let c = continuation {
-            continuation = nil
-            lock.unlock()
-            c.resume(returning: text)
-        } else {
-            pending = text
-            lock.unlock()
-        }
-    }
-
-    func awaitFinal() async -> String {
-        await withCheckedContinuation { c in
-            lock.lock()
-            if let p = pending {
-                pending = nil
-                lock.unlock()
-                c.resume(returning: p)
-            } else {
-                continuation = c
-                lock.unlock()
-            }
-        }
-    }
-
-    // Resolves to "" if the worker goes silent (e.g. cancelled before finalize), so
-    // the awaiting task can never hang forever.
-    func awaitFinal(timeout: TimeInterval) async -> String {
-        let timeoutTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-            self?.resolve("")
-        }
-        let text = await awaitFinal()
-        timeoutTask.cancel()
-        return text
     }
 }
