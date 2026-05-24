@@ -9,6 +9,7 @@ final class HotkeyService {
     fileprivate var onKeyDown: (() -> Void)?
     fileprivate var onKeyUp: (() -> Void)?
     private var healthTimer: Timer?
+    private var holdPoll: Timer?
 
     private(set) var keyCode: UInt16 = UInt16(kVK_RightCommand)
     fileprivate(set) var isHeld = false
@@ -106,6 +107,8 @@ final class HotkeyService {
         }
         isHeld = false
         smartIsHeld = false
+        holdPoll?.invalidate()
+        holdPoll = nil
     }
 
     // Catches the "silent inert tap" failure mode where tapDisabledByTimeout never fires.
@@ -131,6 +134,36 @@ final class HotkeyService {
         RunLoop.main.add(timer, forMode: .common)
         healthTimer = timer
     }
+
+    // Reconciles believed-held state against the actual hardware modifier flags.
+    // Catches a release event lost during a fast double-tap, which would otherwise
+    // leave the app stuck recording forever.
+    fileprivate func updateHoldPoll() {
+        if isHeld || smartIsHeld {
+            guard holdPoll == nil else { return }
+            let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
+                self?.reconcileHeldFlags()
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            holdPoll = timer
+        } else {
+            holdPoll?.invalidate()
+            holdPoll = nil
+        }
+    }
+
+    private func reconcileHeldFlags() {
+        let flags = CGEventSource.flagsState(.combinedSessionState)
+        if isHeld, !flags.contains(HotkeyService.flagMask(for: keyCode)) {
+            isHeld = false
+            onKeyUp?()
+        }
+        if smartIsHeld, !flags.contains(HotkeyService.flagMask(for: smartKeyCode)) {
+            smartIsHeld = false
+            onSmartKeyUp?()
+        }
+        updateHoldPoll()
+    }
 }
 
 private func hotkeyCallback(
@@ -144,11 +177,18 @@ private func hotkeyCallback(
     let service = Unmanaged<HotkeyService>.fromOpaque(userInfo).takeUnretainedValue()
 
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        // A disabled tap means key-release events may be lost. Finalize any held
+        // key so recording can't get stuck waiting for a keyUp that never arrives.
+        let wasHeld = service.isHeld
+        let wasSmartHeld = service.smartIsHeld
+        service.isHeld = false
+        service.smartIsHeld = false
         if let tap = service.eventTap {
-            service.isHeld = false
-            service.smartIsHeld = false
             CGEvent.tapEnable(tap: tap, enable: true)
         }
+        if wasHeld { DispatchQueue.main.async { service.onKeyUp?() } }
+        if wasSmartHeld { DispatchQueue.main.async { service.onSmartKeyUp?() } }
+        DispatchQueue.main.async { service.updateHoldPoll() }
         return Unmanaged.passUnretained(event)
     }
 
@@ -176,6 +216,7 @@ private func hotkeyCallback(
                 DispatchQueue.main.async { service.onSmartKeyUp?() }
             }
         }
+        DispatchQueue.main.async { service.updateHoldPoll() }
     }
 
     return Unmanaged.passUnretained(event)

@@ -11,163 +11,184 @@ enum PillState: Equatable {
 
 final class PillStateHolder: ObservableObject {
     @Published var state: PillState = .hidden
+    // Plain var (not @Published): updated ~30 Hz from the audio thread's main hop and
+    // read by the 60 fps render timer, so it must not trigger a body re-eval per sample.
+    var level: Float = 0
 }
 
 struct PillView: View {
     @ObservedObject var holder: PillStateHolder
 
     @State private var phase: Double = 0
-    @State private var dotPhase: Double = 0
+    @State private var displayLevel: CGFloat = 0
     @State private var timer: Timer?
 
     private var pillState: PillState { holder.state }
 
-    private let barCount = 7
-    private let barFreqs: [Double]  = [1.6, 2.5, 1.1, 3.0, 0.9, 2.3, 1.8]
-    private let barPhases: [Double] = [0,   1.1, 2.2, 0.6, 1.8, 0.3, 2.7]
+    // Maps raw mic RMS (~0.0–0.3) into a 0–1 animation range.
+    private let levelGain: Float = 12
+
+    private let recColor   = Color(red: 1.0,  green: 0.30, blue: 0.26)
+    private let workColor  = Color.white.opacity(0.85)
+    private let smartColor = Color(red: 0.62, green: 0.48, blue: 1.0)
+
+    // Active capsule is fixed height — the helix swells, never the box.
+    private let capsuleHeight: CGFloat = 30
+
+    private var capsuleWidth: CGFloat {
+        switch pillState {
+        case .recording, .transcribing: return 96
+        case .rewriting:                return 124
+        case .done:                     return 104
+        case .idle, .hidden:            return 0
+        }
+    }
 
     var body: some View {
         ZStack {
-            if pillState != .hidden {
-                RoundedRectangle(cornerRadius: 19)
-                    .fill(bgColor)
+            switch pillState {
+            case .hidden:
+                EmptyView()
+
+            case .idle:
+                // resting line — a thick, long bar under nothing, Wispr-style
+                Capsule()
+                    .fill(Color.white.opacity(0.85))
+                    .frame(width: 54, height: 4)
                     .transition(.opacity)
 
-                pillContent
-                    .transition(.opacity.combined(with: .scale(scale: 0.88)))
+            default:
+                ZStack {
+                    Capsule()
+                        .fill(Color(red: 0.09, green: 0.09, blue: 0.10))
+                        .overlay(Capsule().strokeBorder(borderColor, lineWidth: 1))
+                    activeContent
+                }
+                .frame(width: capsuleWidth, height: capsuleHeight)
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                .shadow(color: Color.black.opacity(0.28), radius: 6, x: 0, y: 2)
             }
         }
-        .frame(width: 156, height: 38)
-        .clipShape(RoundedRectangle(cornerRadius: 19))
-        .overlay(
-            RoundedRectangle(cornerRadius: 19)
-                .strokeBorder(borderColor, lineWidth: 1)
-        )
-        .shadow(
-            color: pillState == .hidden ? .clear : Color.black.opacity(0.22),
-            radius: 5, x: 0, y: 2
-        )
-        .animation(.spring(response: 0.28, dampingFraction: 0.76), value: pillState)
-        .onAppear {
-            if pillState == .recording || pillState == .transcribing || pillState == .rewriting { startTimer() }
-        }
+        .frame(width: 156, height: 40)
+        .animation(.spring(response: 0.3, dampingFraction: 0.74), value: pillState)
+        .onAppear { syncTimer(pillState) }
         .onDisappear { stopTimer() }
         .onChange(of: holder.state) { newState in
-            switch newState {
-            case .recording, .transcribing, .rewriting: startTimer()
-            default: stopTimer()
-            }
+            syncTimer(newState)
+            if newState != .recording { displayLevel = 0 }
         }
     }
 
     @ViewBuilder
-    private var pillContent: some View {
+    private var activeContent: some View {
         switch pillState {
-        case .hidden:
-            EmptyView()
-
-        case .idle:
-            // static waveform — calm snapshot showing the app is ready
-            HStack(spacing: 3) {
-                ForEach(Array([5, 11, 7, 15, 9, 13, 6].enumerated()), id: \.offset) { _, h in
-                    Capsule()
-                        .fill(Color.white.opacity(0.28))
-                        .frame(width: 2.5, height: CGFloat(h))
-                }
-            }
-
         case .recording:
-            HStack(spacing: 3) {
-                ForEach(0..<barCount, id: \.self) { i in
-                    Capsule()
-                        .fill(Color(red: 1, green: 0.27, blue: 0.21))
-                        .frame(width: 2.5, height: barHeight(index: i))
-                }
-            }
+            // helix is always big; voice pushes it from a tall baseline to full swing
+            DNAHelixView(phase: phase, amplitude: 0.6 + 0.4 * displayLevel, color: recColor)
+                .frame(width: 76, height: 22)
 
         case .transcribing:
-            HStack(spacing: 6) {
-                ForEach(0..<3, id: \.self) { i in
-                    Circle()
-                        .fill(Color.white.opacity(0.72))
-                        .frame(width: 5, height: 5)
-                        .scaleEffect(dotScale(index: i))
-                }
-            }
+            DNAHelixView(phase: phase, amplitude: 0.4, color: workColor)
+                .frame(width: 76, height: 22)
 
         case .rewriting:
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    ForEach(0..<3, id: \.self) { i in
-                        Circle()
-                            .fill(Color(red: 0.58, green: 0.42, blue: 1.0).opacity(0.82))
-                            .frame(width: 5, height: 5)
-                            .scaleEffect(dotScale(index: i))
-                    }
-                }
+            HStack(spacing: 7) {
+                DNAHelixView(phase: phase, amplitude: 0.4, color: smartColor)
+                    .frame(width: 44, height: 20)
                 Text("Rewriting")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.75))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.8))
             }
 
         case .done:
             HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 13, weight: .semibold))
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(AppTheme.success)
                 Text("Pasted")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white)
             }
-        }
-    }
 
-    private func barHeight(index: Int) -> CGFloat {
-        guard pillState == .recording else { return 4 }
-        let freq = barFreqs[index]
-        let ph   = barPhases[index]
-        let norm = sin(phase * freq + ph) * 0.5 + 0.5
-        return CGFloat(5 + norm * 22)
-    }
-
-    private func dotScale(index: Int) -> CGFloat {
-        let ph = Double(index) * .pi * 0.67
-        let v  = sin(dotPhase + ph) * 0.5 + 0.5
-        return CGFloat(0.55 + v * 0.65)
-    }
-
-    private var bgColor: Color {
-        switch pillState {
-        case .idle:         return Color(red: 0.13, green: 0.13, blue: 0.15)
-        case .recording:    return Color(red: 0.11, green: 0.04, blue: 0.04)
-        case .transcribing: return Color(red: 0.10, green: 0.10, blue: 0.13)
-        case .rewriting:    return Color(red: 0.10, green: 0.08, blue: 0.16)
-        case .done:         return Color(red: 0.07, green: 0.15, blue: 0.08)
-        case .hidden:       return .clear
+        case .idle, .hidden:
+            EmptyView()
         }
     }
 
     private var borderColor: Color {
         switch pillState {
-        case .idle:         return Color.white.opacity(0.08)
-        case .recording:    return Color(red: 1, green: 0.22, blue: 0.18).opacity(0.5)
-        case .transcribing: return Color.white.opacity(0.11)
-        case .rewriting:    return Color(red: 0.58, green: 0.42, blue: 1.0).opacity(0.4)
-        case .done:         return AppTheme.success.opacity(0.6)
-        case .hidden:       return .clear
+        case .recording:    return recColor.opacity(0.45)
+        case .transcribing: return Color.white.opacity(0.14)
+        case .rewriting:    return smartColor.opacity(0.4)
+        case .done:         return AppTheme.success.opacity(0.55)
+        case .idle, .hidden: return .clear
+        }
+    }
+
+    // Phase advances faster while processing to read as "working".
+    private func phaseStep(_ state: PillState) -> Double {
+        switch state {
+        case .recording:               return 0.13
+        case .transcribing, .rewriting: return 0.24
+        default:                        return 0
+        }
+    }
+
+    private func syncTimer(_ state: PillState) {
+        switch state {
+        case .recording, .transcribing, .rewriting: startTimer()
+        default: stopTimer()
         }
     }
 
     private func startTimer() {
         stopTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
-            phase    += 0.048
-            dotPhase += 0.09
+            phase += phaseStep(holder.state)
+            let target = CGFloat(min(1, max(0, holder.level * levelGain)))
+            displayLevel += (target - displayLevel) * 0.25
         }
     }
 
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+    }
+}
+
+// Two dot strands weaving in sine, π out of phase so they cross like a DNA helix.
+// `amplitude` (0–1) scales the vertical swing; the container size is fixed.
+private struct DNAHelixView: View {
+    let phase: Double
+    let amplitude: CGFloat
+    let color: Color
+
+    private let dotCount = 14
+
+    var body: some View {
+        Canvas { ctx, size in
+            let cy = size.height / 2
+            let maxAmp = max(0, size.height / 2 - 2)
+            let amp = maxAmp * min(1, max(0, amplitude))
+            let waves = 1.6
+            let r: CGFloat = 1.7
+
+            for i in 0..<dotCount {
+                let t = dotCount > 1 ? Double(i) / Double(dotCount - 1) : 0
+                let x = size.width * CGFloat(t)
+                let angle = t * waves * 2 * .pi + phase
+                let yA = cy + amp * CGFloat(sin(angle))
+                let yB = cy + amp * CGFloat(sin(angle + .pi))
+
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: x - r, y: yA - r, width: 2 * r, height: 2 * r)),
+                    with: .color(color)
+                )
+                ctx.fill(
+                    Path(ellipseIn: CGRect(x: x - r, y: yB - r, width: 2 * r, height: 2 * r)),
+                    with: .color(color.opacity(0.5))
+                )
+            }
+        }
     }
 }

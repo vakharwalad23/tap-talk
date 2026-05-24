@@ -35,6 +35,11 @@ pub struct RecordingResult {
     pub duration_secs: f32,
 }
 
+#[uniffi::export(callback_interface)]
+pub trait AudioLevelCallback: Send + Sync {
+    fn on_level(&self, rms: f32);
+}
+
 #[derive(uniffi::Object)]
 pub struct Recorder {
     inner: audio::AudioRecorder,
@@ -57,6 +62,11 @@ impl Recorder {
 
     pub fn is_recording(&self) -> bool {
         self.inner.is_recording()
+    }
+
+    /// Registers a sink for live mic RMS level (~30 Hz) to drive the recording pill.
+    pub fn set_level_callback(&self, callback: Box<dyn AudioLevelCallback>) {
+        self.inner.set_level_callback(Box::new(move |rms| callback.on_level(rms)));
     }
 
     /// Pre-creates the CoreAudio AudioUnit so the TCC mic dialog happens early.
@@ -132,6 +142,12 @@ impl Transcriber {
     pub fn load_model(&self, tier: u8, models_dir: String) -> Result<(), CoreError> {
         let engine = transcribe::WhisperEngine::load(tier, std::path::Path::new(&models_dir))
             .map_err(|msg| CoreError::Model { msg })?;
+
+        // Warm the encoder/ANE before the model is marked ready. Non-fatal — a cold
+        // first clip still works, just slower. Runs on the caller's background thread.
+        if let Err(e) = engine.warmup() {
+            eprintln!("tt-warmup: {e}");
+        }
 
         let mut guard = self.engine.lock().map_err(|e| CoreError::Model { msg: format!("{e}") })?;
         *guard = Some(engine);

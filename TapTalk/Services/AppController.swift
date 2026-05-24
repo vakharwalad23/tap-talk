@@ -25,6 +25,9 @@ final class AppController: ObservableObject {
     private var wakeObserver: NSObjectProtocol?
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var hasRequestedAccessibilityPermission = false
+    private var recordingWatchdog: DispatchWorkItem?
+
+    private let maxRecordingSeconds: TimeInterval = 120
 
     private init() {
         guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
@@ -126,6 +129,7 @@ final class AppController: ObservableObject {
     // up the CPAL stream in background.
     private func warmUpAudioStream() {
         let rec = recorder
+        rec.setLevelCallback(callback: PillLevelHandler())
         Task.detached {
             try? rec.warmUp()
         }
@@ -191,13 +195,32 @@ final class AppController: ObservableObject {
             state.status = "Recording..."
             AppRecordingState.shared.isRecording = true
             FloatingPillController.shared.show(state: .recording)
+            startRecordingWatchdog()
         } catch {
             state.status = "Error: \(error.localizedDescription)"
         }
     }
 
+    // Force-stops a recording that outlives the max duration — a final safety net
+    // against a missed key-release leaving the app stuck in recording.
+    private func startRecordingWatchdog() {
+        recordingWatchdog?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.state.recording else { return }
+            self.stopAndTranscribe()
+        }
+        recordingWatchdog = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + maxRecordingSeconds, execute: work)
+    }
+
+    private func cancelRecordingWatchdog() {
+        recordingWatchdog?.cancel()
+        recordingWatchdog = nil
+    }
+
     func cancelRecording() {
         guard state.recording else { return }
+        cancelRecordingWatchdog()
         _ = try? recorder.stop()
         state.cancel()
         state.status = "Cancelled"
@@ -215,6 +238,7 @@ final class AppController: ObservableObject {
 
     func stopAndTranscribe() {
         guard state.recording else { return }
+        cancelRecordingWatchdog()
 
         let smartMode       = state.smartMode
         let hotkeyTriggered = state.hotkeyTriggered
@@ -403,6 +427,15 @@ final class AppController: ObservableObject {
             let config = NSWorkspace.OpenConfiguration()
             NSWorkspace.shared.openApplication(at: url, configuration: config)
             NSApp.terminate(nil)
+        }
+    }
+}
+
+// Forwards live mic RMS from the Rust recorder to the floating pill on the main thread.
+private final class PillLevelHandler: AudioLevelCallback {
+    func onLevel(rms: Float) {
+        DispatchQueue.main.async {
+            FloatingPillController.shared.setLevel(rms)
         }
     }
 }

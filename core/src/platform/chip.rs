@@ -7,6 +7,7 @@ pub enum ChipFamily {
     M2,
     M3,
     M4,
+    M5,
     Unknown,
 }
 
@@ -30,7 +31,9 @@ fn detect_uncached() -> ChipInfo {
 }
 
 fn parse_family(brand: &str) -> ChipFamily {
-    if brand.contains("M4") {
+    if brand.contains("M5") {
+        ChipFamily::M5
+    } else if brand.contains("M4") {
         ChipFamily::M4
     } else if brand.contains("M3") {
         ChipFamily::M3
@@ -112,6 +115,7 @@ mod tests {
         assert_eq!(parse_family("Apple M2 Max"), ChipFamily::M2);
         assert_eq!(parse_family("Apple M3"), ChipFamily::M3);
         assert_eq!(parse_family("Apple M4 Pro"), ChipFamily::M4);
+        assert_eq!(parse_family("Apple M5 Max"), ChipFamily::M5);
         assert_eq!(parse_family("Apple A12"), ChipFamily::Unknown);
     }
 }

@@ -31,6 +31,11 @@ final class FloatingPillController {
         }
     }
 
+    // Live mic RMS for the recording waveform. Cheap — read by the pill's render timer.
+    func setLevel(_ rms: Float) {
+        holder.level = rms
+    }
+
     // Returns to idle — pill stays visible
     func hide() {
         autoHideWork?.cancel()

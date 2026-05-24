@@ -3,6 +3,9 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use rubato::{SincFixedIn, SincInterpolationParameters, SincInterpolationType, Resampler, WindowFunction};
 
 const TARGET_SAMPLE_RATE: u32 = 16_000;
+const LEVEL_EMIT_HZ: u32 = 30;
+
+type LevelFn = Box<dyn Fn(f32) + Send>;
 
 struct PersistentStream {
     stream: cpal::Stream,
@@ -18,6 +21,7 @@ pub struct AudioRecorder {
     recording: Arc<AtomicBool>,
     buffer: Arc<Mutex<Vec<f32>>>,
     stream_state: Mutex<Option<PersistentStream>>,
+    level_sink: Arc<Mutex<Option<LevelFn>>>,
 }
 
 impl AudioRecorder {
@@ -26,11 +30,20 @@ impl AudioRecorder {
             recording: Arc::new(AtomicBool::new(false)),
             buffer: Arc::new(Mutex::new(Vec::with_capacity(16_000 * 30))),
             stream_state: Mutex::new(None),
+            level_sink: Arc::new(Mutex::new(None)),
         }
     }
 
     pub fn is_recording(&self) -> bool {
         self.recording.load(Ordering::Relaxed)
+    }
+
+    // Registers a sink for live mic RMS (~30 Hz) used to drive the pill animation.
+    // Read by the audio thread each emit tick, so it can be set before or after the stream exists.
+    pub fn set_level_callback(&self, callback: LevelFn) {
+        if let Ok(mut guard) = self.level_sink.lock() {
+            *guard = Some(callback);
+        }
     }
 
     // Creates the CoreAudio stream once; subsequent calls are a no-op.
@@ -54,6 +67,9 @@ impl AudioRecorder {
 
         let buf_ref = Arc::clone(&self.buffer);
         let rec_ref = Arc::clone(&self.recording);
+        let level_ref = Arc::clone(&self.level_sink);
+        let emit_interval = (source_rate / LEVEL_EMIT_HZ).max(1);
+        let mut frames_since_emit: u32 = 0;
 
         let stream = device.build_input_stream(
             &config.into(),
@@ -66,6 +82,20 @@ impl AudioRecorder {
                         for frame in data.chunks(channels) {
                             let sum: f32 = frame.iter().sum();
                             buf.push(sum / channels as f32);
+                        }
+                    }
+                }
+
+                // Throttled RMS for the pill waveform.
+                let frame_count = (data.len() / channels.max(1)) as u32;
+                frames_since_emit += frame_count;
+                if frames_since_emit >= emit_interval && !data.is_empty() {
+                    frames_since_emit = 0;
+                    let sum_sq: f32 = data.iter().map(|s| s * s).sum();
+                    let rms = (sum_sq / data.len() as f32).sqrt();
+                    if let Ok(guard) = level_ref.try_lock() {
+                        if let Some(ref sink) = *guard {
+                            sink(rms);
                         }
                     }
                 }
