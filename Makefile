@@ -1,4 +1,4 @@
-.PHONY: all rust bindings xcode build run kill clean release notarize staple dmg dmg-unsigned
+.PHONY: all rust bindings xcode build run install kill clean release notarize staple dmg dmg-unsigned
 
 all: build
 
@@ -20,6 +20,26 @@ build: xcode
 
 run: build
 	open build/Build/Products/Debug/TapTalk.app
+
+# Builds an optimized app and installs it to /Applications as a STATIC binary.
+# Because it isn't rebuilt on every launch, macOS keeps the mic + accessibility
+# grants (unlike `make run`, whose ad-hoc hash changes each build and resets them).
+# Grant permissions once after installing; re-grant only after the next `make install`.
+install:
+	cd core && cargo build --release
+	cd core && cargo run --release --bin uniffi-bindgen generate \
+		--library target/release/libtap_talk_core.a \
+		--language swift --out-dir ../TapTalk/Generated
+	xcodegen generate
+	xcodebuild -project TapTalk.xcodeproj -scheme TapTalk -configuration Release \
+		-derivedDataPath build ONLY_ACTIVE_ARCH=YES \
+		CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO 2>&1 | tail -5
+	@pkill -x TapTalk 2>/dev/null || true
+	rm -rf /Applications/TapTalk.app
+	cp -R build/Build/Products/Release/TapTalk.app /Applications/TapTalk.app
+	@echo ""
+	@echo "Installed /Applications/TapTalk.app — launch from Spotlight and grant"
+	@echo "Microphone + Accessibility once. Grants persist until the next 'make install'."
 
 kill:
 	@pkill -x TapTalk 2>/dev/null && echo "TapTalk stopped" || echo "TapTalk not running"
