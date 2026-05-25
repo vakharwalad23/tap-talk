@@ -155,6 +155,12 @@ impl Transcriber {
         }
     }
 
+    /// Whether a model is currently loaded — lets the caller reload on demand after an
+    /// idle release without tracking state separately.
+    pub fn is_loaded(&self) -> bool {
+        self.engine.lock().map(|g| g.is_some()).unwrap_or(false)
+    }
+
     pub fn transcribe(&self, samples: Vec<f32>, language: Option<String>) -> Result<TranscriptionResult, CoreError> {
         // whisper.cpp needs at least ~0.1s of audio at 16kHz
         if samples.len() < 1600 {

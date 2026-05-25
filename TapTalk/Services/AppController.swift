@@ -31,6 +31,27 @@ final class AppController: ObservableObject {
     // Stable owner for the Rust level callback — its lifetime must outlast the audio thread.
     private let levelHandler = PillLevelHandler()
 
+    // Bumped on every engine (re)load so a superseded async load/unload can no-op instead
+    // of racing the newer one. All engine load/unload runs serialized through engineTask.
+    private var engineLoadGeneration = 0
+    private var engineTask: Task<Void, Never>?
+    // Releases the loaded model after a period of inactivity so an idle app holds no model.
+    private var idleReleaseTimer: Timer?
+    private let idleReleaseSeconds: TimeInterval = 300
+
+    // AppleSpeechEngine is macOS 26+, so it can't be a plain stored property. Cache one
+    // instance behind a main-isolated, availability-gated accessor (avoids per-call setup
+    // and keeps appleEngineStorage access single-threaded).
+    private var appleEngineStorage: Any?
+    @available(macOS 26, *)
+    @MainActor
+    private var apple: AppleSpeechEngine {
+        if let engine = appleEngineStorage as? AppleSpeechEngine { return engine }
+        let engine = AppleSpeechEngine()
+        appleEngineStorage = engine
+        return engine
+    }
+
     private let maxRecordingSeconds: TimeInterval = 120
 
     private init() {
@@ -54,11 +75,21 @@ final class AppController: ObservableObject {
     /// Called once at app launch.
     func setup() {
         suppressAppNap()
+        sweepDownloadResidue()
         refresh()
         FloatingPillController.shared.hide()
         resolveMicThenSetupHotkey()
         observeBackendChanges()
         observeSystemEvents()
+    }
+
+    // Reclaims disk from downloads interrupted by a previous app quit (the Rust core sweeps
+    // its own dir at init). Best-effort, off the main thread.
+    private func sweepDownloadResidue() {
+        Task.detached {
+            WhisperKitEngine.sweepOrphans()
+            ParakeetEngine.sweepOrphans()
+        }
     }
 
     private func observeSystemEvents() {
@@ -104,13 +135,15 @@ final class AppController: ObservableObject {
             }
             .store(in: &settingsCancellables)
 
-        // Reload the active engine when the user switches transcription engine (local
-        // whisper ↔ parakeet ↔ cloud).
+        // Reload the active engine when the user switches transcription engine or local model.
         settings.$localEngine
             .combineLatest(settings.$transcriptionEngine)
             .dropFirst()
             .receive(on: RunLoop.main)
-            .sink { [weak self] _, _ in self?.refresh() }
+            .sink { [weak self] _, _ in
+                self?.clearTranscript()   // the old result belongs to the old engine
+                self?.refresh()
+            }
             .store(in: &settingsCancellables)
 
         // Reload when the active WhisperKit model changes.
@@ -119,9 +152,17 @@ final class AppController: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self, self.settings.localEngine == .whisperKit else { return }
+                self.clearTranscript()
                 self.loadSelectedTier()
             }
             .store(in: &settingsCancellables)
+    }
+
+    private func clearTranscript() {
+        state.transcriptText = ""
+        state.transcriptLang = ""
+        state.transcriptMs = 0
+        state.audioDuration = 0
     }
 
     // Ensures mic permission is resolved before the hotkey goes live.
@@ -179,110 +220,147 @@ final class AppController: ObservableObject {
         }
     }
 
+    private enum ActiveEngine { case whisper, parakeet, whisperKit, apple, none }
+
+    private enum EnginePlan {
+        case cloud
+        case whisper(tier: UInt8, name: String)
+        case parakeet
+        case whisperKit(WhisperKitEngine.Model)
+        case apple
+        case unavailable(status: String)
+    }
+
     func loadSelectedTier() {
-        guard settings.transcriptionEngine == .local else {
-            // Cloud — free all local engines' memory.
-            transcriber.unload()
-            Task { await parakeet.unload() }
-            Task { await whisperKit.unload() }
-            state.setModel(.ready)
-            state.status = "Cloud (OpenAI)"
-            return
+        engineLoadGeneration &+= 1
+        let gen = engineLoadGeneration
+        let plan = resolveEnginePlan()
+
+        // Immediate UI feedback before the (serialized) load runs.
+        switch plan {
+        case .cloud:                state.setModel(.ready);   state.status = "Cloud (OpenAI)"
+        case .apple:                state.setModel(.ready);   state.status = "Apple Speech ready"
+        case .whisper(_, let name): state.setModel(.loading); state.status = "Loading \(name)..."
+        case .parakeet:             state.setModel(.loading); state.status = "Loading Parakeet..."
+        case .whisperKit(let m):    state.setModel(.loading); state.status = "Loading WhisperKit \(m.displayName)..."
+        case .unavailable(let s):   state.setModel(.none);    state.status = s
         }
 
-        if settings.localEngine == .parakeet {
-            transcriber.unload()  // free the whisper model + Core ML encoder
-            Task { await whisperKit.unload() }
-            guard ParakeetEngine.isInstalled() else {
-                state.setModel(.none)
-                state.status = "Parakeet not installed — download it in Models"
-                return
-            }
-            state.setModel(.loading)
-            state.status = "Loading Parakeet..."
-            Task.detached { [weak self] in
-                guard let self = self else { return }
-                do {
-                    try await self.parakeet.ensureLoaded()
-                    await MainActor.run {
-                        self.state.setModel(.ready)
-                        self.state.status = "Parakeet ready"
-                    }
-                } catch {
-                    await MainActor.run {
-                        self.state.setModel(.none)
-                        self.state.status = "Parakeet failed: \(error.localizedDescription)"
-                    }
-                }
-            }
-            return
+        // Serialize all engine load/unload through one chain so a rapid switch can't run an
+        // unload after the next load; stale plans no-op via the generation check.
+        let previous = engineTask
+        engineTask = Task { [weak self] in
+            await previous?.value
+            guard let self, await self.isCurrentGeneration(gen) else { return }
+            await self.applyEnginePlan(plan, generation: gen)
         }
+    }
 
-        if settings.localEngine == .whisperKit {
-            transcriber.unload()
-            Task { await parakeet.unload() }
-            let model = settings.whisperKitModel
-            guard WhisperKitEngine.isInstalled(model) else {
-                state.setModel(.none)
-                state.status = "WhisperKit \(model.displayName) not installed — download it in Models"
-                return
+    private func resolveEnginePlan() -> EnginePlan {
+        guard settings.transcriptionEngine == .local else { return .cloud }
+        switch settings.localEngine {
+        case .whisper:
+            let tier = settings.selectedTier
+            guard installedTiers.contains(tier) else {
+                return .unavailable(status: installedTiers.isEmpty ? "No models installed" : "Select an installed model")
             }
-            state.setModel(.loading)
-            state.status = "Loading WhisperKit \(model.displayName)..."
-            Task.detached { [weak self] in
-                guard let self = self else { return }
-                do {
-                    try await self.whisperKit.ensureLoaded(model)
-                    await MainActor.run {
-                        self.state.setModel(.ready)
-                        self.state.status = "WhisperKit \(model.displayName) ready"
-                    }
-                } catch {
-                    await MainActor.run {
-                        self.state.setModel(.none)
-                        self.state.status = "WhisperKit failed: \(error.localizedDescription)"
-                    }
-                }
-            }
-            return
+            let name = availableTiers().first(where: { $0.id == tier })?.name ?? ""
+            return .whisper(tier: tier, name: name)
+        case .parakeet:
+            return ParakeetEngine.isInstalled()
+                ? .parakeet
+                : .unavailable(status: "Parakeet not installed — download it in Models")
+        case .whisperKit:
+            let m = settings.whisperKitModel
+            return WhisperKitEngine.isInstalled(m)
+                ? .whisperKit(m)
+                : .unavailable(status: "WhisperKit \(m.displayName) not installed — download it in Models")
+        case .appleSpeech:
+            if #available(macOS 26, *) { return .apple }
+            return .unavailable(status: "Apple Speech requires macOS 26")
         }
+    }
 
-        if settings.localEngine == .appleSpeech {
-            transcriber.unload()
-            Task { await parakeet.unload() }
-            Task { await whisperKit.unload() }
-            if #available(macOS 26, *) {
-                state.setModel(.ready)
-                state.status = "Apple Speech ready"
-            } else {
-                state.setModel(.none)
-                state.status = "Apple Speech requires macOS 26"
-            }
-            return
+    private func applyEnginePlan(_ plan: EnginePlan, generation gen: Int) async {
+        switch plan {
+        case .whisper:             await releaseEngines(keep: .whisper)
+        case .parakeet:            await releaseEngines(keep: .parakeet)
+        case .whisperKit:          await releaseEngines(keep: .whisperKit)
+        case .apple:               await releaseEngines(keep: .apple)
+        case .cloud, .unavailable: await releaseEngines(keep: .none)
         }
+        guard await isCurrentGeneration(gen) else { return }
 
-        Task { await parakeet.unload() }   // free other engines when on whisper
-        Task { await whisperKit.unload() }
-        let tier = settings.selectedTier
-        guard installedTiers.contains(tier) else { return }
-        state.setModel(.loading)
-        let tierName = availableTiers().first(where: { $0.id == tier })?.name ?? ""
-        state.status = "Loading \(tierName)..."
-
-        Task.detached { [weak self] in
-            guard let self = self else { return }
+        switch plan {
+        case .cloud, .apple, .unavailable:
+            return  // nothing to load; UI already set
+        case .whisper(let tier, let name):
             do {
-                try self.transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
-                await MainActor.run {
-                    self.state.setModel(.ready)
-                    self.state.status = "\(tierName) ready"
-                }
+                try transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
+                await finishLoad(gen, model: .ready, status: "\(name) ready")
             } catch {
-                await MainActor.run {
-                    self.state.setModel(.none)
-                    self.state.status = "Failed: \(error.localizedDescription)"
-                }
+                await finishLoad(gen, model: .none, status: "Failed: \(error.localizedDescription)")
             }
+        case .parakeet:
+            do {
+                try await parakeet.ensureLoaded()
+                await finishLoad(gen, model: .ready, status: "Parakeet ready")
+            } catch {
+                await finishLoad(gen, model: .none, status: "Parakeet failed: \(error.localizedDescription)")
+            }
+        case .whisperKit(let m):
+            do {
+                try await whisperKit.ensureLoaded(m)
+                await finishLoad(gen, model: .ready, status: "WhisperKit \(m.displayName) ready")
+            } catch {
+                await finishLoad(gen, model: .none, status: "WhisperKit failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    // Unloads every engine except the one being kept, freeing its RAM/ANE footprint.
+    private func releaseEngines(keep: ActiveEngine) async {
+        if keep != .whisper { transcriber.unload() }
+        if keep != .parakeet { await parakeet.unload() }
+        if keep != .whisperKit { await whisperKit.unload() }
+        if #available(macOS 26, *), keep != .apple {
+            let apple = await MainActor.run { self.appleEngineStorage as? AppleSpeechEngine }
+            if let apple { await apple.unload() }
+        }
+    }
+
+    @MainActor private func isCurrentGeneration(_ gen: Int) -> Bool { engineLoadGeneration == gen }
+
+    @MainActor private func finishLoad(_ gen: Int, model: RecordingState.ModelStatus, status: String) {
+        guard engineLoadGeneration == gen else { return }
+        state.setModel(model)
+        state.status = status
+        if model == .ready { scheduleIdleRelease() }
+    }
+
+    // MARK: Idle release
+
+    private func scheduleIdleRelease() {
+        idleReleaseTimer?.invalidate()
+        idleReleaseTimer = Timer.scheduledTimer(withTimeInterval: idleReleaseSeconds, repeats: false) { [weak self] _ in
+            self?.releaseIdleEngines()
+        }
+    }
+
+    private func cancelIdleRelease() {
+        idleReleaseTimer?.invalidate()
+        idleReleaseTimer = nil
+    }
+
+    // Frees the resident model after inactivity. modelStatus stays .ready so recording still
+    // works — the transcribe path reloads on demand (ensureLoaded / is_loaded).
+    private func releaseIdleEngines() {
+        guard state.phase == .idle else { return }
+        engineLoadGeneration &+= 1
+        let previous = engineTask
+        engineTask = Task { [weak self] in
+            await previous?.value
+            await self?.releaseEngines(keep: .none)
         }
     }
 
@@ -296,6 +374,7 @@ final class AppController: ObservableObject {
 
     func startRecording(hotkey: Bool, smart: Bool) {
         guard state.canRecord else { return }
+        cancelIdleRelease()
         if state.transcribing { cancelTranscription() }
         do {
             try recorder.start()
@@ -360,6 +439,7 @@ final class AppController: ObservableObject {
         let engine     = settings.transcriptionEngine
         let localEngine = settings.localEngine
         let wkModel    = settings.whisperKitModel
+        let tier       = settings.selectedTier
         let cloudModel = settings.cloudModel
         let apiKey     = settings.apiKey
         let segments   = settings.dictionarySegments
@@ -392,18 +472,24 @@ final class AppController: ObservableObject {
                     )
                 } else if localEngine == .parakeet {
                     let out = try await self.parakeet.transcribe(samples: audio.samples)
-                    result = TranscriptionResult(text: out.text, language: lang ?? "en", durationMs: out.processingMs)
+                    // Parakeet auto-detects (EU); don't fabricate a specific language label.
+                    result = TranscriptionResult(text: out.text, language: "auto", durationMs: out.processingMs)
                 } else if localEngine == .whisperKit {
                     let out = try await self.whisperKit.transcribe(samples: audio.samples, language: lang, model: wkModel)
                     result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
                 } else if localEngine == .appleSpeech {
                     if #available(macOS 26, *) {
-                        let out = try await AppleSpeechEngine().transcribe(samples: audio.samples, language: lang)
+                        let apple = await MainActor.run { self.apple }
+                        let out = try await apple.transcribe(samples: audio.samples, language: lang)
                         result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
                     } else {
                         throw CoreError.Transcription(msg: "Apple Speech requires macOS 26")
                     }
                 } else {
+                    // Reload on demand if an idle release unloaded the model.
+                    if !self.transcriber.isLoaded() {
+                        try self.transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
+                    }
                     result = try self.transcriber.transcribe(
                         samples: audio.samples,
                         language: lang
@@ -458,6 +544,7 @@ final class AppController: ObservableObject {
                             FloatingPillController.shared.hide()
                         }
                     }
+                    self.scheduleIdleRelease()
                 }
             } catch {
                 await MainActor.run {
@@ -465,6 +552,7 @@ final class AppController: ObservableObject {
                     self.state.finish()
                     self.state.status = "Error: \(error.localizedDescription)"
                     FloatingPillController.shared.hide()
+                    self.scheduleIdleRelease()
                 }
             }
         }
