@@ -1,27 +1,48 @@
 import Foundation
 import FluidAudio
 
-// Local NVIDIA Parakeet (TDT 0.6B) engine via FluidAudio (Core ML / Apple Neural Engine).
-// Runs on the already-captured 16 kHz mono samples — a second engine alongside the Rust
-// whisper.cpp core, never touching the capture layer.
+// Local NVIDIA Parakeet (TDT 0.6B v3) engine via FluidAudio (Core ML / Apple Neural
+// Engine). A second engine alongside the Rust whisper.cpp core. The model is downloaded
+// only on explicit user action from the model catalog — never auto-downloaded.
 actor ParakeetEngine {
+    private static let version: AsrModelVersion = .v3
+
     private var manager: AsrManager?
 
     enum EngineError: LocalizedError {
-        case notLoaded
+        case notInstalled
         var errorDescription: String? {
             switch self {
-            case .notLoaded: return "Parakeet model not loaded"
+            case .notInstalled: return "Parakeet model not installed — download it in Models"
             }
         }
     }
 
-    var isLoaded: Bool { manager != nil }
+    // Is the Parakeet model present on disk? (No download.)
+    nonisolated static func isInstalled() -> Bool {
+        AsrModels.modelsExist(at: AsrModels.defaultCacheDirectory(for: version), version: version)
+    }
 
-    // Downloads (first run) and loads the Parakeet v3 Core ML models. Idempotent.
+    // User-initiated download with progress in [0, 1]. Called from the catalog UI.
+    nonisolated static func download(progress: @escaping @Sendable (Double) -> Void) async throws {
+        _ = try await AsrModels.download(version: version, progressHandler: { p in
+            progress(p.fractionCompleted)
+        })
+    }
+
+    // Removes the downloaded model to reclaim disk.
+    nonisolated static func delete() throws {
+        let dir = AsrModels.defaultCacheDirectory(for: version)
+        if FileManager.default.fileExists(atPath: dir.path) {
+            try FileManager.default.removeItem(at: dir)
+        }
+    }
+
+    // Loads the already-downloaded model. Throws .notInstalled if absent — never downloads.
     func ensureLoaded() async throws {
         guard manager == nil else { return }
-        let models = try await AsrModels.downloadAndLoad(version: .v3)
+        guard Self.isInstalled() else { throw EngineError.notInstalled }
+        let models = try await AsrModels.loadFromCache(version: Self.version)
         let asr = AsrManager(config: .default)
         try await asr.loadModels(models)
         manager = asr
@@ -29,7 +50,7 @@ actor ParakeetEngine {
 
     func transcribe(samples: [Float]) async throws -> String {
         try await ensureLoaded()
-        guard let manager else { throw EngineError.notLoaded }
+        guard let manager else { throw EngineError.notInstalled }
         // Fresh decoder state per clip (batch use); layer count must match the model.
         var decoderState = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
         let result = try await manager.transcribe(samples, decoderState: &decoderState)

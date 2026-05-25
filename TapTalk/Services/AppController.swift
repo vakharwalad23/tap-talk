@@ -173,6 +173,11 @@ final class AppController: ObservableObject {
         }
 
         if settings.localEngine == .parakeet {
+            guard ParakeetEngine.isInstalled() else {
+                state.setModel(.none)
+                state.status = "Parakeet not installed — download it in Models"
+                return
+            }
             state.setModel(.loading)
             state.status = "Loading Parakeet..."
             Task.detached { [weak self] in

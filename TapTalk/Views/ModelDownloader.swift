@@ -31,6 +31,7 @@ struct ModelDownloader: View {
                 ForEach(tiers, id: \.id) { tier in
                     tierCard(tier)
                 }
+                ParakeetCard()
             }
         }
         .onAppear { refreshInstalled() }
@@ -370,4 +371,129 @@ private class ProgressHandler: DownloadProgressCallback {
     let handler: (DownloadProgressInfo) -> Void
     init(_ handler: @escaping (DownloadProgressInfo) -> Void) { self.handler = handler }
     func onProgress(progress: DownloadProgressInfo) { handler(progress) }
+}
+
+@MainActor
+private final class ParakeetDownloadModel: ObservableObject {
+    @Published var installed = ParakeetEngine.isInstalled()
+    @Published var downloading = false
+    @Published var progress: Double = 0
+
+    func download() {
+        downloading = true
+        progress = 0
+        Task {
+            do {
+                try await ParakeetEngine.download { p in
+                    Task { @MainActor in self.progress = p }
+                }
+                self.downloading = false
+                self.installed = true
+                AppController.shared.refresh()
+            } catch {
+                self.downloading = false
+            }
+        }
+    }
+
+    func remove() {
+        try? ParakeetEngine.delete()
+        installed = false
+        AppController.shared.refresh()
+    }
+}
+
+// Catalog card for the optional Parakeet engine. Download is user-initiated (never auto).
+private struct ParakeetCard: View {
+    @StateObject private var model = ParakeetDownloadModel()
+    @State private var pendingRemoval = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 7) {
+                Text("Parakeet")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppTheme.primary)
+                Text("Optimized")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2.5)
+                    .background(AppTheme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                Spacer()
+                Text("~490 MB")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppTheme.secondary)
+                    .monospacedDigit()
+            }
+
+            HStack(alignment: .center) {
+                Text("Faster · English + EU · built-in punctuation")
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.tertiary)
+
+                Spacer()
+
+                if model.downloading {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small).tint(AppTheme.secondary)
+                        Text("Downloading")
+                            .font(.system(size: 11))
+                            .foregroundStyle(AppTheme.secondary)
+                    }
+                } else if model.installed {
+                    HStack(spacing: 10) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(AppTheme.success)
+                                .font(.system(size: 13))
+                            Text("Installed")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(AppTheme.success)
+                        }
+                        Button { pendingRemoval = true } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundStyle(AppTheme.danger)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Button("Download") { model.download() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AppTheme.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(AppTheme.divider)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+            }
+
+            if model.downloading {
+                VStack(alignment: .trailing, spacing: 3) {
+                    ProgressView(value: model.progress)
+                        .tint(AppTheme.accent)
+                    Text("\(Int(model.progress * 100))%")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(AppTheme.secondary)
+                        .monospacedDigit()
+                }
+            }
+        }
+        .padding(14)
+        .background(AppTheme.sectionBg)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(AppTheme.divider, lineWidth: 1)
+        )
+        .alert("Remove Parakeet model?", isPresented: $pendingRemoval) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) { model.remove() }
+        } message: {
+            Text("Frees ~490 MB. You can re-download it anytime.")
+        }
+    }
 }
