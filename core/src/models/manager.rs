@@ -56,6 +56,17 @@ impl ModelManager {
         if ds_store.is_file() {
             let _ = fs::remove_file(&ds_store);
         }
+
+        // Remove leftover *.partial / *.zip.partial downloads from a session that quit or
+        // failed mid-download — they are never resumed, so they are pure wasted disk.
+        if let Ok(entries) = fs::read_dir(&self.models_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) == Some("partial") {
+                    let _ = fs::remove_file(&path);
+                }
+            }
+        }
     }
 
     pub fn models_dir(&self) -> &Path {
@@ -174,7 +185,10 @@ impl ModelManager {
             });
         };
 
-        stream_to_file(&url, &partial, &on_progress)?;
+        if let Err(e) = stream_to_file(&url, &partial, &on_progress) {
+            let _ = fs::remove_file(&partial);
+            return Err(e);
+        }
 
         fs::rename(&partial, &dest).map_err(|e| {
             let _ = fs::remove_file(&partial);

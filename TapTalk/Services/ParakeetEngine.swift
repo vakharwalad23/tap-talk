@@ -25,9 +25,23 @@ actor ParakeetEngine {
 
     // User-initiated download with progress in [0, 1]. Called from the catalog UI.
     nonisolated static func download(progress: @escaping @Sendable (Double) -> Void) async throws {
-        _ = try await AsrModels.download(version: version, progressHandler: { p in
-            progress(p.fractionCompleted)
-        })
+        do {
+            _ = try await AsrModels.download(version: version, progressHandler: { p in
+                progress(p.fractionCompleted)
+            })
+        } catch {
+            sweepOrphans()   // remove a partially-downloaded model dir
+            throw error
+        }
+    }
+
+    // Removes a partially-downloaded model dir (present but incomplete) to reclaim disk.
+    nonisolated static func sweepOrphans() {
+        guard !isInstalled() else { return }
+        let dir = AsrModels.defaultCacheDirectory(for: version)
+        if FileManager.default.fileExists(atPath: dir.path) {
+            try? FileManager.default.removeItem(at: dir)
+        }
     }
 
     // Removes the downloaded model to reclaim disk.
