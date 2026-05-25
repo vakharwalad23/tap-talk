@@ -413,6 +413,7 @@ final class AppController: ObservableObject {
         state.status = "Cancelled"
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.hide()
+        scheduleIdleRelease()
     }
 
     func cancelTranscription() {
@@ -421,6 +422,7 @@ final class AppController: ObservableObject {
         state.cancel()
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.hide()
+        scheduleIdleRelease()
     }
 
     func stopAndTranscribe() {
