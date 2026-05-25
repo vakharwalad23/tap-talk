@@ -10,7 +10,11 @@ struct RecordView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
+                if settings.transcriptionEngine == .local && settings.localEngine == .parakeet {
+                    parakeetChip
+                } else {
+                    ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
+                }
                 LanguagePicker(selectedLanguage: $settings.selectedLanguage)
                 Spacer()
             }
@@ -84,4 +88,20 @@ struct RecordView: View {
     }
 
     private var keyLabel: String { AppTheme.keyLabel(for: settings.hotkeyCode) }
+
+    private var parakeetChip: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "bolt.fill").font(.system(size: 10))
+            Text("Parakeet").font(.system(size: 12, weight: .medium))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .frame(width: 160, alignment: .leading)
+        .background(AppTheme.sectionBg)
+        .foregroundStyle(AppTheme.primary)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6).stroke(AppTheme.divider, lineWidth: 1)
+        )
+    }
 }

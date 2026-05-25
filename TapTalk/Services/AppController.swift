@@ -325,8 +325,8 @@ final class AppController: ObservableObject {
                         apiKey: apiKey
                     )
                 } else if localEngine == .parakeet {
-                    let text = try await self.parakeet.transcribe(samples: audio.samples)
-                    result = TranscriptionResult(text: text, language: lang ?? "unknown", durationMs: 0)
+                    let out = try await self.parakeet.transcribe(samples: audio.samples)
+                    result = TranscriptionResult(text: out.text, language: lang ?? "auto", durationMs: out.processingMs)
                 } else {
                     result = try self.transcriber.transcribe(
                         samples: audio.samples,

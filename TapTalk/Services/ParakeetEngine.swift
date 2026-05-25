@@ -48,12 +48,20 @@ actor ParakeetEngine {
         manager = asr
     }
 
-    func transcribe(samples: [Float]) async throws -> String {
+    struct Output {
+        let text: String
+        let processingMs: UInt64
+    }
+
+    func transcribe(samples: [Float]) async throws -> Output {
         try await ensureLoaded()
         guard let manager else { throw EngineError.notInstalled }
         // Fresh decoder state per clip (batch use); layer count must match the model.
         var decoderState = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
         let result = try await manager.transcribe(samples, decoderState: &decoderState)
-        return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return Output(
+            text: result.text.trimmingCharacters(in: .whitespacesAndNewlines),
+            processingMs: UInt64(max(0, result.processingTime) * 1000)
+        )
     }
 }
