@@ -31,7 +31,7 @@ struct ContentView: View {
         case .record:
             RecordView()
         case .models:
-            ModelsPage(onModelReady: { selection = .record })
+            ModelsPage()
         case .settings:
             SettingsView()
         case .intelligence:
@@ -84,8 +84,6 @@ struct SidebarView: View {
 }
 
 struct ModelsPage: View {
-    var onModelReady: () -> Void
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -98,10 +96,7 @@ struct ModelsPage: View {
                         .foregroundStyle(AppTheme.tertiary)
                 }
 
-                ModelDownloader(manager: AppController.shared.manager, onModelChanged: {
-                    AppController.shared.refresh()
-                    onModelReady()
-                })
+                ModelDownloader()
 
                 Spacer()
             }

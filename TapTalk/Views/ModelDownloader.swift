@@ -1,30 +1,18 @@
 import SwiftUI
 
 struct ModelDownloader: View {
-    let manager: ModelManager
-    let onModelChanged: () -> Void
-
-    @State private var installedTiers: Set<UInt8> = []
-    @State private var missingCoreml: Set<UInt8> = []
-    @State private var downloading: UInt8? = nil
-    @State private var downloadPhase: DownloadPhase = .ggml
-    @State private var progress: Double = 0
-    @State private var downloadedMB: Double = 0
-    @State private var totalMB: Double = 0
+    // Download state lives in an app-lifetime singleton so progress survives navigating
+    // away from the Models page and back.
+    @ObservedObject private var whisper = WhisperModelDownloadManager.shared
     @State private var bannerDismissed: Bool = UserDefaults.standard.bool(forKey: bannerDismissedKey)
-    @State private var coremlQueue: [UInt8] = []
     @State private var pendingCoremlRemoval: UInt8? = nil
 
     private static let bannerDismissedKey = "tt.coreml.banner.dismissed"
     private let tiers = availableTiers()
 
-    private func hasCoreml(_ tierId: UInt8) -> Bool {
-        installedTiers.contains(tierId) && !missingCoreml.contains(tierId)
-    }
-
     var body: some View {
         VStack(spacing: 12) {
-            if !missingCoreml.isEmpty && !bannerDismissed {
+            if !whisper.missingCoreml.isEmpty && !bannerDismissed {
                 coremlBanner
             }
             VStack(spacing: 8) {
@@ -39,7 +27,7 @@ struct ModelDownloader: View {
                 }
             }
         }
-        .onAppear { refreshInstalled() }
+        .onAppear { whisper.refreshInstalled() }
         .alert(
             "Remove Neural Engine optimization?",
             isPresented: Binding(
@@ -49,7 +37,7 @@ struct ModelDownloader: View {
         ) {
             Button("Cancel", role: .cancel) { pendingCoremlRemoval = nil }
             Button("Remove", role: .destructive) {
-                if let tier = pendingCoremlRemoval { removeOptimization(tier) }
+                if let tier = pendingCoremlRemoval { whisper.removeOptimization(tier) }
                 pendingCoremlRemoval = nil
             }
         } message: {
@@ -74,7 +62,7 @@ struct ModelDownloader: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 8) {
-                    Button("Optimize") { startCoremlMigration() }
+                    Button("Optimize") { whisper.startCoremlMigration() }
                         .buttonStyle(.plain)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white)
@@ -82,14 +70,14 @@ struct ModelDownloader: View {
                         .padding(.vertical, 5)
                         .background(AppTheme.accent)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .disabled(downloading != nil)
-                        .opacity(downloading != nil ? 0.4 : 1)
+                        .disabled(whisper.downloading != nil)
+                        .opacity(whisper.downloading != nil ? 0.4 : 1)
 
                     Button("Not now") { dismissBanner() }
                         .buttonStyle(.plain)
                         .font(.system(size: 12))
                         .foregroundStyle(AppTheme.secondary)
-                        .disabled(downloading != nil)
+                        .disabled(whisper.downloading != nil)
                 }
                 .padding(.top, 4)
             }
@@ -106,8 +94,8 @@ struct ModelDownloader: View {
 
     @ViewBuilder
     private func tierCard(_ tier: ModelTierInfo) -> some View {
-        let installed = installedTiers.contains(tier.id)
-        let isDownloading = downloading == tier.id
+        let installed = whisper.installedTiers.contains(tier.id)
+        let isDownloading = whisper.downloading == tier.id
         let isRecommended = tier.id == 3
 
         VStack(alignment: .leading, spacing: 10) {
@@ -152,14 +140,14 @@ struct ModelDownloader: View {
 
             if isDownloading {
                 VStack(alignment: .trailing, spacing: 3) {
-                    ProgressView(value: progress)
+                    ProgressView(value: whisper.progress)
                         .tint(AppTheme.accent)
                     HStack {
-                        Text(String(format: "%.0f MB of %.0f MB", downloadedMB, totalMB))
+                        Text(String(format: "%.0f MB of %.0f MB", whisper.downloadedMB, whisper.totalMB))
                             .font(.system(size: 10))
                             .foregroundStyle(AppTheme.tertiary)
                         Spacer()
-                        Text("\(Int(progress * 100))%")
+                        Text("\(Int(whisper.progress * 100))%")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(AppTheme.secondary)
                             .monospacedDigit()
@@ -184,7 +172,7 @@ struct ModelDownloader: View {
             ProgressView()
                 .controlSize(.small)
                 .tint(AppTheme.secondary)
-            Text(downloadPhase == .coreMl ? "Optimizing" : "Downloading")
+            Text(whisper.downloadPhase == .coreMl ? "Optimizing" : "Downloading")
                 .font(.system(size: 11))
                 .foregroundStyle(AppTheme.secondary)
         }
@@ -204,7 +192,7 @@ struct ModelDownloader: View {
             }
 
             Button {
-                deleteModel(tierId)
+                whisper.deleteModel(tierId)
             } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 11))
@@ -217,7 +205,7 @@ struct ModelDownloader: View {
 
     @ViewBuilder
     private func optimizationControl(_ tierId: UInt8) -> some View {
-        if hasCoreml(tierId) {
+        if whisper.hasCoreml(tierId) {
             // Optimization present — green badge that, when clicked, offers to reclaim space.
             Button { pendingCoremlRemoval = tierId } label: {
                 HStack(spacing: 3) {
@@ -231,11 +219,11 @@ struct ModelDownloader: View {
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             }
             .buttonStyle(.plain)
-            .disabled(downloading != nil)
+            .disabled(whisper.downloading != nil)
             .help("Neural Engine optimization on — click to remove and reclaim disk")
         } else {
             // ggml installed but no encoder bundle — offer to add it.
-            Button { enableOptimization(tierId) } label: {
+            Button { whisper.enableOptimization(tierId) } label: {
                 HStack(spacing: 3) {
                     Image(systemName: "bolt").font(.system(size: 8))
                     Text("Speed up").font(.system(size: 9, weight: .bold))
@@ -247,13 +235,13 @@ struct ModelDownloader: View {
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             }
             .buttonStyle(.plain)
-            .disabled(downloading != nil)
+            .disabled(whisper.downloading != nil)
             .help("Faster transcription via the Neural Engine. Uses more disk (~doubles the model size); removable anytime.")
         }
     }
 
     private func downloadButton(_ tierId: UInt8) -> some View {
-        Button("Download") { downloadModel(tierId) }
+        Button("Download") { whisper.downloadModel(tierId) }
             .buttonStyle(.plain)
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(AppTheme.primary)
@@ -261,8 +249,8 @@ struct ModelDownloader: View {
             .padding(.vertical, 5)
             .background(AppTheme.divider)
             .clipShape(RoundedRectangle(cornerRadius: 6))
-            .disabled(downloading != nil)
-            .opacity(downloading != nil ? 0.4 : 1)
+            .disabled(whisper.downloading != nil)
+            .opacity(whisper.downloading != nil ? 0.4 : 1)
     }
 
     private func tierDescription(_ id: UInt8) -> String {
@@ -279,55 +267,83 @@ struct ModelDownloader: View {
         mb >= 1000 ? String(format: "%.1f GB", Double(mb) / 1000) : "\(mb) MB"
     }
 
-    private func refreshInstalled() {
+    private func dismissBanner() {
+        UserDefaults.standard.set(true, forKey: Self.bannerDismissedKey)
+        bannerDismissed = true
+    }
+}
+
+// App-lifetime singleton so a whisper.cpp download (and its progress) survives navigating
+// away from the Models page and back.
+@MainActor
+final class WhisperModelDownloadManager: ObservableObject {
+    static let shared = WhisperModelDownloadManager()
+
+    @Published var installedTiers: Set<UInt8> = []
+    @Published var missingCoreml: Set<UInt8> = []
+    @Published var downloading: UInt8? = nil
+    @Published var downloadPhase: DownloadPhase = .ggml
+    @Published var progress: Double = 0
+    @Published var downloadedMB: Double = 0
+    @Published var totalMB: Double = 0
+
+    private var coremlQueue: [UInt8] = []
+    private nonisolated var manager: ModelManager { AppController.shared.manager }
+
+    private init() { refreshInstalled() }
+
+    func hasCoreml(_ tierId: UInt8) -> Bool {
+        installedTiers.contains(tierId) && !missingCoreml.contains(tierId)
+    }
+
+    func refreshInstalled() {
         installedTiers = Set(manager.installedTiers())
         missingCoreml = Set(manager.installedTiersMissingCoreml())
     }
 
-    private func downloadModel(_ tier: UInt8) {
+    func downloadModel(_ tier: UInt8) {
+        guard downloading == nil else { return }
         downloading = tier
         downloadPhase = .ggml
         progress = 0; downloadedMB = 0; totalMB = 0
 
-        let cb = ProgressHandler { info in
-            DispatchQueue.main.async {
-                self.downloadPhase = info.phase
-                if info.totalBytes > 0 {
-                    self.progress = Double(info.bytesDownloaded) / Double(info.totalBytes)
-                }
-                self.downloadedMB = Double(info.bytesDownloaded) / 1_000_000
-                self.totalMB     = Double(info.totalBytes)      / 1_000_000
-                if info.done {
-                    self.downloading = nil
-                    self.refreshInstalled()
-                    self.onModelChanged()
-                }
-            }
+        let cb = ProgressHandler { [weak self] info in
+            let phase = info.phase, done = info.done
+            let downloaded = info.bytesDownloaded, total = info.totalBytes
+            Task { @MainActor in self?.applyProgress(phase: phase, downloaded: downloaded, total: total, done: done, onDone: nil) }
         }
 
-        Task.detached {
-            do    { try manager.download(tier: tier, callback: cb) }
-            catch { await MainActor.run { downloading = nil } }
+        Task.detached { [weak self] in
+            guard let self else { return }
+            do { try self.manager.download(tier: tier, callback: cb) }
+            catch { await MainActor.run { self.downloading = nil } }
         }
     }
 
-    private func startCoremlMigration() {
+    func startCoremlMigration() {
+        guard downloading == nil else { return }
         coremlQueue = Array(missingCoreml).sorted()
         processCoremlQueue()
     }
 
     // Per-tier opt-in download of the Neural Engine encoder.
-    private func enableOptimization(_ tier: UInt8) {
+    func enableOptimization(_ tier: UInt8) {
         guard downloading == nil else { return }
         coremlQueue = [tier]
         processCoremlQueue()
     }
 
     // Removes ONLY the Core ML encoder bundle; the ggml model stays installed.
-    private func removeOptimization(_ tier: UInt8) {
+    func removeOptimization(_ tier: UInt8) {
         try? manager.deleteCoreml(tier: tier)
         refreshInstalled()
-        onModelChanged()
+        AppController.shared.refresh()
+    }
+
+    func deleteModel(_ tier: UInt8) {
+        try? manager.delete(tier: tier)
+        refreshInstalled()
+        AppController.shared.refresh()
     }
 
     private func processCoremlQueue() {
@@ -338,37 +354,29 @@ struct ModelDownloader: View {
         downloadPhase = .coreMl
         progress = 0; downloadedMB = 0; totalMB = 0
 
-        let cb = ProgressHandler { info in
-            DispatchQueue.main.async {
-                self.downloadPhase = info.phase
-                if info.totalBytes > 0 {
-                    self.progress = Double(info.bytesDownloaded) / Double(info.totalBytes)
-                }
-                self.downloadedMB = Double(info.bytesDownloaded) / 1_000_000
-                self.totalMB     = Double(info.totalBytes)      / 1_000_000
-                if info.done {
-                    self.downloading = nil
-                    self.refreshInstalled()
-                    self.processCoremlQueue()
-                }
-            }
+        let cb = ProgressHandler { [weak self] info in
+            let phase = info.phase, done = info.done
+            let downloaded = info.bytesDownloaded, total = info.totalBytes
+            Task { @MainActor in self?.applyProgress(phase: phase, downloaded: downloaded, total: total, done: done, onDone: { $0.processCoremlQueue() }) }
         }
 
-        Task.detached {
-            do    { try manager.downloadCoremlOnly(tier: tier, callback: cb) }
-            catch { await MainActor.run { downloading = nil; coremlQueue.removeAll() } }
+        Task.detached { [weak self] in
+            guard let self else { return }
+            do { try self.manager.downloadCoremlOnly(tier: tier, callback: cb) }
+            catch { await MainActor.run { self.downloading = nil; self.coremlQueue.removeAll() } }
         }
     }
 
-    private func dismissBanner() {
-        UserDefaults.standard.set(true, forKey: Self.bannerDismissedKey)
-        bannerDismissed = true
-    }
-
-    private func deleteModel(_ tier: UInt8) {
-        try? manager.delete(tier: tier)
-        refreshInstalled()
-        onModelChanged()
+    private func applyProgress(phase: DownloadPhase, downloaded: UInt64, total: UInt64, done: Bool, onDone: ((WhisperModelDownloadManager) -> Void)?) {
+        downloadPhase = phase
+        if total > 0 { progress = Double(downloaded) / Double(total) }
+        downloadedMB = Double(downloaded) / 1_000_000
+        totalMB = Double(total) / 1_000_000
+        if done {
+            downloading = nil
+            refreshInstalled()
+            if let onDone { onDone(self) } else { AppController.shared.refresh() }
+        }
     }
 }
 
