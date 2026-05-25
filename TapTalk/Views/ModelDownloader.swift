@@ -28,11 +28,15 @@ struct ModelDownloader: View {
                 coremlBanner
             }
             VStack(spacing: 8) {
-                ForEach(tiers, id: \.id) { tier in
-                    tierCard(tier)
+                // Recommended + optimized engines first, then the remaining whisper tiers.
+                if let recommended = tiers.first(where: { $0.id == 3 }) {
+                    tierCard(recommended)
                 }
                 ParakeetCard()
                 WhisperKitCard()
+                ForEach(tiers.filter { $0.id != 3 }, id: \.id) { tier in
+                    tierCard(tier)
+                }
             }
         }
         .onAppear { refreshInstalled() }
@@ -263,10 +267,10 @@ struct ModelDownloader: View {
 
     private func tierDescription(_ id: UInt8) -> String {
         switch id {
-        case 1: return "Fastest · Good for quick notes"
-        case 2: return "Balanced speed and accuracy"
-        case 3: return "Best speed/accuracy ratio"
-        case 4: return "Maximum accuracy · Slowest"
+        case 1: return "Fastest, least accurate. Fine for short, clear notes."
+        case 2: return "A good balance of speed and accuracy for everyday use."
+        case 3: return "Best all-round choice — accurate and quick, 90+ languages."
+        case 4: return "The most accurate, 90+ languages. Largest and slowest."
         default: return ""
         }
     }
@@ -443,9 +447,10 @@ private struct ParakeetCard: View {
             }
 
             HStack(alignment: .center) {
-                Text("Faster · English + EU · built-in punctuation")
+                Text("The fastest option for English and European languages. Adds punctuation for you.")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer()
 
@@ -577,9 +582,10 @@ private struct WhisperKitCard: View {
                 Spacer()
             }
 
-            Text("Apple Neural Engine Whisper · 99 languages · auto-detect")
+            Text("Fast, private transcription in 90+ languages, powered by Apple's Neural Engine. Pick a size below.")
                 .font(.system(size: 11))
                 .foregroundStyle(AppTheme.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
 
             ForEach(WhisperKitEngine.Model.allCases, id: \.self) { variant in
                 whisperKitRow(variant)

@@ -133,11 +133,11 @@ struct SettingsView: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(AppTheme.secondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                localEngineButton(.whisper, label: "Whisper", sub: "99 languages")
-                localEngineButton(.parakeet, label: "Parakeet", sub: "Faster · English/EU")
-                localEngineButton(.whisperKit, label: "WhisperKit", sub: "99 langs · ANE")
+                localEngineButton(.whisper, label: "Whisper", sub: "90+ languages")
+                localEngineButton(.parakeet, label: "Parakeet", sub: "Fastest · English & EU")
+                localEngineButton(.whisperKit, label: "WhisperKit", sub: "Fast · 90+ languages")
                 if #available(macOS 26, *) {
-                    localEngineButton(.appleSpeech, label: "Apple Speech", sub: "On-device · broad")
+                    localEngineButton(.appleSpeech, label: "Apple Speech", sub: "Built into macOS")
                 }
             }
 
