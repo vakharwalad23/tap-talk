@@ -77,6 +77,16 @@ impl WhisperEngine {
         params.set_single_segment(false);
         params.set_n_threads(self.chip.performance_cores.max(2) as i32);
 
+        // Decoder tuning for short, single-speaker, often-quiet dictation. All are
+        // decoder-side params (the Core ML encoder is unaffected) and a fresh state is
+        // created per call, so there's no cross-clip context to disable.
+        params.set_no_speech_thold(0.3);   // 0.6 default returns [BLANK_AUDIO] on murmur
+        params.set_suppress_blank(true);
+        params.set_suppress_nst(true);     // strip (music)/[Applause]/[BLANK_AUDIO] tokens
+        params.set_temperature(0.0);
+        params.set_temperature_inc(0.0);   // no fallback temperature sweep — deterministic
+        params.set_entropy_thold(2.6);     // 2.4 default — fewer repetition hallucinations
+
         // audio_ctx trims the encoder to the clip length (~50 tokens/sec) for faster
         // short-clip encoding — but ONLY on the Metal path. The Core ML encoder is
         // compiled for a fixed 1500-token context; a custom value feeds it the wrong
@@ -114,11 +124,12 @@ impl WhisperEngine {
 
         #[cfg(debug_assertions)]
         eprintln!(
-            "tt-perf total={}ms cores={} family={:?} samples={}",
+            "tt-perf total={}ms cores={} family={:?} samples={} segments={}",
             duration_ms,
             self.chip.performance_cores,
             self.chip.family,
             samples.len(),
+            n_segments,
         );
 
         Ok(TranscriptionResult {

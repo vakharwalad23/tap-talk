@@ -81,11 +81,28 @@ impl Recorder {
     pub fn stop(&self) -> Result<RecordingResult, CoreError> {
         let samples = self.inner.stop().map_err(|msg| CoreError::Audio { msg })?;
         let trimmed = audio::trim_silence(&samples).map_err(|msg| CoreError::Audio { msg })?;
-        let sample_count = trimmed.len() as u64;
-        let duration_secs = sample_count as f32 / 16_000.0;
 
+        // Real speech duration (before any padding) for the UI.
+        let duration_secs = trimmed.len() as f32 / 16_000.0;
+
+        // Too short to be a real utterance — return empty so the UI shows
+        // "Too short — hold longer" instead of a hallucinated transcript.
+        if trimmed.len() < audio::MIN_SPEECH_SAMPLES {
+            return Ok(RecordingResult { samples: Vec::new(), sample_count: 0, duration_secs: 0.0 });
+        }
+
+        // Lift quiet/murmured speech toward Whisper's training loudness, then pad short
+        // clips with low-level noise (not zeros) to curb short-utterance hallucination.
+        let mut processed = trimmed;
+        let _gain = audio::apply_agc(&mut processed);
+        audio::pad_short_clip(&mut processed, 1.5);
+
+        #[cfg(debug_assertions)]
+        eprintln!("tt-agc speech_secs={:.2} gain={:.2}x out_len={}", duration_secs, _gain, processed.len());
+
+        let sample_count = processed.len() as u64;
         Ok(RecordingResult {
-            samples: trimmed,
+            samples: processed,
             sample_count,
             duration_secs,
         })

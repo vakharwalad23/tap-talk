@@ -2,8 +2,10 @@ use voice_activity_detector::VoiceActivityDetector;
 
 const SAMPLE_RATE: i64 = 16_000;
 const CHUNK_SIZE: usize = 512;
-const SPEECH_THRESHOLD: f32 = 0.5;
-const PAD_CHUNKS: usize = 4;
+// 0.35 (vs Silero's conservative 0.5) catches whispered/murmured speech for dictation.
+const SPEECH_THRESHOLD: f32 = 0.35;
+// ~190ms of context kept around speech so soft word onsets/tails aren't clipped.
+const PAD_CHUNKS: usize = 6;
 
 /// Remove leading and trailing silence from 16kHz mono samples
 pub fn trim_silence(samples: &[f32]) -> Result<Vec<f32>, String> {
