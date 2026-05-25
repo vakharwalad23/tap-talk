@@ -9,6 +9,9 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     from: "0.12.4"
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit.git
+    from: "1.0.0"
 
 targets:
   TapTalk:
@@ -16,6 +19,7 @@ targets:
     platform: macOS
     dependencies:
       - package: FluidAudio
+      - package: WhisperKit
     sources:
       - path: TapTalk
         excludes:
@@ -70,6 +74,7 @@ targets:
       path: TapTalk/Info.plist
       properties:
         NSMicrophoneUsageDescription: "TapTalk needs microphone access to transcribe your speech locally."
+        NSSpeechRecognitionUsageDescription: "TapTalk uses on-device speech recognition to transcribe your dictation when the Apple Speech engine is selected."
         NSAccessibilityUsageDescription: "TapTalk needs accessibility permission to detect your push-to-talk hotkey globally."
         NSQuitAlwaysKeepsWindows: false
         LSMinimumSystemVersion: "14.0"
