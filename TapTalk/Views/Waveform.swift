@@ -16,8 +16,11 @@ struct Waveform: View {
             }
         }
         .frame(height: 32)
-        .onAppear { startAnimation() }
-        .onDisappear { timer?.invalidate(); timer = nil }
+        .onAppear { if isRecording { startAnimation() } }
+        .onChange(of: isRecording) { recording in
+            if recording { startAnimation() } else { stopAnimation() }
+        }
+        .onDisappear { stopAnimation() }
     }
 
     private func barHeight(index: Int) -> CGFloat {
@@ -31,5 +34,10 @@ struct Waveform: View {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             phase += 0.3
         }
+    }
+
+    private func stopAnimation() {
+        timer?.invalidate()
+        timer = nil
     }
 }
