@@ -35,10 +35,6 @@ impl AudioRecorder {
         }
     }
 
-    pub fn is_recording(&self) -> bool {
-        self.recording.load(Ordering::Relaxed)
-    }
-
     // Registers a sink for live mic RMS (~30 Hz) used to drive the pill animation.
     // Read by the audio thread each emit tick, so it can be set before or after the stream exists.
     pub fn set_level_callback(&self, callback: LevelFn) {

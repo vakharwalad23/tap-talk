@@ -16,16 +16,6 @@ pub enum CoreError {
     Transcription { msg: String },
 }
 
-#[uniffi::export]
-pub fn ping() -> String {
-    "pong from Rust".to_string()
-}
-
-#[uniffi::export]
-pub fn system_info() -> String {
-    format!("tap-talk-core v{}, aarch64-apple-darwin", env!("CARGO_PKG_VERSION"))
-}
-
 // --- Audio Recording ---
 
 #[derive(uniffi::Record)]
@@ -58,10 +48,6 @@ impl Recorder {
         Self {
             inner: audio::AudioRecorder::create(),
         }
-    }
-
-    pub fn is_recording(&self) -> bool {
-        self.inner.is_recording()
     }
 
     /// Registers a sink for live mic RMS level (~30 Hz) to drive the recording pill.
@@ -283,10 +269,6 @@ impl ModelManager {
         self.inner.is_installed(tier)
     }
 
-    pub fn is_coreml_installed(&self, tier: u8) -> bool {
-        self.inner.is_coreml_installed(tier)
-    }
-
     pub fn installed_tiers(&self) -> Vec<u8> {
         self.inner.installed_tiers()
     }
@@ -318,10 +300,6 @@ impl ModelManager {
 
     pub fn is_llm_installed(&self, model_id: String) -> bool {
         self.inner.is_llm_installed(&model_id)
-    }
-
-    pub fn installed_llm_ids(&self) -> Vec<String> {
-        self.inner.installed_llm_ids()
     }
 
     pub fn llm_model_path(&self, model_id: String) -> Option<String> {
@@ -361,24 +339,6 @@ fn map_progress(progress: &models::manager::DownloadProgress) -> DownloadProgres
 }
 
 // --- LLM models catalog ---
-
-#[derive(uniffi::Record)]
-pub struct LlmModelInfo {
-    pub id: String,
-    pub name: String,
-    pub filename: String,
-    pub disk_size_mb: u32,
-}
-
-#[uniffi::export]
-pub fn available_llm_models() -> Vec<LlmModelInfo> {
-    llm::catalog::LLM_MODELS.iter().map(|m| LlmModelInfo {
-        id: m.id.to_string(),
-        name: m.name.to_string(),
-        filename: m.filename.to_string(),
-        disk_size_mb: m.disk_size_mb,
-    }).collect()
-}
 
 #[derive(uniffi::Record)]
 pub struct LlmDownloadProgressInfo {

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::transcribe::TIERS;
-use crate::llm::catalog::{llm_model_by_id, LLM_MODELS};
+use crate::llm::catalog::llm_model_by_id;
 
 const HF_BASE_URL: &str = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main";
 
@@ -65,11 +65,6 @@ impl ModelManager {
     pub fn is_installed(&self, tier: u8) -> bool {
         let Some(t) = TIERS.iter().find(|t| t.id == tier) else { return false };
         self.models_dir.join(t.ggml_filename).exists()
-    }
-
-    pub fn is_coreml_installed(&self, tier: u8) -> bool {
-        let Some(t) = TIERS.iter().find(|t| t.id == tier) else { return false };
-        self.models_dir.join(t.coreml_filename).is_dir()
     }
 
     pub fn installed_tiers(&self) -> Vec<u8> {
@@ -240,13 +235,6 @@ impl ModelManager {
     pub fn is_llm_installed(&self, model_id: &str) -> bool {
         let Some(spec) = llm_model_by_id(model_id) else { return false };
         self.models_dir.join(spec.filename).exists()
-    }
-
-    pub fn installed_llm_ids(&self) -> Vec<String> {
-        LLM_MODELS.iter()
-            .filter(|m| self.models_dir.join(m.filename).exists())
-            .map(|m| m.id.to_string())
-            .collect()
     }
 
     pub fn llm_model_path(&self, model_id: &str) -> Option<PathBuf> {

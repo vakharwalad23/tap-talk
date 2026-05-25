@@ -7,7 +7,6 @@ use crate::platform::{self, ChipInfo};
 
 pub struct WhisperEngine {
     ctx: Mutex<WhisperContext>,
-    tier_id: u8,
     chip: ChipInfo,
     // Whether the Core ML encoder bundle is present (whisper.cpp auto-loads it). It has a
     // fixed audio context, so audio_ctx tuning is only applied on the pure-Metal path.
@@ -49,14 +48,9 @@ impl WhisperEngine {
 
         Ok(Self {
             ctx: Mutex::new(ctx),
-            tier_id,
             chip,
             coreml_present,
         })
-    }
-
-    pub fn tier_id(&self) -> u8 {
-        self.tier_id
     }
 
     pub fn transcribe(
