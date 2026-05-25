@@ -45,6 +45,10 @@ DerivedData/
 # Plan doc (working document, not shipped)
 PLAN.md
 
+# Distribution artifacts (DMG, etc.) and local docs/plans — not shipped in-repo
+dist/
+docs/
+
 # IDE
 .idea/
 .vscode/
