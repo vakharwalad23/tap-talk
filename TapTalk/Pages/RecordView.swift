@@ -12,10 +12,11 @@ struct RecordView: View {
             HStack(spacing: 8) {
                 if settings.transcriptionEngine == .local && settings.localEngine == .parakeet {
                     parakeetChip
+                    parakeetLangChip
                 } else {
                     ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
+                    LanguagePicker(selectedLanguage: $settings.selectedLanguage)
                 }
-                LanguagePicker(selectedLanguage: $settings.selectedLanguage)
                 Spacer()
             }
             .disabled(state.recording || state.loadingModel || state.transcribing || state.rewriting)
@@ -99,6 +100,23 @@ struct RecordView: View {
         .frame(width: 160, alignment: .leading)
         .background(AppTheme.sectionBg)
         .foregroundStyle(AppTheme.primary)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6).stroke(AppTheme.divider, lineWidth: 1)
+        )
+    }
+
+    // Parakeet auto-detects across ~25 European languages — no manual language choice.
+    private var parakeetLangChip: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "globe").font(.system(size: 10))
+            Text("Auto · EU").font(.system(size: 12, weight: .medium))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .frame(width: 160, alignment: .leading)
+        .background(AppTheme.sectionBg)
+        .foregroundStyle(AppTheme.secondary)
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(
             RoundedRectangle(cornerRadius: 6).stroke(AppTheme.divider, lineWidth: 1)
