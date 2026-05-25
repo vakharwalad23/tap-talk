@@ -32,6 +32,7 @@ struct ModelDownloader: View {
                     tierCard(tier)
                 }
                 ParakeetCard()
+                WhisperKitCard()
             }
         }
         .onAppear { refreshInstalled() }
@@ -509,5 +510,157 @@ private struct ParakeetCard: View {
             Text("Frees ~490 MB. You can re-download it anytime.")
         }
         .onAppear { model.refreshInstalled() }
+    }
+}
+
+// App-lifetime singleton so a WhisperKit download survives navigation away and back.
+@MainActor
+final class WhisperKitDownloadManager: ObservableObject {
+    static let shared = WhisperKitDownloadManager()
+
+    @Published var installed: Set<WhisperKitEngine.Model> = []
+    @Published var downloading: WhisperKitEngine.Model? = nil
+    @Published var progress: Double = 0
+
+    private init() { refreshInstalled() }
+
+    func refreshInstalled() {
+        guard downloading == nil else { return }
+        installed = Set(WhisperKitEngine.Model.allCases.filter { WhisperKitEngine.isInstalled($0) })
+    }
+
+    func download(_ model: WhisperKitEngine.Model) {
+        guard downloading == nil else { return }   // one download at a time
+        downloading = model
+        progress = 0
+        Task {
+            do {
+                try await WhisperKitEngine.download(model) { p in
+                    Task { @MainActor in self.progress = p }
+                }
+                self.downloading = nil
+                self.installed.insert(model)
+                AppController.shared.refresh()
+            } catch {
+                self.downloading = nil
+                self.refreshInstalled()
+            }
+        }
+    }
+
+    func remove(_ model: WhisperKitEngine.Model) {
+        guard downloading == nil else { return }
+        try? WhisperKitEngine.delete(model)
+        installed.remove(model)
+        AppController.shared.refresh()
+    }
+}
+
+// Catalog card for WhisperKit with two user-selectable models. Download is user-initiated.
+private struct WhisperKitCard: View {
+    @ObservedObject private var model = WhisperKitDownloadManager.shared
+    @State private var pendingRemoval: WhisperKitEngine.Model? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 7) {
+                Text("WhisperKit")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppTheme.primary)
+                Text("ANE")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2.5)
+                    .background(AppTheme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                Spacer()
+            }
+
+            Text("Apple Neural Engine Whisper · 99 languages · auto-detect")
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.tertiary)
+
+            ForEach(WhisperKitEngine.Model.allCases, id: \.self) { variant in
+                whisperKitRow(variant)
+            }
+        }
+        .padding(14)
+        .background(AppTheme.sectionBg)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(AppTheme.divider, lineWidth: 1)
+        )
+        .alert(
+            "Remove WhisperKit model?",
+            isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } })
+        ) {
+            Button("Cancel", role: .cancel) { pendingRemoval = nil }
+            Button("Remove", role: .destructive) {
+                if let m = pendingRemoval { model.remove(m) }
+                pendingRemoval = nil
+            }
+        } message: {
+            Text("Frees disk space. You can re-download it anytime.")
+        }
+        .onAppear { model.refreshInstalled() }
+    }
+
+    @ViewBuilder
+    private func whisperKitRow(_ variant: WhisperKitEngine.Model) -> some View {
+        let isDownloading = model.downloading == variant
+        VStack(spacing: 6) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(variant.displayName)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AppTheme.primary)
+                    Text("~\(variant.diskSizeMB) MB")
+                        .font(.system(size: 10))
+                        .foregroundStyle(AppTheme.tertiary)
+                        .monospacedDigit()
+                }
+
+                Spacer()
+
+                if isDownloading {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small).tint(AppTheme.secondary)
+                        Text("\(Int(model.progress * 100))%")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(AppTheme.secondary)
+                            .monospacedDigit()
+                    }
+                } else if model.installed.contains(variant) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(AppTheme.success)
+                            .font(.system(size: 13))
+                        Button { pendingRemoval = variant } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundStyle(AppTheme.danger)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Button("Download") { model.download(variant) }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AppTheme.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(AppTheme.divider)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .disabled(model.downloading != nil)
+                        .opacity(model.downloading != nil ? 0.4 : 1)
+                }
+            }
+
+            if isDownloading {
+                ProgressView(value: model.progress).tint(AppTheme.accent)
+            }
+        }
     }
 }

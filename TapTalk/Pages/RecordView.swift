@@ -11,8 +11,14 @@ struct RecordView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 if settings.transcriptionEngine == .local && settings.localEngine == .parakeet {
-                    parakeetChip
+                    engineChip("Parakeet", icon: "bolt.fill")
                     parakeetLangChip
+                } else if settings.transcriptionEngine == .local && settings.localEngine == .whisperKit {
+                    engineChip("WhisperKit · \(settings.whisperKitModel.displayName)", icon: "waveform")
+                    LanguagePicker(selectedLanguage: $settings.selectedLanguage)
+                } else if settings.transcriptionEngine == .local && settings.localEngine == .appleSpeech {
+                    engineChip("Apple Speech", icon: "apple.logo")
+                    LanguagePicker(selectedLanguage: $settings.selectedLanguage)
                 } else {
                     ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
                     LanguagePicker(selectedLanguage: $settings.selectedLanguage)
@@ -90,14 +96,14 @@ struct RecordView: View {
 
     private var keyLabel: String { AppTheme.keyLabel(for: settings.hotkeyCode) }
 
-    private var parakeetChip: some View {
+    private func engineChip(_ title: String, icon: String) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: "bolt.fill").font(.system(size: 10))
-            Text("Parakeet").font(.system(size: 12, weight: .medium))
+            Image(systemName: icon).font(.system(size: 10))
+            Text(title).font(.system(size: 12, weight: .medium)).lineLimit(1)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .frame(width: 160, alignment: .leading)
+        .frame(width: 200, alignment: .leading)
         .background(AppTheme.sectionBg)
         .foregroundStyle(AppTheme.primary)
         .clipShape(RoundedRectangle(cornerRadius: 6))
