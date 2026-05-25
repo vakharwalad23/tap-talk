@@ -48,6 +48,15 @@ actor WhisperKitEngine {
         URL(fileURLWithPath: AppController.modelsDirectory()).appendingPathComponent("whisperkit")
     }
 
+    // The HuggingFace snapshot the WhisperKit downloader writes into.
+    private static func repoDirectory() -> URL {
+        downloadBase().appendingPathComponent("models/argmaxinc/whisperkit-coreml")
+    }
+
+    private static func variantCacheDirectory(_ model: Model) -> URL {
+        repoDirectory().appendingPathComponent(".cache/huggingface/download/\(model.variant)")
+    }
+
     private static func pathKey(_ model: Model) -> String { "whisperkit.path.\(model.rawValue)" }
 
     // The on-disk model folder returned by a prior download, if it still exists.
@@ -63,19 +72,60 @@ actor WhisperKitEngine {
 
     // User-initiated download with progress in [0, 1]. Called from the catalog UI.
     nonisolated static func download(_ model: Model, progress: @escaping @Sendable (Double) -> Void) async throws {
-        let folder = try await WhisperKit.download(
-            variant: model.variant,
-            downloadBase: downloadBase(),
-            progressCallback: { p in progress(p.fractionCompleted) }
-        )
-        UserDefaults.standard.set(folder.path, forKey: pathKey(model))
+        do {
+            let folder = try await WhisperKit.download(
+                variant: model.variant,
+                downloadBase: downloadBase(),
+                progressCallback: { p in progress(p.fractionCompleted) }
+            )
+            UserDefaults.standard.set(folder.path, forKey: pathKey(model))
+        } catch {
+            // Leave no residue behind on a failed/cancelled download.
+            try? FileManager.default.removeItem(at: repoDirectory().appendingPathComponent(model.variant))
+            try? FileManager.default.removeItem(at: variantCacheDirectory(model))
+            throw error
+        }
     }
 
     nonisolated static func delete(_ model: Model) throws {
-        if let folder = installedFolder(model) {
-            try FileManager.default.removeItem(at: folder)
-        }
+        let folder = installedFolder(model) ?? repoDirectory().appendingPathComponent(model.variant)
+        try? FileManager.default.removeItem(at: folder)
+        try? FileManager.default.removeItem(at: variantCacheDirectory(model))
         UserDefaults.standard.removeObject(forKey: pathKey(model))
+    }
+
+    // Reclaims disk from downloads interrupted by an app quit, and re-adopts a complete
+    // model folder whose install record was lost. Best-effort; run at launch.
+    nonisolated static func sweepOrphans() {
+        let fm = FileManager.default
+        let repoDir = repoDirectory()
+        guard fm.fileExists(atPath: repoDir.path) else { return }
+
+        for model in Model.allCases {
+            let folder = repoDir.appendingPathComponent(model.variant)
+            guard fm.fileExists(atPath: folder.path) else { continue }
+            if installedFolder(model) != nil { continue }   // recorded + present — keep
+
+            let cache = variantCacheDirectory(model)
+            if hasIncompleteArtifacts(cache) || isEmptyDirectory(folder) {
+                try? fm.removeItem(at: folder)   // partial — reclaim
+                try? fm.removeItem(at: cache)
+            } else {
+                // Complete folder, lost record — adopt it instead of re-downloading.
+                UserDefaults.standard.set(folder.path, forKey: pathKey(model))
+            }
+        }
+    }
+
+    private static func hasIncompleteArtifacts(_ dir: URL) -> Bool {
+        guard let walker = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: nil) else { return false }
+        for case let url as URL in walker where url.pathExtension == "incomplete" { return true }
+        return false
+    }
+
+    private static func isEmptyDirectory(_ dir: URL) -> Bool {
+        let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        return contents.isEmpty
     }
 
     func ensureLoaded(_ model: Model) async throws {
@@ -84,6 +134,7 @@ actor WhisperKitEngine {
         let config = WhisperKitConfig(
             model: model.variant,
             modelFolder: folder.path,
+            tokenizerFolder: folder,   // resolve the tokenizer locally — never hit the network
             verbose: false,
             logLevel: .error,
             prewarm: false,
