@@ -231,5 +231,10 @@ fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Result<Vec<f32>, S
         output.extend_from_slice(&result[0]);
     }
 
+    // The final chunk is zero-padded to chunk_size, so the resampler emits a short tail of
+    // silence/ringing past the true audio. Trim to the expected resampled length.
+    let expected_len = (samples.len() as f64 * ratio).round() as usize;
+    output.truncate(expected_len.min(output.len()));
+
     Ok(output)
 }
