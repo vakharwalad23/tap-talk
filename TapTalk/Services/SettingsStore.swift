@@ -6,6 +6,12 @@ enum TranscriptionEngine: String {
     case cloud
 }
 
+// Which local engine runs when transcriptionEngine == .local.
+enum LocalEngine: String {
+    case whisper   // Rust whisper.cpp core (default, 99 languages)
+    case parakeet  // FluidAudio / NVIDIA Parakeet (faster, English/EU, punctuation)
+}
+
 enum LLMBackend: String {
     case custom
     case local
@@ -35,6 +41,10 @@ final class SettingsStore: ObservableObject {
 
     @Published var transcriptionEngine: TranscriptionEngine {
         didSet { UserDefaults.standard.set(transcriptionEngine.rawValue, forKey: "transcriptionEngine") }
+    }
+
+    @Published var localEngine: LocalEngine {
+        didSet { UserDefaults.standard.set(localEngine.rawValue, forKey: "localEngine") }
     }
 
     @Published var cloudModel: String {
@@ -92,6 +102,9 @@ final class SettingsStore: ObservableObject {
 
         let rawEngine = UserDefaults.standard.string(forKey: "transcriptionEngine") ?? "local"
         transcriptionEngine = TranscriptionEngine(rawValue: rawEngine) ?? .local
+
+        let rawLocalEngine = UserDefaults.standard.string(forKey: "localEngine") ?? "whisper"
+        localEngine = LocalEngine(rawValue: rawLocalEngine) ?? .whisper
 
         cloudModel = UserDefaults.standard.string(forKey: "cloudModel") ?? "whisper-1"
 

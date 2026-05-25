@@ -39,6 +39,10 @@ struct SettingsView: View {
 
                 settingsSection("Transcription engine") {
                     enginePicker
+                    if settings.transcriptionEngine == .local {
+                        Divider().background(AppTheme.divider)
+                        localEnginePicker
+                    }
                     if settings.transcriptionEngine == .cloud {
                         Divider().background(AppTheme.divider)
                         cloudModelGrid
@@ -101,6 +105,44 @@ struct SettingsView: View {
     private func engineButton(_ engine: TranscriptionEngine, label: String, sub: String) -> some View {
         let active = settings.transcriptionEngine == engine
         return Button(action: { settings.transcriptionEngine = engine }) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(sub)
+                    .font(.system(size: 10))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(active ? AppTheme.accent : AppTheme.sectionBg)
+            .foregroundStyle(active ? AppTheme.windowBg : AppTheme.secondary)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(AppTheme.divider, lineWidth: active ? 0 : 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Local engine picker (Whisper vs Parakeet)
+
+    private var localEnginePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Local model")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(AppTheme.secondary)
+            HStack(spacing: 8) {
+                localEngineButton(.whisper, label: "Whisper", sub: "99 languages")
+                localEngineButton(.parakeet, label: "Parakeet", sub: "Faster · English/EU")
+            }
+        }
+        .padding(.top, 2)
+    }
+
+    private func localEngineButton(_ le: LocalEngine, label: String, sub: String) -> some View {
+        let active = settings.localEngine == le
+        return Button(action: { settings.localEngine = le }) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))

@@ -12,6 +12,7 @@ final class AppController: ObservableObject {
     // Eager construction at singleton init touches CoreAudio before TCC has been queried, which can re-prompt on rebuild.
     private(set) lazy var recorder: Recorder = Recorder()
     let transcriber = Transcriber()
+    let parakeet    = ParakeetEngine()
     let manager:      ModelManager
 
     @Published var state          = RecordingState()
@@ -99,6 +100,15 @@ final class AppController: ObservableObject {
                 }
             }
             .store(in: &settingsCancellables)
+
+        // Reload the active engine when the user switches transcription engine (local
+        // whisper ↔ parakeet ↔ cloud).
+        settings.$localEngine
+            .combineLatest(settings.$transcriptionEngine)
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _, _ in self?.refresh() }
+            .store(in: &settingsCancellables)
     }
 
     // Ensures mic permission is resolved before the hotkey goes live.
@@ -137,6 +147,13 @@ final class AppController: ObservableObject {
 
     func refresh() {
         installedTiers = manager.installedTiers().sorted()
+
+        // Parakeet (local) and cloud don't depend on installed whisper tiers.
+        if settings.transcriptionEngine == .cloud || settings.localEngine == .parakeet {
+            loadSelectedTier()
+            return
+        }
+
         if let first = installedTiers.first {
             if !installedTiers.contains(settings.selectedTier) {
                 settings.selectedTier = first
@@ -152,6 +169,27 @@ final class AppController: ObservableObject {
         guard settings.transcriptionEngine == .local else {
             state.setModel(.ready)
             state.status = "Cloud (OpenAI)"
+            return
+        }
+
+        if settings.localEngine == .parakeet {
+            state.setModel(.loading)
+            state.status = "Loading Parakeet..."
+            Task.detached { [weak self] in
+                guard let self = self else { return }
+                do {
+                    try await self.parakeet.ensureLoaded()
+                    await MainActor.run {
+                        self.state.setModel(.ready)
+                        self.state.status = "Parakeet ready"
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.state.setModel(.none)
+                        self.state.status = "Parakeet failed: \(error.localizedDescription)"
+                    }
+                }
+            }
             return
         }
 
@@ -250,6 +288,7 @@ final class AppController: ObservableObject {
 
         let lang       = settings.selectedLanguage
         let engine     = settings.transcriptionEngine
+        let localEngine = settings.localEngine
         let cloudModel = settings.cloudModel
         let apiKey     = settings.apiKey
         let segments   = settings.dictionarySegments
@@ -280,6 +319,9 @@ final class AppController: ObservableObject {
                         model: cloudModel,
                         apiKey: apiKey
                     )
+                } else if localEngine == .parakeet {
+                    let text = try await self.parakeet.transcribe(samples: audio.samples)
+                    result = TranscriptionResult(text: text, language: lang ?? "unknown", durationMs: 0)
                 } else {
                     result = try self.transcriber.transcribe(
                         samples: audio.samples,

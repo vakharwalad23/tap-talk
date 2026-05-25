@@ -5,10 +5,17 @@ options:
     macOS: "14.0"
   createIntermediateGroups: true
 
+packages:
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    from: "0.12.4"
+
 targets:
   TapTalk:
     type: application
     platform: macOS
+    dependencies:
+      - package: FluidAudio
     sources:
       - path: TapTalk
         excludes:
