@@ -27,6 +27,8 @@ final class AppController: ObservableObject {
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var hasRequestedAccessibilityPermission = false
     private var recordingWatchdog: DispatchWorkItem?
+    // Stable owner for the Rust level callback — its lifetime must outlast the audio thread.
+    private let levelHandler = PillLevelHandler()
 
     private let maxRecordingSeconds: TimeInterval = 120
 
@@ -139,7 +141,7 @@ final class AppController: ObservableObject {
     // up the CPAL stream in background.
     private func warmUpAudioStream() {
         let rec = recorder
-        rec.setLevelCallback(callback: PillLevelHandler())
+        rec.setLevelCallback(callback: levelHandler)
         Task.detached {
             try? rec.warmUp()
         }
@@ -331,7 +333,7 @@ final class AppController: ObservableObject {
                     )
                 } else if localEngine == .parakeet {
                     let out = try await self.parakeet.transcribe(samples: audio.samples)
-                    result = TranscriptionResult(text: out.text, language: lang ?? "auto", durationMs: out.processingMs)
+                    result = TranscriptionResult(text: out.text, language: lang ?? "en", durationMs: out.processingMs)
                 } else {
                     result = try self.transcriber.transcribe(
                         samples: audio.samples,
@@ -361,7 +363,9 @@ final class AppController: ObservableObject {
                 await MainActor.run {
                     guard !Task.isCancelled else { return }
 
-                    if result.text.isEmpty {
+                    // Guard on the final text (post dictionary/rewrite) so an empty result
+                    // never gets pasted as a blank transcript.
+                    if processed.isEmpty {
                         self.state.finish()
                         self.state.status = "Too short — hold longer"
                         FloatingPillController.shared.hide()

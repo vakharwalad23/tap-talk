@@ -18,7 +18,7 @@ struct RecordView: View {
                 LanguagePicker(selectedLanguage: $settings.selectedLanguage)
                 Spacer()
             }
-            .disabled(state.recording || state.loadingModel || state.transcribing)
+            .disabled(state.recording || state.loadingModel || state.transcribing || state.rewriting)
             .padding(.bottom, 20)
 
             Waveform(isRecording: state.recording)
