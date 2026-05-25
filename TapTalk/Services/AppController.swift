@@ -13,6 +13,7 @@ final class AppController: ObservableObject {
     private(set) lazy var recorder: Recorder = Recorder()
     let transcriber = Transcriber()
     let parakeet    = ParakeetEngine()
+    let whisperKit  = WhisperKitEngine()
     let manager:      ModelManager
 
     @Published var state          = RecordingState()
@@ -111,6 +112,16 @@ final class AppController: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _, _ in self?.refresh() }
             .store(in: &settingsCancellables)
+
+        // Reload when the active WhisperKit model changes.
+        settings.$whisperKitModel
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self, self.settings.localEngine == .whisperKit else { return }
+                self.loadSelectedTier()
+            }
+            .store(in: &settingsCancellables)
     }
 
     // Ensures mic permission is resolved before the hotkey goes live.
@@ -150,8 +161,9 @@ final class AppController: ObservableObject {
     func refresh() {
         installedTiers = manager.installedTiers().sorted()
 
-        // Parakeet (local) and cloud don't depend on installed whisper tiers.
-        if settings.transcriptionEngine == .cloud || settings.localEngine == .parakeet {
+        // Only the Rust whisper.cpp engine depends on installed whisper tiers; cloud and the
+        // other local engines (Parakeet, WhisperKit, Apple) manage their own models.
+        if settings.transcriptionEngine == .cloud || settings.localEngine != .whisper {
             loadSelectedTier()
             return
         }
@@ -169,9 +181,10 @@ final class AppController: ObservableObject {
 
     func loadSelectedTier() {
         guard settings.transcriptionEngine == .local else {
-            // Cloud — free both local engines' memory.
+            // Cloud — free all local engines' memory.
             transcriber.unload()
             Task { await parakeet.unload() }
+            Task { await whisperKit.unload() }
             state.setModel(.ready)
             state.status = "Cloud (OpenAI)"
             return
@@ -179,6 +192,7 @@ final class AppController: ObservableObject {
 
         if settings.localEngine == .parakeet {
             transcriber.unload()  // free the whisper model + Core ML encoder
+            Task { await whisperKit.unload() }
             guard ParakeetEngine.isInstalled() else {
                 state.setModel(.none)
                 state.status = "Parakeet not installed — download it in Models"
@@ -204,7 +218,51 @@ final class AppController: ObservableObject {
             return
         }
 
-        Task { await parakeet.unload() }  // free the Parakeet model when on whisper
+        if settings.localEngine == .whisperKit {
+            transcriber.unload()
+            Task { await parakeet.unload() }
+            let model = settings.whisperKitModel
+            guard WhisperKitEngine.isInstalled(model) else {
+                state.setModel(.none)
+                state.status = "WhisperKit \(model.displayName) not installed — download it in Models"
+                return
+            }
+            state.setModel(.loading)
+            state.status = "Loading WhisperKit \(model.displayName)..."
+            Task.detached { [weak self] in
+                guard let self = self else { return }
+                do {
+                    try await self.whisperKit.ensureLoaded(model)
+                    await MainActor.run {
+                        self.state.setModel(.ready)
+                        self.state.status = "WhisperKit \(model.displayName) ready"
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.state.setModel(.none)
+                        self.state.status = "WhisperKit failed: \(error.localizedDescription)"
+                    }
+                }
+            }
+            return
+        }
+
+        if settings.localEngine == .appleSpeech {
+            transcriber.unload()
+            Task { await parakeet.unload() }
+            Task { await whisperKit.unload() }
+            if #available(macOS 26, *) {
+                state.setModel(.ready)
+                state.status = "Apple Speech ready"
+            } else {
+                state.setModel(.none)
+                state.status = "Apple Speech requires macOS 26"
+            }
+            return
+        }
+
+        Task { await parakeet.unload() }   // free other engines when on whisper
+        Task { await whisperKit.unload() }
         let tier = settings.selectedTier
         guard installedTiers.contains(tier) else { return }
         state.setModel(.loading)
@@ -301,6 +359,7 @@ final class AppController: ObservableObject {
         let lang       = settings.selectedLanguage
         let engine     = settings.transcriptionEngine
         let localEngine = settings.localEngine
+        let wkModel    = settings.whisperKitModel
         let cloudModel = settings.cloudModel
         let apiKey     = settings.apiKey
         let segments   = settings.dictionarySegments
@@ -334,6 +393,16 @@ final class AppController: ObservableObject {
                 } else if localEngine == .parakeet {
                     let out = try await self.parakeet.transcribe(samples: audio.samples)
                     result = TranscriptionResult(text: out.text, language: lang ?? "en", durationMs: out.processingMs)
+                } else if localEngine == .whisperKit {
+                    let out = try await self.whisperKit.transcribe(samples: audio.samples, language: lang, model: wkModel)
+                    result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
+                } else if localEngine == .appleSpeech {
+                    if #available(macOS 26, *) {
+                        let out = try await AppleSpeechEngine().transcribe(samples: audio.samples, language: lang)
+                        result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
+                    } else {
+                        throw CoreError.Transcription(msg: "Apple Speech requires macOS 26")
+                    }
                 } else {
                     result = try self.transcriber.transcribe(
                         samples: audio.samples,
