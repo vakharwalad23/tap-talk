@@ -373,13 +373,24 @@ private class ProgressHandler: DownloadProgressCallback {
     func onProgress(progress: DownloadProgressInfo) { handler(progress) }
 }
 
+// App-lifetime singleton so a download keeps running (and its progress is visible)
+// even when the user navigates away from the Models page and back.
 @MainActor
-private final class ParakeetDownloadModel: ObservableObject {
+final class ParakeetDownloadManager: ObservableObject {
+    static let shared = ParakeetDownloadManager()
+
     @Published var installed = ParakeetEngine.isInstalled()
     @Published var downloading = false
     @Published var progress: Double = 0
 
+    private init() {}
+
+    func refreshInstalled() {
+        if !downloading { installed = ParakeetEngine.isInstalled() }
+    }
+
     func download() {
+        guard !downloading else { return }   // already in flight — don't start a second
         downloading = true
         progress = 0
         Task {
@@ -392,11 +403,13 @@ private final class ParakeetDownloadModel: ObservableObject {
                 AppController.shared.refresh()
             } catch {
                 self.downloading = false
+                self.installed = ParakeetEngine.isInstalled()
             }
         }
     }
 
     func remove() {
+        guard !downloading else { return }
         try? ParakeetEngine.delete()
         installed = false
         AppController.shared.refresh()
@@ -405,7 +418,7 @@ private final class ParakeetDownloadModel: ObservableObject {
 
 // Catalog card for the optional Parakeet engine. Download is user-initiated (never auto).
 private struct ParakeetCard: View {
-    @StateObject private var model = ParakeetDownloadModel()
+    @ObservedObject private var model = ParakeetDownloadManager.shared
     @State private var pendingRemoval = false
 
     var body: some View {
@@ -495,5 +508,6 @@ private struct ParakeetCard: View {
         } message: {
             Text("Frees ~490 MB. You can re-download it anytime.")
         }
+        .onAppear { model.refreshInstalled() }
     }
 }
