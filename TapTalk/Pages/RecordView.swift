@@ -10,19 +10,8 @@ struct RecordView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                if settings.transcriptionEngine == .local && settings.localEngine == .parakeet {
-                    engineChip("Parakeet", icon: "bolt.fill")
-                    parakeetLangChip
-                } else if settings.transcriptionEngine == .local && settings.localEngine == .whisperKit {
-                    engineChip("WhisperKit · \(settings.whisperKitModel.displayName)", icon: "waveform")
-                    LanguagePicker(selectedLanguage: $settings.selectedLanguage)
-                } else if settings.transcriptionEngine == .local && settings.localEngine == .appleSpeech {
-                    engineChip("Apple Speech", icon: "apple.logo")
-                    LanguagePicker(selectedLanguage: $settings.selectedLanguage)
-                } else {
-                    ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
-                    LanguagePicker(selectedLanguage: $settings.selectedLanguage)
-                }
+                modelControl
+                languageControl
                 Spacer()
             }
             .disabled(state.recording || state.loadingModel || state.transcribing || state.rewriting)
@@ -96,6 +85,35 @@ struct RecordView: View {
 
     private var keyLabel: String { AppTheme.keyLabel(for: settings.hotkeyCode) }
 
+    // Left control: a tier picker for whisper.cpp, a static chip for the other engines.
+    @ViewBuilder
+    private var modelControl: some View {
+        if settings.transcriptionEngine == .local {
+            switch settings.localEngine {
+            case .whisper:
+                ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
+            case .parakeet:
+                engineChip("Parakeet", icon: "bolt.fill")
+            case .whisperKit:
+                engineChip("WhisperKit · \(settings.whisperKitModel.displayName)", icon: "waveform")
+            case .appleSpeech:
+                engineChip("Apple Speech", icon: "apple.logo")
+            }
+        } else {
+            ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
+        }
+    }
+
+    // Right control: a language picker only when the active engine supports selecting one.
+    @ViewBuilder
+    private var languageControl: some View {
+        if settings.transcriptionEngine == .local && !settings.localEngine.supportsLanguageSelection {
+            autoLangChip(settings.localEngine.autoLanguageLabel)
+        } else {
+            LanguagePicker(selectedLanguage: $settings.selectedLanguage)
+        }
+    }
+
     private func engineChip(_ title: String, icon: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.system(size: 10))
@@ -112,15 +130,15 @@ struct RecordView: View {
         )
     }
 
-    // Parakeet auto-detects across ~25 European languages — no manual language choice.
-    private var parakeetLangChip: some View {
+    // Shown instead of the language picker for auto-only engines (e.g. Parakeet).
+    private func autoLangChip(_ label: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "globe").font(.system(size: 10))
-            Text("Auto · EU").font(.system(size: 12, weight: .medium))
+            Text(label).font(.system(size: 12, weight: .medium))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .frame(width: 160, alignment: .leading)
+        .frame(width: 140, alignment: .leading)
         .background(AppTheme.sectionBg)
         .foregroundStyle(AppTheme.secondary)
         .clipShape(RoundedRectangle(cornerRadius: 6))

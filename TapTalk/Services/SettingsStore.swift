@@ -12,6 +12,23 @@ enum LocalEngine: String, CaseIterable {
     case parakeet     // FluidAudio / NVIDIA Parakeet (faster, English/EU, punctuation)
     case whisperKit   // WhisperKit (Argmax) — full Core ML/ANE Whisper, 99 languages
     case appleSpeech  // Apple SpeechTranscriber (macOS 26+, on-device, broad locales)
+
+    // Whether the engine lets the user pick a language. Engines that only auto-detect
+    // (Parakeet) hide the picker and run in auto mode.
+    var supportsLanguageSelection: Bool {
+        switch self {
+        case .whisper, .whisperKit, .appleSpeech: return true
+        case .parakeet: return false
+        }
+    }
+
+    // Label shown in place of the picker for auto-only engines.
+    var autoLanguageLabel: String {
+        switch self {
+        case .parakeet: return "Auto · EU"
+        default:        return "Auto"
+        }
+    }
 }
 
 enum LLMBackend: String {
