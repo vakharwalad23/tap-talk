@@ -227,7 +227,7 @@ final class AppController: ObservableObject {
         case whisper(tier: UInt8, name: String)
         case parakeet
         case whisperKit(WhisperKitEngine.Model)
-        case apple
+        case apple(language: String?)
         case unavailable(status: String)
     }
 
@@ -239,7 +239,7 @@ final class AppController: ObservableObject {
         // Immediate UI feedback before the (serialized) load runs.
         switch plan {
         case .cloud:                state.setModel(.ready);   state.status = "Cloud (OpenAI)"
-        case .apple:                state.setModel(.ready);   state.status = "Apple Speech ready"
+        case .apple:                state.setModel(.loading); state.status = "Checking Apple Speech..."
         case .whisper(_, let name): state.setModel(.loading); state.status = "Loading \(name)..."
         case .parakeet:             state.setModel(.loading); state.status = "Loading Parakeet..."
         case .whisperKit(let m):    state.setModel(.loading); state.status = "Loading WhisperKit \(m.displayName)..."
@@ -276,7 +276,7 @@ final class AppController: ObservableObject {
                 ? .whisperKit(m)
                 : .unavailable(status: "WhisperKit \(m.displayName) not installed — download it in Models")
         case .appleSpeech:
-            if #available(macOS 26, *) { return .apple }
+            if #available(macOS 26, *) { return .apple(language: settings.selectedLanguage) }
             return .unavailable(status: "Apple Speech requires macOS 26")
         }
     }
@@ -292,8 +292,16 @@ final class AppController: ObservableObject {
         guard await isCurrentGeneration(gen) else { return }
 
         switch plan {
-        case .cloud, .apple, .unavailable:
+        case .cloud, .unavailable:
             return  // nothing to load; UI already set
+        case .apple(let language):
+            if #available(macOS 26, *) {
+                if await AppleSpeechEngine.isAssetInstalled(language: language) {
+                    await finishLoad(gen, model: .ready, status: "Apple Speech ready")
+                } else {
+                    await finishLoad(gen, model: .none, status: "Apple Speech model not installed — download it in Settings")
+                }
+            }
         case .whisper(let tier, let name):
             do {
                 try transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
