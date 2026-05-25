@@ -157,6 +157,12 @@ final class SettingsStore: ObservableObject {
         } else {
             dictionarySegments = []
         }
+
+        // Apple Speech only exists on macOS 26+. If the persisted choice can't run here
+        // (e.g. an OS downgrade), fall back so the user isn't stuck on an unselectable engine.
+        if localEngine == .appleSpeech, #unavailable(macOS 26) {
+            localEngine = .whisper
+        }
     }
 
     private func applyLaunchAtLogin(_ enable: Bool) {
