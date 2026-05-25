@@ -91,11 +91,11 @@ impl Recorder {
             return Ok(RecordingResult { samples: Vec::new(), sample_count: 0, duration_secs: 0.0 });
         }
 
-        // Lift quiet/murmured speech toward Whisper's training loudness, then pad short
-        // clips with low-level noise (not zeros) to curb short-utterance hallucination.
+        // Lift quiet/murmured speech toward conversational loudness — helps every engine.
+        // Short-clip noise padding is a whisper.cpp-only hallucination workaround applied in
+        // the whisper path; cloud and Parakeet receive the natural (unpadded) clip.
         let mut processed = trimmed;
         let _gain = audio::apply_agc(&mut processed);
-        audio::pad_short_clip(&mut processed, 1.5);
 
         #[cfg(debug_assertions)]
         eprintln!("tt-agc speech_secs={:.2} gain={:.2}x out_len={}", duration_secs, _gain, processed.len());
@@ -189,7 +189,12 @@ impl Transcriber {
         let engine = guard.as_ref()
             .ok_or_else(|| CoreError::Model { msg: "no model loaded".into() })?;
 
-        let result = engine.transcribe(&samples, language.as_deref())
+        // Pad short clips to ~1.5s with low-level noise — whisper.cpp hallucinates on very
+        // short utterances. Applied here (whisper-only), not in capture.
+        let mut padded = samples;
+        audio::pad_short_clip(&mut padded, 1.5);
+
+        let result = engine.transcribe(&padded, language.as_deref())
             .map_err(|msg| CoreError::Transcription { msg })?;
 
         Ok(TranscriptionResult {
