@@ -118,11 +118,12 @@ struct RecordView: View {
     private func engineChip(_ title: String, icon: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.system(size: 10))
-            Text(title).font(.system(size: 12, weight: .medium)).lineLimit(1)
+            Text(title).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.tail)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .frame(width: 200, alignment: .leading)
+        // maxWidth (not fixed) so the row can shrink instead of overflowing a narrow window.
+        .frame(maxWidth: 200, alignment: .leading)
         .background(AppTheme.sectionBg)
         .foregroundStyle(AppTheme.primary)
         .clipShape(RoundedRectangle(cornerRadius: 6))
@@ -135,11 +136,11 @@ struct RecordView: View {
     private func autoLangChip(_ label: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "globe").font(.system(size: 10))
-            Text(label).font(.system(size: 12, weight: .medium))
+            Text(label).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.tail)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .frame(width: 140, alignment: .leading)
+        .frame(maxWidth: 140, alignment: .leading)
         .background(AppTheme.sectionBg)
         .foregroundStyle(AppTheme.secondary)
         .clipShape(RoundedRectangle(cornerRadius: 6))

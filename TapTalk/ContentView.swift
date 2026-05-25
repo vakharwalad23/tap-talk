@@ -22,7 +22,7 @@ struct ContentView: View {
         }
         .background(AppTheme.windowBg)
         .preferredColorScheme(.light)
-        .frame(minWidth: 520, minHeight: 420)
+        .frame(minWidth: 580, minHeight: 420)
     }
 
     @ViewBuilder
