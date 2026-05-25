@@ -23,25 +23,19 @@ actor AppleSpeechEngine {
         }
     }
 
+    // The locale currently reserved with AssetInventory — reused across calls.
+    private var reservedLocale: Locale?
+
     func transcribe(samples: [Float], language: String?) async throws -> Output {
         let start = Date()
 
-        let supported = await SpeechTranscriber.supportedLocales
-        guard let locale = Self.resolveLocale(requested: language, supported: supported) else {
-            throw EngineError.unsupportedLocale
-        }
-
+        let locale = try await prepare(language: language)
         let transcriber = SpeechTranscriber(
             locale: locale,
             transcriptionOptions: [],
             reportingOptions: [],
             attributeOptions: []
         )
-
-        // Ensure the locale's on-device model is present (no-op once installed).
-        if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
-            try await request.downloadAndInstall()
-        }
 
         let audioFile = try Self.writeTempAudioFile(samples: samples)
         defer { try? FileManager.default.removeItem(at: audioFile.url) }
@@ -64,18 +58,59 @@ actor AppleSpeechEngine {
         return Output(text: text, language: lang, processingMs: ms)
     }
 
-    // Picks a supported locale: exact requested language, else the system language, else English.
-    private static func resolveLocale(requested: String?, supported: [Locale]) -> Locale? {
+    // Resolves a supported locale, ensures its model is installed, and reserves a runtime
+    // slot (required before analysis, or start() throws assetLocaleNotAllocated).
+    private func prepare(language: String?) async throws -> Locale {
+        let locale = try await Self.resolveLocale(requested: language)
+        let transcriber = SpeechTranscriber(
+            locale: locale,
+            transcriptionOptions: [],
+            reportingOptions: [],
+            attributeOptions: []
+        )
+
+        let status = await AssetInventory.status(forModules: [transcriber])
+        guard status != .unsupported else { throw EngineError.unsupportedLocale }
+        if status != .installed,
+           let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
+            try await request.downloadAndInstall()
+        }
+
+        if reservedLocale?.identifier != locale.identifier {
+            if let previous = reservedLocale {
+                _ = await AssetInventory.release(reservedLocale: previous)
+            }
+            _ = try await AssetInventory.reserve(locale: locale)
+            reservedLocale = locale
+        }
+        return locale
+    }
+
+    // Releases the reserved locale slot when the engine is no longer in use.
+    func unload() async {
+        if let locale = reservedLocale {
+            _ = await AssetInventory.release(reservedLocale: locale)
+            reservedLocale = nil
+        }
+    }
+
+    // Picks a supported locale: requested language, else the system language, else English.
+    // Uses the SDK's equivalence resolver so script/region variants (zh→zh-CN) match.
+    private static func resolveLocale(requested: String?) async throws -> Locale {
         if let lang = requested, lang != "auto",
-           let match = supported.first(where: { $0.language.languageCode?.identifier == lang }) {
+           let match = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: lang)) {
             return match
         }
-        let systemCode = Locale.current.language.languageCode?.identifier
-        if let code = systemCode,
-           let match = supported.first(where: { $0.language.languageCode?.identifier == code }) {
-            return match
+        if let system = await SpeechTranscriber.supportedLocale(equivalentTo: Locale.current) {
+            return system
         }
-        return supported.first(where: { $0.language.languageCode?.identifier == "en" }) ?? supported.first
+        if let english = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: "en")) {
+            return english
+        }
+        guard let first = await SpeechTranscriber.supportedLocales.first else {
+            throw EngineError.unsupportedLocale
+        }
+        return first
     }
 
     // 16 kHz mono Float32 samples → a temp WAV the analyzer can read (it handles conversion).
