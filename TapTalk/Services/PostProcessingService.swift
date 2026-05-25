@@ -38,7 +38,6 @@ struct PostProcessingService {
         if let firstNewline = s.firstIndex(of: "\n") {
             s = String(s[s.index(after: firstNewline)...])
         }
-        // Remove closing fence
         if s.hasSuffix("```") {
             s = String(s.dropLast(3))
         }

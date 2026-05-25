@@ -10,7 +10,6 @@ struct IntelligenceView: View {
     @State private var newSegmentName = ""
     @State private var expandedSegments: Set<String> = []
 
-    // LLM
     @State private var llmApiKeyInput = ""
     @State private var llmApiKeySaved = false
     @State private var llmTestStatus: LLMTestStatus = .idle

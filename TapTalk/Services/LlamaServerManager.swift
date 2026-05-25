@@ -369,7 +369,7 @@ final class LlamaServerManager {
         }
 
         // Match the plain macOS arm64 tarball. Skip the kleidiai variant (CPU-only
-        // optimisations; we want Metal).
+        // optimisations; Metal is preferred).
         let arm64Asset = assets.first { asset in
             guard let name = asset["name"] as? String else { return false }
             return name.hasSuffix(".tar.gz")

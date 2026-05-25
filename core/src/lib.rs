@@ -16,8 +16,6 @@ pub enum CoreError {
     Transcription { msg: String },
 }
 
-// --- Audio Recording ---
-
 #[derive(uniffi::Record)]
 pub struct RecordingResult {
     pub samples: Vec<f32>,
@@ -94,8 +92,6 @@ impl Recorder {
         })
     }
 }
-
-// --- Transcription ---
 
 #[derive(uniffi::Record)]
 pub struct TranscriptionResult {
@@ -223,8 +219,6 @@ pub fn transcribe_cloud(
         .map_err(|msg| CoreError::Transcription { msg })
 }
 
-// --- Model Manager ---
-
 #[derive(uniffi::Enum)]
 pub enum DownloadPhase {
     Ggml,
@@ -337,8 +331,6 @@ fn map_progress(progress: &models::manager::DownloadProgress) -> DownloadProgres
         phase,
     }
 }
-
-// --- LLM models catalog ---
 
 #[derive(uniffi::Record)]
 pub struct LlmDownloadProgressInfo {

@@ -17,7 +17,6 @@ pub fn test_cloud_connection(api_key: &str) -> Result<String, String> {
     // Consume body to release connection
     let body = resp.into_body().read_to_string().unwrap_or_default();
 
-    // Check whisper-1 is visible
     let has_whisper = body.contains("whisper-1");
     if has_whisper {
         Ok("Connected · whisper-1 available".to_string())
@@ -102,7 +101,6 @@ fn encode_wav(samples: &[f32]) -> Result<Vec<u8>, String> {
 fn build_multipart(wav: &[u8], model: &str, language: Option<&str>) -> Vec<u8> {
     let mut body: Vec<u8> = Vec::new();
 
-    // file field
     append_str(
         &mut body,
         &format!(
@@ -112,7 +110,6 @@ fn build_multipart(wav: &[u8], model: &str, language: Option<&str>) -> Vec<u8> {
     body.extend_from_slice(wav);
     body.extend_from_slice(b"\r\n");
 
-    // model field
     append_field(&mut body, "model", model);
 
     // response_format for language detection

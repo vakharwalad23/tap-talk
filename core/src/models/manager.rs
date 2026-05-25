@@ -230,8 +230,6 @@ impl ModelManager {
         Ok(())
     }
 
-    // --- LLM model management ---
-
     pub fn is_llm_installed(&self, model_id: &str) -> bool {
         let Some(spec) = llm_model_by_id(model_id) else { return false };
         self.models_dir.join(spec.filename).exists()
