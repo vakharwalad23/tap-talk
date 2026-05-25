@@ -37,10 +37,25 @@ impl ModelManager {
     pub fn new(models_dir: &Path) -> Result<Self, String> {
         fs::create_dir_all(models_dir)
             .map_err(|e| format!("cannot create models dir: {e}"))?;
-        Ok(Self {
+        let manager = Self {
             models_dir: models_dir.to_path_buf(),
             active_download: Mutex::new(None),
-        })
+        };
+        manager.clean_macos_junk();
+        Ok(manager)
+    }
+
+    // Removes macOS resource-fork junk (__MACOSX/, .DS_Store) left in the models dir by
+    // older builds that extracted it from Core ML zips. Best-effort — failures are non-fatal.
+    fn clean_macos_junk(&self) {
+        let macosx = self.models_dir.join("__MACOSX");
+        if macosx.is_dir() {
+            let _ = fs::remove_dir_all(&macosx);
+        }
+        let ds_store = self.models_dir.join(".DS_Store");
+        if ds_store.is_file() {
+            let _ = fs::remove_file(&ds_store);
+        }
     }
 
     pub fn models_dir(&self) -> &Path {
@@ -369,6 +384,13 @@ fn extract_zip(zip_path: &Path, dest_root: &Path) -> Result<(), String> {
         let Some(rel_path) = entry.enclosed_name() else {
             return Err(format!("zip entry {} has unsafe path", entry.name()));
         };
+
+        // macOS-created zips carry a __MACOSX/ resource-fork tree and .DS_Store files —
+        // junk that must never land in the models dir.
+        if is_macos_junk(&rel_path) {
+            continue;
+        }
+
         let out_path = dest_root.join(&rel_path);
 
         if entry.is_dir() {
@@ -385,4 +407,23 @@ fn extract_zip(zip_path: &Path, dest_root: &Path) -> Result<(), String> {
             .map_err(|e| format!("write {}: {e}", out_path.display()))?;
     }
     Ok(())
+}
+
+fn is_macos_junk(path: &Path) -> bool {
+    path.components().any(|c| c.as_os_str() == "__MACOSX")
+        || path.file_name().is_some_and(|n| n == ".DS_Store")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_macos_junk;
+    use std::path::Path;
+
+    #[test]
+    fn flags_macos_junk_only() {
+        assert!(is_macos_junk(Path::new("__MACOSX/foo-encoder.mlmodelc/weights")));
+        assert!(is_macos_junk(Path::new("foo-encoder.mlmodelc/.DS_Store")));
+        assert!(!is_macos_junk(Path::new("ggml-large-v3-turbo-encoder.mlmodelc/weights/weight.bin")));
+        assert!(!is_macos_junk(Path::new("ggml-large-v3-turbo-encoder.mlmodelc/model.mil")));
+    }
 }
