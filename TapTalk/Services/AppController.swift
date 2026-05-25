@@ -167,12 +167,16 @@ final class AppController: ObservableObject {
 
     func loadSelectedTier() {
         guard settings.transcriptionEngine == .local else {
+            // Cloud — free both local engines' memory.
+            transcriber.unload()
+            Task { await parakeet.unload() }
             state.setModel(.ready)
             state.status = "Cloud (OpenAI)"
             return
         }
 
         if settings.localEngine == .parakeet {
+            transcriber.unload()  // free the whisper model + Core ML encoder
             guard ParakeetEngine.isInstalled() else {
                 state.setModel(.none)
                 state.status = "Parakeet not installed — download it in Models"
@@ -198,6 +202,7 @@ final class AppController: ObservableObject {
             return
         }
 
+        Task { await parakeet.unload() }  // free the Parakeet model when on whisper
         let tier = settings.selectedTier
         guard installedTiers.contains(tier) else { return }
         state.setModel(.loading)

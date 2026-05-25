@@ -165,8 +165,12 @@ impl Transcriber {
         Ok(())
     }
 
-    pub fn current_tier(&self) -> Option<u8> {
-        self.engine.lock().ok()?.as_ref().map(|e| e.tier_id())
+    /// Frees the loaded whisper model and its Core ML encoder to reclaim memory when the
+    /// user switches to another engine (Parakeet/cloud).
+    pub fn unload(&self) {
+        if let Ok(mut guard) = self.engine.lock() {
+            *guard = None;
+        }
     }
 
     pub fn transcribe(&self, samples: Vec<f32>, language: Option<String>) -> Result<TranscriptionResult, CoreError> {

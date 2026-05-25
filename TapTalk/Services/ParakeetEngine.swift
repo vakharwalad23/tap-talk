@@ -48,6 +48,11 @@ actor ParakeetEngine {
         manager = asr
     }
 
+    // Releases the loaded model (and its ANE/RAM footprint) when the user switches engines.
+    func unload() {
+        manager = nil
+    }
+
     struct Output {
         let text: String
         let processingMs: UInt64
