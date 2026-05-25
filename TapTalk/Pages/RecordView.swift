@@ -79,8 +79,9 @@ struct RecordView: View {
         .background(AppTheme.windowBg)
         // Re-register on window open to pick up any hotkey code change from settings
         .onAppear { ctrl.setupHotkey() }
-        .onChange(of: settings.selectedTier)        { _ in ctrl.loadSelectedTier() }
-        .onChange(of: settings.transcriptionEngine) { _ in ctrl.loadSelectedTier() }
+        // selectedTier has no Combine sink, so reload here; engine/model changes are handled
+        // centrally by AppController's sinks (avoids a duplicate, racing reload).
+        .onChange(of: settings.selectedTier) { _ in ctrl.loadSelectedTier() }
     }
 
     private var keyLabel: String { AppTheme.keyLabel(for: settings.hotkeyCode) }
