@@ -62,6 +62,9 @@ final class RecordingState: ObservableObject {
         phase = .idle
         smartMode = false
         hotkeyTriggered = false
+        streamingActive = false
+        streamingConfirmed = ""
+        streamingVolatile = ""
     }
 
     func setModel(_ status: ModelStatus) {

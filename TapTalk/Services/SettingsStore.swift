@@ -33,7 +33,7 @@ enum LocalEngine: String, CaseIterable {
     // Drives the visibility of the Settings streaming toggle.
     var supportsStreaming: Bool {
         switch self {
-        case .parakeet: return true   // FluidAudio SlidingWindowAsrManager
+        case .parakeet: return true   // Parakeet + EOU realtime endpointing model
         case .whisper, .whisperKit: return false   // whisper.cpp = no streaming; WhisperKit lands in S2
         }
     }

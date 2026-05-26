@@ -46,7 +46,9 @@ impl ModelManager {
     }
 
     // Removes macOS resource-fork junk (__MACOSX/, .DS_Store) left in the models dir by
-    // older builds that extracted it from Core ML zips. Best-effort — failures are non-fatal.
+    // older builds that extracted it from Core ML zips, plus crash-leftover artifacts
+    // from a download/extract aborted between the rename and extract steps.
+    // Best-effort — failures are non-fatal.
     fn clean_macos_junk(&self) {
         let macosx = self.models_dir.join("__MACOSX");
         if macosx.is_dir() {
@@ -57,13 +59,27 @@ impl ModelManager {
             let _ = fs::remove_file(&ds_store);
         }
 
-        // Remove leftover *.partial / *.zip.partial downloads from a session that quit or
-        // failed mid-download — they are never resumed, so they are pure wasted disk.
+        // Sweep top-level entries for:
+        //   - *.partial / *.zip.partial — orphaned mid-download files, never resumed.
+        //   - *.zip — Core ML archive left after the .partial rename but before extract
+        //     finished. The extract is not resumable, so the zip is dead weight.
+        //   - *.mlmodelc/ without coremldata.bin — partially-extracted bundle from a
+        //     crash mid-extract. coremldata.bin is written by the SDK at the end of
+        //     compilation, so its absence means the bundle is unusable.
         if let Ok(entries) = fs::read_dir(&self.models_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().and_then(|e| e.to_str()) == Some("partial") {
-                    let _ = fs::remove_file(&path);
+                let ext = path.extension().and_then(|e| e.to_str());
+                if path.is_file() {
+                    match ext {
+                        Some("partial") | Some("zip") => { let _ = fs::remove_file(&path); }
+                        _ => {}
+                    }
+                } else if path.is_dir() && ext == Some("mlmodelc") {
+                    let marker = path.join("coremldata.bin");
+                    if !marker.is_file() {
+                        let _ = fs::remove_dir_all(&path);
+                    }
                 }
             }
         }
