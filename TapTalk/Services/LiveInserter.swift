@@ -31,16 +31,20 @@ final class LiveInserter {
         self.source = CGEventSource(stateID: .combinedSessionState)
     }
 
-    // Starts a fresh session and snapshots the focused app for focus-loss detection.
+    // Starts a fresh session and snapshots the frontmost app for focus-loss detection.
+    // We track the FRONTMOST APP's PID (via NSWorkspace), not the focused element's PID,
+    // because Electron apps (VS Code, Slack, Discord, …) run each window in a separate
+    // helper process. The focused element's PID points at the helper and can jitter between
+    // updates, which would falsely trip focusChanged() and bail out of typing entirely.
+    // The frontmost app PID is stable per app.
     func begin() {
         pendingWork?.cancel(); pendingWork = nil
         inserted = ""
-        if let (element, pid) = currentFocusedElement() {
-            sessionPID = pid
+        sessionPID = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
+        if let (element, _) = currentFocusedElement() {
             useAX = isAttributeSettable(element, kAXSelectedTextRangeAttribute as CFString)
                  && isAttributeSettable(element, kAXSelectedTextAttribute as CFString)
         } else {
-            sessionPID = 0
             useAX = false
         }
     }
@@ -131,15 +135,18 @@ final class LiveInserter {
         return (element, pid)
     }
 
+    // Returns the current focused element only if the frontmost app hasn't switched. We
+    // intentionally do not compare the element's PID to sessionPID — the focused element
+    // lives in an Electron helper process whose PID does not match the app's PID.
     private func focusedElementIfStill() -> AXUIElement? {
-        guard let (element, pid) = currentFocusedElement(), pid == sessionPID else { return nil }
-        return element
+        guard !focusChanged() else { return nil }
+        return currentFocusedElement()?.0
     }
 
     private func focusChanged() -> Bool {
         guard sessionPID != 0 else { return false }
-        guard let (_, pid) = currentFocusedElement() else { return true }
-        return pid != sessionPID
+        let current = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
+        return current != sessionPID
     }
 
     private func isAttributeSettable(_ element: AXUIElement, _ attr: CFString) -> Bool {
