@@ -42,7 +42,9 @@ struct SettingsView: View {
                     if settings.transcriptionEngine == .local {
                         Divider().background(AppTheme.divider)
                         localEnginePicker
-                        if settings.localEngine.supportsStreaming {
+                        // Live-typing toggle is gated on the engine supporting streaming
+                        // AND the realtime model being installed (EOU 120M for Parakeet).
+                        if settings.localEngine.supportsStreaming, EouDownloadManager.shared.installed {
                             Divider().background(AppTheme.divider)
                             streamingToggle
                         }
@@ -136,7 +138,7 @@ struct SettingsView: View {
             settingRow("Live typing (stream as you speak)") {
                 Toggle("", isOn: $settings.streamingEnabled).labelsHidden()
             }
-            Text("Types words live into the focused app as Parakeet recognizes them. Off in Smart Mode.")
+            Text("Types words live into the focused app as Parakeet recognizes them. Uses the Parakeet Realtime (EOU) model. Off in Smart Mode.")
                 .font(.system(size: 11))
                 .foregroundStyle(AppTheme.tertiary)
                 .fixedSize(horizontal: false, vertical: true)

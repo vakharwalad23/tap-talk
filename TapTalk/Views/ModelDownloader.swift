@@ -21,6 +21,7 @@ struct ModelDownloader: View {
                     tierCard(recommended)
                 }
                 ParakeetCard()
+                EouCard()
                 WhisperKitCard()
                 ForEach(tiers.filter { $0.id != 3 }, id: \.id) { tier in
                     tierCard(tier)
@@ -676,5 +677,144 @@ private struct WhisperKitCard: View {
                 ProgressView(value: model.progress).tint(AppTheme.accent)
             }
         }
+    }
+}
+
+// App-lifetime singleton so an EOU download survives navigation away and back.
+@MainActor
+final class EouDownloadManager: ObservableObject {
+    static let shared = EouDownloadManager()
+
+    @Published var installed = EouStreamingEngine.isInstalled()
+    @Published var downloading = false
+    @Published var progress: Double = 0
+
+    private init() {}
+
+    func refreshInstalled() {
+        if !downloading { installed = EouStreamingEngine.isInstalled() }
+    }
+
+    func download() {
+        guard !downloading else { return }
+        downloading = true
+        progress = 0
+        Task {
+            do {
+                try await EouStreamingEngine.download { p in
+                    Task { @MainActor in self.progress = p }
+                }
+                self.downloading = false
+                self.installed = true
+                AppController.shared.refresh()
+            } catch {
+                self.downloading = false
+                self.installed = EouStreamingEngine.isInstalled()
+            }
+        }
+    }
+
+    func remove() {
+        guard !downloading else { return }
+        try? EouStreamingEngine.delete()
+        installed = false
+        AppController.shared.refresh()
+    }
+}
+
+// Catalog card for the EOU 120M low-latency streaming model.
+private struct EouCard: View {
+    @ObservedObject private var model = EouDownloadManager.shared
+    @State private var pendingRemoval = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 7) {
+                Text("Parakeet Realtime")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppTheme.primary)
+                Text("Live typing")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2.5)
+                    .background(AppTheme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                Spacer()
+                Text("~120 MB")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(AppTheme.secondary)
+                    .monospacedDigit()
+            }
+
+            HStack(alignment: .center) {
+                Text("Enables live typing as you speak. Required for the streaming toggle in Settings.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer()
+
+                if model.downloading {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small).tint(AppTheme.secondary)
+                        Text("Downloading")
+                            .font(.system(size: 11))
+                            .foregroundStyle(AppTheme.secondary)
+                    }
+                } else if model.installed {
+                    HStack(spacing: 10) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(AppTheme.success)
+                                .font(.system(size: 13))
+                            Text("Installed")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(AppTheme.success)
+                        }
+                        Button { pendingRemoval = true } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .foregroundStyle(AppTheme.danger)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else {
+                    Button("Download") { model.download() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(AppTheme.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(AppTheme.divider)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+            }
+
+            if model.downloading {
+                VStack(alignment: .trailing, spacing: 3) {
+                    ProgressView(value: model.progress)
+                        .tint(AppTheme.accent)
+                    Text("\(Int(model.progress * 100))%")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(AppTheme.secondary)
+                        .monospacedDigit()
+                }
+            }
+        }
+        .padding(14)
+        .background(AppTheme.sectionBg)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(AppTheme.divider, lineWidth: 1)
+        )
+        .alert("Remove Parakeet Realtime model?", isPresented: $pendingRemoval) {
+            Button("Cancel", role: .cancel) {}
+            Button("Remove", role: .destructive) { model.remove() }
+        } message: {
+            Text("Frees ~120 MB. Live typing will be disabled until you re-download it.")
+        }
+        .onAppear { model.refreshInstalled() }
     }
 }

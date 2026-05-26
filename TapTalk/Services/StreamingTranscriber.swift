@@ -1,4 +1,5 @@
 import Foundation
+import AVFAudio
 
 /// One incremental hypothesis from a streaming engine.
 /// - `confirmed`: text the engine is stable about; should not change.
@@ -29,4 +30,17 @@ protocol StreamingTranscriber: Actor {
 
     /// Abort the session immediately; discards any in-flight audio.
     func cancel() async
+}
+
+/// Wraps a mono Float32 sample array into an AVAudioPCMBuffer. Free function so the
+/// audio-thread bridge can call it without entering an actor.
+func makeBuffer(samples: [Float], format: AVAudioFormat) -> AVAudioPCMBuffer? {
+    guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)) else { return nil }
+    buffer.frameLength = AVAudioFrameCount(samples.count)
+    if let channel = buffer.floatChannelData?[0] {
+        samples.withUnsafeBufferPointer { src in
+            if let base = src.baseAddress { channel.update(from: base, count: samples.count) }
+        }
+    }
+    return buffer
 }

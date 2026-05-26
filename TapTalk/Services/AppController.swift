@@ -41,7 +41,7 @@ final class AppController: ObservableObject {
 
     // Live-typing state. Non-nil only while a streaming recording session is in flight.
     let liveInserter = LiveInserter()
-    private var streamingEngine: ParakeetStreamingEngine?
+    private var streamingEngine: EouStreamingEngine?
     private var streamingChunkHandler: StreamingChunkHandler?
     private var streamConsumerTask: Task<Void, Never>?
 
@@ -377,11 +377,14 @@ final class AppController: ObservableObject {
 
     // Whether the current recording should stream live text. Smart Mode opts out — the LLM
     // rewrite needs the full transcript — and cloud/whisper.cpp do not support streaming.
+    // Also requires the EOU 120M realtime model to be installed; without it we use the
+    // whole-clip flow instead of a janky SlidingWindow approximation.
     private func shouldStream(smart: Bool) -> Bool {
         settings.streamingEnabled
             && settings.transcriptionEngine == .local
             && settings.localEngine.supportsStreaming
             && !smart
+            && EouStreamingEngine.isInstalled()
     }
 
     // Boots the streaming engine and wires the recorder's chunk callback to feed it.
@@ -395,7 +398,7 @@ final class AppController: ObservableObject {
             state.status = "Live typing failed: invalid sample rate"
             return
         }
-        let engine = ParakeetStreamingEngine()
+        let engine = EouStreamingEngine()
         streamingEngine = engine
         liveInserter.begin()
         state.streamingActive = true
