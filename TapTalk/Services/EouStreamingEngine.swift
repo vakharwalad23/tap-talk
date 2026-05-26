@@ -16,6 +16,7 @@ actor EouStreamingEngine: StreamingTranscriber {
     private var consumerTask: Task<Void, Never>?
     private var updateContinuation: AsyncStream<StreamingUpdate>.Continuation?
     private var updateStream: AsyncStream<StreamingUpdate>?
+    private var inputFormat: AVAudioFormat?
 
     enum EngineError: LocalizedError {
         case notInstalled
@@ -27,7 +28,8 @@ actor EouStreamingEngine: StreamingTranscriber {
     }
 
     init() {
-        let (stream, cont) = AsyncStream<AVAudioPCMBuffer>.makeStream(bufferingPolicy: .unbounded)
+        // ~5s of buffer at 100Hz cpal callbacks; drop oldest under back-pressure rather than blow up RAM
+        let (stream, cont) = AsyncStream<AVAudioPCMBuffer>.makeStream(bufferingPolicy: .bufferingNewest(500))
         self.inputStream = stream
         self.inputContinuation = cont
     }
@@ -36,12 +38,17 @@ actor EouStreamingEngine: StreamingTranscriber {
 
     // FluidAudio stores EOU model files under this layout.
     nonisolated static func cacheBase() -> URL {
-        let app = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let app = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent("FluidAudio/Models/parakeet-eou-streaming")
+        }
         return app.appendingPathComponent("FluidAudio/Models/parakeet-eou-streaming")
     }
 
+    // SDK's loadModels(to:) appends "parakeet-eou-streaming/320ms" under the root we pass.
+    // Our root already ends in "parakeet-eou-streaming", so the on-disk path is doubled.
     nonisolated static func variantDirectory() -> URL {
-        cacheBase().appendingPathComponent("320ms")
+        cacheBase().appendingPathComponent("parakeet-eou-streaming/320ms")
     }
 
     private static let requiredFiles: [String] = [
@@ -55,6 +62,14 @@ actor EouStreamingEngine: StreamingTranscriber {
         let dir = variantDirectory()
         return requiredFiles.allSatisfy {
             FileManager.default.fileExists(atPath: dir.appendingPathComponent($0).path)
+        }
+    }
+
+    nonisolated static func sweepOrphans() {
+        guard !isInstalled() else { return }
+        let dir = cacheBase()
+        if FileManager.default.fileExists(atPath: dir.path) {
+            try? FileManager.default.removeItem(at: dir)
         }
     }
 
@@ -78,6 +93,14 @@ actor EouStreamingEngine: StreamingTranscriber {
 
     func start(sampleRate: Double) async throws {
         guard Self.isInstalled() else { throw EngineError.notInstalled }
+
+        // Store the session's input format so feed(_:) honors the negotiated rate.
+        self.inputFormat = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: sampleRate,
+            channels: 1,
+            interleaved: false
+        )
 
         let mgr = StreamingEouAsrManager(chunkSize: .ms320)
         try await mgr.loadModels()
@@ -106,7 +129,7 @@ actor EouStreamingEngine: StreamingTranscriber {
     }
 
     func feed(_ samples: [Float]) async {
-        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false),
+        guard let format = inputFormat,
               let buffer = makeBuffer(samples: samples, format: format) else { return }
         inputContinuation.yield(buffer)
     }
@@ -124,6 +147,7 @@ actor EouStreamingEngine: StreamingTranscriber {
         consumerTask?.cancel(); consumerTask = nil
         await mgr.cleanup()
         manager = nil
+        inputFormat = nil
         return final
     }
 
@@ -135,6 +159,7 @@ actor EouStreamingEngine: StreamingTranscriber {
         }
         updateContinuation?.finish()
         manager = nil
+        inputFormat = nil
     }
 
     private func emitPartial(_ partial: String) {
