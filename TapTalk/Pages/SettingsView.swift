@@ -125,17 +125,18 @@ struct SettingsView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: Local engine picker (Whisper vs Parakeet)
+    // MARK: Local engine picker (Whisper / Parakeet / WhisperKit)
 
     private var localEnginePicker: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Local model")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(AppTheme.secondary)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            // 3-column grid so all three engines sit in one tidy row (no empty cell).
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
                 localEngineButton(.whisper, label: "Whisper", sub: "90+ languages")
-                localEngineButton(.parakeet, label: "Parakeet", sub: "Fastest · English & EU")
-                localEngineButton(.whisperKit, label: "WhisperKit", sub: "Fast · 90+ languages")
+                localEngineButton(.parakeet, label: "Parakeet", sub: "Fastest · EN/EU")
+                localEngineButton(.whisperKit, label: "WhisperKit", sub: "Fast · 90+ langs")
             }
 
             if settings.localEngine == .whisperKit {

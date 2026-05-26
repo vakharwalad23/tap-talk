@@ -190,7 +190,7 @@ final class AppController: ObservableObject {
         installedTiers = manager.installedTiers().sorted()
 
         // Only the Rust whisper.cpp engine depends on installed whisper tiers; cloud and the
-        // other local engines (Parakeet, WhisperKit, Apple) manage their own models.
+        // other local engines (Parakeet, WhisperKit) manage their own models.
         if settings.transcriptionEngine == .cloud || settings.localEngine != .whisper {
             loadSelectedTier()
             return
