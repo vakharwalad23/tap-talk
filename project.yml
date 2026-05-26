@@ -74,7 +74,6 @@ targets:
       path: TapTalk/Info.plist
       properties:
         NSMicrophoneUsageDescription: "TapTalk needs microphone access to transcribe your speech locally."
-        NSSpeechRecognitionUsageDescription: "TapTalk uses on-device speech recognition to transcribe your dictation when the Apple Speech engine is selected."
         NSAccessibilityUsageDescription: "TapTalk needs accessibility permission to detect your push-to-talk hotkey globally."
         NSQuitAlwaysKeepsWindows: false
         LSMinimumSystemVersion: "14.0"

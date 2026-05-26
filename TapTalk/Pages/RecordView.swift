@@ -97,8 +97,6 @@ struct RecordView: View {
                 engineChip("Parakeet", icon: "bolt.fill")
             case .whisperKit:
                 engineChip("WhisperKit · \(settings.whisperKitModel.displayName)", icon: "waveform")
-            case .appleSpeech:
-                engineChip("Apple Speech", icon: "apple.logo")
             }
         } else {
             ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)

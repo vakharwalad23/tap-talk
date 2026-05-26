@@ -26,7 +26,5 @@
 	<string>TapTalk needs microphone access to transcribe your speech locally.</string>
 	<key>NSQuitAlwaysKeepsWindows</key>
 	<false/>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>TapTalk uses on-device speech recognition to transcribe your dictation when the Apple Speech engine is selected.</string>
 </dict>
 </plist>

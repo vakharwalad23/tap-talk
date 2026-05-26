@@ -3,8 +3,7 @@ import WhisperKit
 
 // Whisper via WhisperKit (Argmax) — full Core ML / Apple Neural Engine pipeline (encoder
 // and decoder), 99 languages with built-in detection. A separate engine from the Rust
-// whisper.cpp core; serves as the cross-version fast-multilingual path and the macOS < 26
-// fallback for Apple SpeechTranscriber. Models are downloaded only on explicit user action.
+// whisper.cpp core. Models are downloaded only on explicit user action.
 actor WhisperKitEngine {
     enum Model: String, CaseIterable, Sendable {
         case turbo

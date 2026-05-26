@@ -39,19 +39,6 @@ final class AppController: ObservableObject {
     private var idleReleaseTimer: Timer?
     private let idleReleaseSeconds: TimeInterval = 300
 
-    // AppleSpeechEngine is macOS 26+, so it can't be a plain stored property. Cache one
-    // instance behind a main-isolated, availability-gated accessor (avoids per-call setup
-    // and keeps appleEngineStorage access single-threaded).
-    private var appleEngineStorage: Any?
-    @available(macOS 26, *)
-    @MainActor
-    private var apple: AppleSpeechEngine {
-        if let engine = appleEngineStorage as? AppleSpeechEngine { return engine }
-        let engine = AppleSpeechEngine()
-        appleEngineStorage = engine
-        return engine
-    }
-
     private let maxRecordingSeconds: TimeInterval = 120
 
     private init() {
@@ -220,14 +207,13 @@ final class AppController: ObservableObject {
         }
     }
 
-    private enum ActiveEngine { case whisper, parakeet, whisperKit, apple, none }
+    private enum ActiveEngine { case whisper, parakeet, whisperKit, none }
 
     private enum EnginePlan {
         case cloud
         case whisper(tier: UInt8, name: String)
         case parakeet
         case whisperKit(WhisperKitEngine.Model)
-        case apple(language: String?)
         case unavailable(status: String)
     }
 
@@ -239,7 +225,6 @@ final class AppController: ObservableObject {
         // Immediate UI feedback before the (serialized) load runs.
         switch plan {
         case .cloud:                state.setModel(.ready);   state.status = "Cloud (OpenAI)"
-        case .apple:                state.setModel(.loading); state.status = "Checking Apple Speech..."
         case .whisper(_, let name): state.setModel(.loading); state.status = "Loading \(name)..."
         case .parakeet:             state.setModel(.loading); state.status = "Loading Parakeet..."
         case .whisperKit(let m):    state.setModel(.loading); state.status = "Loading WhisperKit \(m.displayName)..."
@@ -275,9 +260,6 @@ final class AppController: ObservableObject {
             return WhisperKitEngine.isInstalled(m)
                 ? .whisperKit(m)
                 : .unavailable(status: "WhisperKit \(m.displayName) not installed — download it in Models")
-        case .appleSpeech:
-            if #available(macOS 26, *) { return .apple(language: settings.selectedLanguage) }
-            return .unavailable(status: "Apple Speech requires macOS 26")
         }
     }
 
@@ -286,7 +268,6 @@ final class AppController: ObservableObject {
         case .whisper:             await releaseEngines(keep: .whisper)
         case .parakeet:            await releaseEngines(keep: .parakeet)
         case .whisperKit:          await releaseEngines(keep: .whisperKit)
-        case .apple:               await releaseEngines(keep: .apple)
         case .cloud, .unavailable: await releaseEngines(keep: .none)
         }
         guard await isCurrentGeneration(gen) else { return }
@@ -294,14 +275,6 @@ final class AppController: ObservableObject {
         switch plan {
         case .cloud, .unavailable:
             return  // nothing to load; UI already set
-        case .apple(let language):
-            if #available(macOS 26, *) {
-                if await AppleSpeechEngine.isAssetInstalled(language: language) {
-                    await finishLoad(gen, model: .ready, status: "Apple Speech ready")
-                } else {
-                    await finishLoad(gen, model: .none, status: "Apple Speech model not installed — download it in Settings")
-                }
-            }
         case .whisper(let tier, let name):
             do {
                 try transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
@@ -331,10 +304,6 @@ final class AppController: ObservableObject {
         if keep != .whisper { transcriber.unload() }
         if keep != .parakeet { await parakeet.unload() }
         if keep != .whisperKit { await whisperKit.unload() }
-        if #available(macOS 26, *), keep != .apple {
-            let apple = await MainActor.run { self.appleEngineStorage as? AppleSpeechEngine }
-            if let apple { await apple.unload() }
-        }
     }
 
     @MainActor private func isCurrentGeneration(_ gen: Int) -> Bool { engineLoadGeneration == gen }
@@ -487,14 +456,6 @@ final class AppController: ObservableObject {
                 } else if localEngine == .whisperKit {
                     let out = try await self.whisperKit.transcribe(samples: audio.samples, language: lang, model: wkModel)
                     result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
-                } else if localEngine == .appleSpeech {
-                    if #available(macOS 26, *) {
-                        let apple = await MainActor.run { self.apple }
-                        let out = try await apple.transcribe(samples: audio.samples, language: lang)
-                        result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
-                    } else {
-                        throw CoreError.Transcription(msg: "Apple Speech requires macOS 26")
-                    }
                 } else {
                     // Reload on demand if an idle release unloaded the model.
                     if !self.transcriber.isLoaded() {

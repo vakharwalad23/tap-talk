@@ -136,19 +136,11 @@ struct SettingsView: View {
                 localEngineButton(.whisper, label: "Whisper", sub: "90+ languages")
                 localEngineButton(.parakeet, label: "Parakeet", sub: "Fastest · English & EU")
                 localEngineButton(.whisperKit, label: "WhisperKit", sub: "Fast · 90+ languages")
-                if #available(macOS 26, *) {
-                    localEngineButton(.appleSpeech, label: "Apple Speech", sub: "Built into macOS")
-                }
             }
 
             if settings.localEngine == .whisperKit {
                 Divider().background(AppTheme.divider)
                 whisperKitModelPicker
-            }
-
-            if settings.localEngine == .appleSpeech, #available(macOS 26, *) {
-                Divider().background(AppTheme.divider)
-                AppleSpeechModelRow(language: settings.selectedLanguage)
             }
         }
         .padding(.top, 2)
@@ -423,64 +415,6 @@ struct SettingsView: View {
     }
 
     private func keyName(_ code: UInt16) -> String { AppTheme.keyLabel(for: code) }
-}
-
-// Explicit (opt-in) download control for the Apple Speech language model. No auto-download.
-@available(macOS 26, *)
-private struct AppleSpeechModelRow: View {
-    let language: String?
-    @ObservedObject private var model = AppleSpeechDownloadManager.shared
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Apple language model")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(AppTheme.secondary)
-
-            HStack(alignment: .center) {
-                Text("Runs fully on device. The model for your selected language downloads only when you tap Download.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(AppTheme.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer()
-
-                if model.downloading {
-                    HStack(spacing: 6) {
-                        ProgressView().controlSize(.small).tint(AppTheme.secondary)
-                        Text("\(Int(model.progress * 100))%")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(AppTheme.secondary)
-                            .monospacedDigit()
-                    }
-                } else if model.installed {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(AppTheme.success)
-                            .font(.system(size: 13))
-                        Text("Installed")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(AppTheme.success)
-                    }
-                } else {
-                    Button("Download") { model.download(language: language) }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AppTheme.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 5)
-                        .background(AppTheme.divider)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-            }
-
-            if model.downloading {
-                ProgressView(value: model.progress).tint(AppTheme.accent)
-            }
-        }
-        .onAppear { model.refresh(language: language) }
-        .onChange(of: language) { _ in model.refresh(language: language) }
-    }
 }
 
 final class KeyCapture {

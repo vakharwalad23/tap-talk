@@ -11,13 +11,12 @@ enum LocalEngine: String, CaseIterable {
     case whisper      // Rust whisper.cpp core (default, 99 languages)
     case parakeet     // FluidAudio / NVIDIA Parakeet (faster, English/EU, punctuation)
     case whisperKit   // WhisperKit (Argmax) — full Core ML/ANE Whisper, 99 languages
-    case appleSpeech  // Apple SpeechTranscriber (macOS 26+, on-device, broad locales)
 
     // Whether the engine lets the user pick a language. Engines that only auto-detect
     // (Parakeet) hide the picker and run in auto mode.
     var supportsLanguageSelection: Bool {
         switch self {
-        case .whisper, .whisperKit, .appleSpeech: return true
+        case .whisper, .whisperKit: return true
         case .parakeet: return false
         }
     }
@@ -156,12 +155,6 @@ final class SettingsStore: ObservableObject {
             dictionarySegments = decoded
         } else {
             dictionarySegments = []
-        }
-
-        // Apple Speech only exists on macOS 26+. If the persisted choice can't run here
-        // (e.g. an OS downgrade), fall back so the user isn't stuck on an unselectable engine.
-        if localEngine == .appleSpeech, #unavailable(macOS 26) {
-            localEngine = .whisper
         }
     }
 
