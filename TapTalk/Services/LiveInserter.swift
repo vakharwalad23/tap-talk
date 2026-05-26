@@ -216,11 +216,21 @@ final class LiveInserter {
     // are silently dropped by Chromium-based apps (VS Code, Mail compose, browser body
     // fields, Slack, Discord, …) because they ignore key events with virtualKey=0. Pasting
     // works everywhere that pastes work (which is essentially everywhere).
+    //
+    // Every paste is stamped with the community-standard "transient" and "concealed"
+    // pasteboard types so well-behaved clipboard managers — including macOS 26's built-in
+    // Clipboard History and third-party tools like Maccy / Paste / Pastebot — skip the
+    // entry and don't pollute the user's clipboard history with each volatile tail.
+    //
     // virtualKey constants: kVK_ANSI_V = 0x09, kVK_Command = 0x37.
     private func typeUnicode(_ text: String) {
         guard !text.isEmpty else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        let board = NSPasteboard.general
+        board.clearContents()
+        board.declareTypes([.string, .transient, .concealed], owner: nil)
+        board.setString(text, forType: .string)
+        board.setData(Data(), forType: .transient)
+        board.setData(Data(), forType: .concealed)
 
         let vDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
         let vUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
@@ -245,4 +255,12 @@ final class LiveInserter {
         }
         return count
     }
+}
+
+extension NSPasteboard.PasteboardType {
+    // Community conventions honored by clipboard managers (Maccy, Paste, Pastebot, …) and
+    // by macOS 26's built-in Clipboard History — tells the manager to skip this item.
+    // Used by password managers (1Password, etc.) and now by us for streaming pastes.
+    static let transient = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
+    static let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
 }
