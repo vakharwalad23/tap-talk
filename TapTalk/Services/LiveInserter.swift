@@ -23,6 +23,12 @@ final class LiveInserter {
     private var useAX = false
     private var sessionPID: pid_t = 0
 
+    // Saved at session start so we can restore the user's clipboard at the end.
+    // Streaming uses pasteboard + Cmd-V for the CGEvent path (the only universally
+    // accepted insertion method — Chromium/Electron reject CGEvent Unicode keystrokes
+    // because they have virtualKey=0).
+    private var savedClipboard: String?
+
     // Coalesces rapid hypothesis updates so we don't backspace+retype on every micro-revision.
     private var pendingWork: DispatchWorkItem?
     private let debounceSeconds: TimeInterval = 0.08
@@ -41,6 +47,7 @@ final class LiveInserter {
         pendingWork?.cancel(); pendingWork = nil
         inserted = ""
         sessionPID = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
+        savedClipboard = NSPasteboard.general.string(forType: .string)
         if let (element, _) = currentFocusedElement() {
             useAX = isAttributeSettable(element, kAXSelectedTextRangeAttribute as CFString)
                  && isAttributeSettable(element, kAXSelectedTextAttribute as CFString)
@@ -67,10 +74,12 @@ final class LiveInserter {
         pendingWork?.cancel(); pendingWork = nil
         if secureInputActive || focusChanged() {
             inserted = ""
+            restoreClipboardSoon()
             return false
         }
         reconcile(to: finalText)
         inserted = ""
+        restoreClipboardSoon()
         return true
     }
 
@@ -82,6 +91,21 @@ final class LiveInserter {
             backspace(count)
         }
         inserted = ""
+        restoreClipboardSoon()
+    }
+
+    // Pastes use the system clipboard, so each session's last insert leaves the engine's
+    // text on the user's pasteboard. Restore the original contents shortly after the final
+    // Cmd-V completes (matches PasteService's 150 ms delay pattern).
+    private func restoreClipboardSoon() {
+        let saved = savedClipboard
+        savedClipboard = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            if let saved {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(saved, forType: .string)
+            }
+        }
     }
 
     // MARK: Reconciliation
@@ -187,19 +211,23 @@ final class LiveInserter {
         }
     }
 
+    // Inserts text by writing it to the system pasteboard and synthesizing Cmd-V. This is
+    // the only universally-accepted insertion method on macOS: CGEvent Unicode keystrokes
+    // are silently dropped by Chromium-based apps (VS Code, Mail compose, browser body
+    // fields, Slack, Discord, …) because they ignore key events with virtualKey=0. Pasting
+    // works everywhere that pastes work (which is essentially everywhere).
+    // virtualKey constants: kVK_ANSI_V = 0x09, kVK_Command = 0x37.
     private func typeUnicode(_ text: String) {
-        let utf16 = Array(text.utf16)
-        guard !utf16.isEmpty else { return }
-        let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true)
-        let up   = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
-        utf16.withUnsafeBufferPointer { buf in
-            if let base = buf.baseAddress {
-                down?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: base)
-                up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: base)
-            }
-        }
-        down?.post(tap: .cghidEventTap)
-        up?.post(tap: .cghidEventTap)
+        guard !text.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+
+        let vDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
+        let vUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
+        vDown?.flags = .maskCommand
+        vUp?.flags   = .maskCommand
+        vDown?.post(tap: .cghidEventTap)
+        vUp?.post(tap: .cghidEventTap)
     }
 
     // Synthetic keys are blocked into secure-text fields; refuse rather than dropping chars.
