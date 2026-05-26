@@ -26,7 +26,10 @@ struct RecordView: View {
                 .frame(height: 18)
                 .padding(.bottom, 16)
 
-            if !state.transcriptText.isEmpty {
+            if state.streamingActive {
+                streamingPreview
+                    .padding(.bottom, 16)
+            } else if !state.transcriptText.isEmpty {
                 TranscriptDisplay(
                     text: state.transcriptText,
                     language: state.transcriptLang,
@@ -128,6 +131,24 @@ struct RecordView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 6).stroke(AppTheme.divider, lineWidth: 1)
         )
+    }
+
+    // Live transcript while streaming: confirmed text in normal weight, volatile tail dimmed.
+    private var streamingPreview: some View {
+        HStack(alignment: .top, spacing: 0) {
+            Text(state.streamingConfirmed)
+                .font(.system(size: 13))
+                .foregroundStyle(AppTheme.primary)
+            Text(state.streamingVolatile)
+                .font(.system(size: 13))
+                .foregroundStyle(AppTheme.tertiary)
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.sectionBg)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppTheme.divider, lineWidth: 1))
     }
 
     // Shown instead of the language picker for auto-only engines (e.g. Parakeet).

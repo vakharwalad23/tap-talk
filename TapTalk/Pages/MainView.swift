@@ -27,6 +27,11 @@ final class RecordingState: ObservableObject {
     @Published var transcriptMs: UInt64 = 0
     @Published var audioDuration: Float = 0
 
+    // Streaming mode: live typing into the focused app. UI shows confirmed + volatile tail.
+    @Published var streamingActive = false
+    @Published var streamingConfirmed = ""
+    @Published var streamingVolatile = ""
+
     var recording: Bool { phase == .recording }
     var transcribing: Bool { phase == .transcribing }
     var rewriting: Bool { phase == .rewriting }

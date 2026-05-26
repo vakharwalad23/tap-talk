@@ -42,6 +42,10 @@ struct SettingsView: View {
                     if settings.transcriptionEngine == .local {
                         Divider().background(AppTheme.divider)
                         localEnginePicker
+                        if settings.localEngine.supportsStreaming {
+                            Divider().background(AppTheme.divider)
+                            streamingToggle
+                        }
                     }
                     if settings.transcriptionEngine == .cloud {
                         Divider().background(AppTheme.divider)
@@ -123,6 +127,20 @@ struct SettingsView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: Streaming toggle (only for engines that can do live partial transcription)
+
+    private var streamingToggle: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            settingRow("Live typing (stream as you speak)") {
+                Toggle("", isOn: $settings.streamingEnabled).labelsHidden()
+            }
+            Text("Types words live into the focused app as Parakeet recognizes them. Off in Smart Mode.")
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     // MARK: Local engine picker (Whisper / Parakeet / WhisperKit)

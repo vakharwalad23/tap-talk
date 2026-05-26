@@ -28,6 +28,15 @@ enum LocalEngine: String, CaseIterable {
         default:        return "Auto"
         }
     }
+
+    // Engines that can produce incremental hypotheses while audio is still arriving.
+    // Drives the visibility of the Settings streaming toggle.
+    var supportsStreaming: Bool {
+        switch self {
+        case .parakeet: return true   // FluidAudio SlidingWindowAsrManager
+        case .whisper, .whisperKit: return false   // whisper.cpp = no streaming; WhisperKit lands in S2
+        }
+    }
 }
 
 enum LLMBackend: String {
@@ -67,6 +76,10 @@ final class SettingsStore: ObservableObject {
 
     @Published var whisperKitModel: WhisperKitEngine.Model {
         didSet { UserDefaults.standard.set(whisperKitModel.rawValue, forKey: "whisperKitModel") }
+    }
+
+    @Published var streamingEnabled: Bool {
+        didSet { UserDefaults.standard.set(streamingEnabled, forKey: "streamingEnabled") }
     }
 
     @Published var cloudModel: String {
@@ -130,6 +143,8 @@ final class SettingsStore: ObservableObject {
 
         let rawWhisperKit = UserDefaults.standard.string(forKey: "whisperKitModel") ?? "turbo"
         whisperKitModel = WhisperKitEngine.Model(rawValue: rawWhisperKit) ?? .turbo
+
+        streamingEnabled = UserDefaults.standard.bool(forKey: "streamingEnabled")
 
         cloudModel = UserDefaults.standard.string(forKey: "cloudModel") ?? "whisper-1"
 

@@ -39,6 +39,12 @@ final class AppController: ObservableObject {
     private var idleReleaseTimer: Timer?
     private let idleReleaseSeconds: TimeInterval = 300
 
+    // Live-typing state. Non-nil only while a streaming recording session is in flight.
+    let liveInserter = LiveInserter()
+    private var streamingEngine: ParakeetStreamingEngine?
+    private var streamingChunkHandler: StreamingChunkHandler?
+    private var streamConsumerTask: Task<Void, Never>?
+
     private let maxRecordingSeconds: TimeInterval = 120
 
     private init() {
@@ -360,9 +366,74 @@ final class AppController: ObservableObject {
             AppRecordingState.shared.isRecording = true
             FloatingPillController.shared.show(state: .recording)
             startRecordingWatchdog()
+
+            if shouldStream(smart: smart) {
+                beginStreamingSession()
+            }
         } catch {
             state.status = "Error: \(error.localizedDescription)"
         }
+    }
+
+    // Whether the current recording should stream live text. Smart Mode opts out — the LLM
+    // rewrite needs the full transcript — and cloud/whisper.cpp do not support streaming.
+    private func shouldStream(smart: Bool) -> Bool {
+        settings.streamingEnabled
+            && settings.transcriptionEngine == .local
+            && settings.localEngine.supportsStreaming
+            && !smart
+    }
+
+    // Boots the streaming engine and wires the recorder's chunk callback to feed it.
+    // Updates land on the main actor and drive both LiveInserter (live typing) and the UI.
+    private func beginStreamingSession() {
+        let rate = Double(recorder.inputSampleRate() ?? 16_000)
+        let engine = ParakeetStreamingEngine()
+        streamingEngine = engine
+        liveInserter.begin()
+        state.streamingActive = true
+        state.streamingConfirmed = ""
+        state.streamingVolatile = ""
+
+        streamConsumerTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await engine.start(sampleRate: rate)
+                // Session may have been torn down while we were starting up.
+                await MainActor.run {
+                    guard self.streamingEngine === engine else { return }
+                    let handler = StreamingChunkHandler(engine: engine)
+                    self.streamingChunkHandler = handler
+                    self.recorder.setAudioChunkCallback(callback: handler)
+                }
+                let stream = await engine.updates
+                for await update in stream {
+                    if update.isFinal { continue }   // commit() handles the final pass
+                    await MainActor.run {
+                        guard self.streamingEngine === engine else { return }
+                        self.liveInserter.update(confirmed: update.confirmed, volatile: update.volatile)
+                        self.state.streamingConfirmed = update.confirmed
+                        self.state.streamingVolatile = update.volatile
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.state.status = "Live typing failed: \(error.localizedDescription)"
+                    self.tearDownStreamingSession()
+                }
+            }
+        }
+    }
+
+    private func tearDownStreamingSession() {
+        recorder.clearAudioChunkCallback()
+        streamConsumerTask?.cancel()
+        streamConsumerTask = nil
+        streamingChunkHandler = nil
+        streamingEngine = nil
+        state.streamingActive = false
+        state.streamingConfirmed = ""
+        state.streamingVolatile = ""
     }
 
     // Force-stops a recording that outlives the max duration — a final safety net
@@ -393,8 +464,16 @@ final class AppController: ObservableObject {
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.hide()
         scheduleIdleRelease()
-        Task.detached { [recorder] in
+
+        // Streaming session: backspace whatever was typed live, then tear down.
+        let activeStreamingEngine = streamingEngine
+        if activeStreamingEngine != nil {
+            liveInserter.cancel()
+            tearDownStreamingSession()
+        }
+        Task.detached { [recorder, activeStreamingEngine] in
             _ = try? recorder.stop()
+            if let engine = activeStreamingEngine { await engine.cancel() }
         }
     }
 
@@ -418,6 +497,54 @@ final class AppController: ObservableObject {
         state.status = "Transcribing..."
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.show(state: .transcribing)
+
+        // Streaming session: text was typed live; just finalize, reconcile, and clean up.
+        if let engine = streamingEngine {
+            recorder.clearAudioChunkCallback()
+            let segments = settings.dictionarySegments
+            let hotkeyTriggeredLocal = hotkeyTriggered
+            transcribeTask = Task.detached { [weak self] in
+                guard let self else { return }
+                _ = try? self.recorder.stop()
+                do {
+                    let final = try await engine.finish()
+                    let processed = PostProcessingService.applyDictionary(final, segments: segments)
+                    await MainActor.run {
+                        guard !Task.isCancelled else { return }
+                        self.liveInserter.commit(processed)
+                        if processed.isEmpty {
+                            self.state.finish()
+                            self.state.status = "Too short — hold longer"
+                            FloatingPillController.shared.hide()
+                        } else {
+                            self.state.transcriptText = processed
+                            self.state.transcriptLang = "auto"
+                            self.state.transcriptMs = 0
+                            self.state.audioDuration = 0
+                            self.state.finish()
+                            self.state.status = "Done"
+                            if hotkeyTriggeredLocal {
+                                FloatingPillController.shared.show(state: .done)
+                            } else {
+                                FloatingPillController.shared.hide()
+                            }
+                        }
+                        self.tearDownStreamingSession()
+                        self.scheduleIdleRelease()
+                    }
+                } catch {
+                    await MainActor.run {
+                        guard !Task.isCancelled else { return }
+                        self.state.finish()
+                        self.state.status = "Live typing error: \(error.localizedDescription)"
+                        FloatingPillController.shared.hide()
+                        self.tearDownStreamingSession()
+                        self.scheduleIdleRelease()
+                    }
+                }
+            }
+            return
+        }
 
         let lang       = settings.selectedLanguage
         let engine     = settings.transcriptionEngine
@@ -626,5 +753,15 @@ private final class PillLevelHandler: AudioLevelCallback {
         DispatchQueue.main.async {
             FloatingPillController.shared.setLevel(rms)
         }
+    }
+}
+
+// Forwards live mono audio chunks from the Rust recorder to the streaming engine.
+// Fire-and-forget Task per chunk; actor serializes feeds in arrival order.
+final class StreamingChunkHandler: AudioChunkCallback {
+    let engine: ParakeetStreamingEngine
+    init(engine: ParakeetStreamingEngine) { self.engine = engine }
+    func onChunk(samples: [Float]) {
+        Task { [engine] in await engine.feed(samples) }
     }
 }
