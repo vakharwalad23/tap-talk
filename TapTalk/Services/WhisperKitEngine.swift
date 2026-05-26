@@ -102,10 +102,19 @@ actor WhisperKitEngine {
 
         for model in Model.allCases {
             let folder = repoDir.appendingPathComponent(model.variant)
-            guard fm.fileExists(atPath: folder.path) else { continue }
+            let cache = variantCacheDirectory(model)
+            let folderExists = fm.fileExists(atPath: folder.path)
+            let cacheExists = fm.fileExists(atPath: cache.path)
+
+            // Orphan download cache with no variant folder — happens when a force-kill
+            // interrupted a download before the snapshot move. Reclaim the cache.
+            if !folderExists && cacheExists {
+                try? fm.removeItem(at: cache)
+                continue
+            }
+            guard folderExists else { continue }
             if installedFolder(model) != nil { continue }   // recorded + present — keep
 
-            let cache = variantCacheDirectory(model)
             if hasIncompleteArtifacts(cache) || isEmptyDirectory(folder) {
                 try? fm.removeItem(at: folder)   // partial — reclaim
                 try? fm.removeItem(at: cache)

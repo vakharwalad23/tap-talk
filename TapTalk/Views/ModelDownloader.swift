@@ -540,7 +540,7 @@ private struct ParakeetCard: View {
             Button("Remove", role: .destructive) { model.remove() }
         } message: {
             if eou.installed {
-                Text("Frees ~610 MB. The Live typing add-on (~120 MB) is removed with it — live streaming will be disabled.")
+                Text("Frees ~930 MB. The Live typing add-on (~440 MB) is removed with it — live streaming will be disabled.")
             } else {
                 Text("Frees ~490 MB. You can re-download it anytime.")
             }
@@ -549,7 +549,7 @@ private struct ParakeetCard: View {
             Button("Cancel", role: .cancel) {}
             Button("Remove", role: .destructive) { eou.remove() }
         } message: {
-            Text("Frees ~120 MB. Live streaming dictation will be disabled until you re-download.")
+            Text("Frees ~440 MB. Live streaming dictation will be disabled until you re-download.")
         }
         .onAppear {
             model.refreshInstalled()
@@ -565,7 +565,7 @@ private struct ParakeetCard: View {
                         Text("Live typing add-on")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(AppTheme.primary)
-                        Text("~120 MB")
+                        Text("~440 MB")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(AppTheme.secondary)
                             .monospacedDigit()

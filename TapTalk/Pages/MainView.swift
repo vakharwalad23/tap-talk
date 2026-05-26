@@ -56,6 +56,9 @@ final class RecordingState: ObservableObject {
     func finish() {
         phase = .idle
         smartMode = false
+        streamingActive = false
+        streamingConfirmed = ""
+        streamingVolatile = ""
     }
 
     func cancel() {

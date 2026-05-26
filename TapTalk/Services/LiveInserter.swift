@@ -11,8 +11,10 @@ import ApplicationServices       // AXUIElement, AXValue
 /// 1. Accessibility range-replace (preferred) — selects the volatile tail via
 ///    `kAXSelectedTextRange` and overwrites via `kAXSelectedText`. Flicker-free, single
 ///    undo. Works on most native AppKit/SwiftUI text views.
-/// 2. CGEvent Unicode keystrokes (fallback) — universal, including Electron / Terminal /
-///    web fields where AX writes are blocked.
+/// 2. Pasteboard + Cmd-V (fallback) — writes the new tail to the system pasteboard and
+///    synthesizes Cmd-V. The only universally accepted insertion method on macOS; CGEvent
+///    Unicode keystrokes are silently dropped by Chromium-based apps (VS Code, Mail
+///    compose, browser body fields, Slack, Discord) because virtualKey=0 is ignored.
 ///
 /// Not thread-safe; call from the main actor.
 final class LiveInserter {
@@ -23,13 +25,15 @@ final class LiveInserter {
     private var useAX = false
     private var sessionPID: pid_t = 0
 
-    // Saved at session start so we can restore the user's clipboard at the end.
-    // Streaming uses pasteboard + Cmd-V for the CGEvent path (the only universally
-    // accepted insertion method — Chromium/Electron reject CGEvent Unicode keystrokes
-    // because they have virtualKey=0).
+    // Snapshot of the user's clipboard at session start. Restored after the final paste so
+    // the streaming text doesn't replace whatever the user had copied.
     private var savedClipboard: String?
+    // Scheduled restore. Cancelled (and performed synchronously) on a re-`begin()` so rapid
+    // back-to-back sessions can't capture the transient text as their saved clipboard.
+    private var pendingRestore: DispatchWorkItem?
 
-    // Coalesces rapid hypothesis updates so we don't backspace+retype on every micro-revision.
+    // Coalesces rapid hypothesis updates so the path doesn't backspace+retype on every
+    // micro-revision.
     private var pendingWork: DispatchWorkItem?
     private let debounceSeconds: TimeInterval = 0.08
 
@@ -38,13 +42,21 @@ final class LiveInserter {
     }
 
     // Starts a fresh session and snapshots the frontmost app for focus-loss detection.
-    // We track the FRONTMOST APP's PID (via NSWorkspace), not the focused element's PID,
+    // Tracks the FRONTMOST APP's PID (via NSWorkspace), not the focused element's PID,
     // because Electron apps (VS Code, Slack, Discord, …) run each window in a separate
     // helper process. The focused element's PID points at the helper and can jitter between
     // updates, which would falsely trip focusChanged() and bail out of typing entirely.
-    // The frontmost app PID is stable per app.
+    // The frontmost-app PID is stable per app.
     func begin() {
         pendingWork?.cancel(); pendingWork = nil
+        // Drain any pending clipboard restore from a prior session synchronously, so the
+        // snapshot below captures the user's actual clipboard — not the transient text the
+        // previous session pasted.
+        if let restore = pendingRestore {
+            restore.cancel()
+            restore.perform()
+            pendingRestore = nil
+        }
         inserted = ""
         sessionPID = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
         savedClipboard = NSPasteboard.general.string(forType: .string)
@@ -83,7 +95,8 @@ final class LiveInserter {
         return true
     }
 
-    // Aborts the session: removes everything typed (if the focused field is still ours).
+    // Aborts the session: removes everything typed (if the focused field is still the
+    // session's target).
     func cancel() {
         pendingWork?.cancel(); pendingWork = nil
         let count = inserted.count
@@ -95,17 +108,19 @@ final class LiveInserter {
     }
 
     // Pastes use the system clipboard, so each session's last insert leaves the engine's
-    // text on the user's pasteboard. Restore the original contents shortly after the final
-    // Cmd-V completes (matches PasteService's 150 ms delay pattern).
+    // text on the user's pasteboard. Restore the original contents 200 ms after the final
+    // Cmd-V completes (matches PasteService's delay pattern).
     private func restoreClipboardSoon() {
         let saved = savedClipboard
         savedClipboard = nil
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        let work = DispatchWorkItem {
             if let saved {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(saved, forType: .string)
             }
         }
+        pendingRestore = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
     }
 
     // MARK: Reconciliation
@@ -121,12 +136,12 @@ final class LiveInserter {
                 inserted = target
                 return
             }
-            // First failure → permanently disable AX path this session; CGEvent works everywhere.
+            // First failure → permanently disable AX path this session; pasteboard works everywhere.
             useAX = false
         }
 
         if deleteCount > 0 { backspace(deleteCount) }
-        if !newTail.isEmpty { typeUnicode(newTail) }
+        if !newTail.isEmpty { pasteInsert(newTail) }
         inserted = target
     }
 
@@ -153,14 +168,16 @@ final class LiveInserter {
         var focused: AnyObject?
         let err = AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focused)
         guard err == .success, let elem = focused else { return nil }
+        // SAFETY: kAXFocusedUIElementAttribute is contracted to return an AXUIElement.
+        guard CFGetTypeID(elem) == AXUIElementGetTypeID() else { return nil }
         let element = elem as! AXUIElement
         var pid: pid_t = 0
         AXUIElementGetPid(element, &pid)
         return (element, pid)
     }
 
-    // Returns the current focused element only if the frontmost app hasn't switched. We
-    // intentionally do not compare the element's PID to sessionPID — the focused element
+    // Returns the current focused element only if the frontmost app hasn't switched.
+    // Intentionally does not compare the element's PID to sessionPID — the focused element
     // lives in an Electron helper process whose PID does not match the app's PID.
     private func focusedElementIfStill() -> AXUIElement? {
         guard !focusChanged() else { return nil }
@@ -183,6 +200,8 @@ final class LiveInserter {
         var value: AnyObject?
         let err = AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &value)
         guard err == .success, let v = value else { return nil }
+        // SAFETY: kAXSelectedTextRangeAttribute is contracted to vend an AXValue.
+        guard CFGetTypeID(v) == AXValueGetTypeID() else { return nil }
         let axValue = v as! AXValue
         guard AXValueGetType(axValue) == .cfRange else { return nil }
         var range = CFRange()
@@ -211,19 +230,19 @@ final class LiveInserter {
         }
     }
 
-    // Inserts text by writing it to the system pasteboard and synthesizing Cmd-V. This is
-    // the only universally-accepted insertion method on macOS: CGEvent Unicode keystrokes
-    // are silently dropped by Chromium-based apps (VS Code, Mail compose, browser body
-    // fields, Slack, Discord, …) because they ignore key events with virtualKey=0. Pasting
-    // works everywhere that pastes work (which is essentially everywhere).
+    // Inserts text by writing it to the system pasteboard and synthesizing Cmd-V. The only
+    // universally-accepted insertion method on macOS: CGEvent Unicode keystrokes are
+    // silently dropped by Chromium-based apps (VS Code, Mail compose, browser body fields,
+    // Slack, Discord) because they ignore key events with virtualKey=0. Pasting works
+    // everywhere that paste works (which is essentially everywhere).
     //
     // Every paste is stamped with the community-standard "transient" and "concealed"
     // pasteboard types so well-behaved clipboard managers — including macOS 26's built-in
-    // Clipboard History and third-party tools like Maccy / Paste / Pastebot — skip the
-    // entry and don't pollute the user's clipboard history with each volatile tail.
+    // Clipboard History and third-party tools (Maccy / Paste / Pastebot) — skip the entry
+    // and don't pollute the user's clipboard history with each volatile tail.
     //
-    // virtualKey constants: kVK_ANSI_V = 0x09, kVK_Command = 0x37.
-    private func typeUnicode(_ text: String) {
+    // virtualKey: kVK_ANSI_V = 0x09 with .maskCommand for Cmd-V.
+    private func pasteInsert(_ text: String) {
         guard !text.isEmpty else { return }
         let board = NSPasteboard.general
         board.clearContents()
@@ -259,8 +278,8 @@ final class LiveInserter {
 
 extension NSPasteboard.PasteboardType {
     // Community conventions honored by clipboard managers (Maccy, Paste, Pastebot, …) and
-    // by macOS 26's built-in Clipboard History — tells the manager to skip this item.
-    // Used by password managers (1Password, etc.) and now by us for streaming pastes.
+    // macOS 26's built-in Clipboard History — tells the manager to skip this item.
+    // Used by password managers (1Password, etc.) and streaming pastes here.
     static let transient = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
     static let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
 }

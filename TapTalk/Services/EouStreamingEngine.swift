@@ -6,7 +6,7 @@ import FluidAudio
 /// Chunk size = 320ms (best balance: ~5.7% WER, 14x RTFx). Token-level partial transcripts
 /// arrive at ~320ms cadence — fast enough that text appears live as the user speaks.
 ///
-/// EOU is a separate model from Parakeet v3; user must explicitly download it.
+/// EOU is a separate model from Parakeet v3; the user must explicitly download it.
 actor EouStreamingEngine: StreamingTranscriber {
     // Sendable FIFO. The audio thread yields buffers synchronously, preserving arrival order.
     nonisolated let inputContinuation: AsyncStream<AVAudioPCMBuffer>.Continuation
@@ -16,7 +16,6 @@ actor EouStreamingEngine: StreamingTranscriber {
     private var consumerTask: Task<Void, Never>?
     private var updateContinuation: AsyncStream<StreamingUpdate>.Continuation?
     private var updateStream: AsyncStream<StreamingUpdate>?
-    private var inputFormat: AVAudioFormat?
 
     enum EngineError: LocalizedError {
         case notInstalled
@@ -28,8 +27,9 @@ actor EouStreamingEngine: StreamingTranscriber {
     }
 
     init() {
-        // ~5s of buffer at 100Hz cpal callbacks; drop oldest under back-pressure rather than blow up RAM
-        let (stream, cont) = AsyncStream<AVAudioPCMBuffer>.makeStream(bufferingPolicy: .bufferingNewest(500))
+        // ~20s buffer at 100Hz cpal callbacks. Sized to absorb model load latency on cold
+        // start so the first words of an utterance aren't dropped before the consumer drains.
+        let (stream, cont) = AsyncStream<AVAudioPCMBuffer>.makeStream(bufferingPolicy: .bufferingNewest(2000))
         self.inputStream = stream
         self.inputContinuation = cont
     }
@@ -45,8 +45,8 @@ actor EouStreamingEngine: StreamingTranscriber {
         return app.appendingPathComponent("FluidAudio/Models/parakeet-eou-streaming")
     }
 
-    // SDK's loadModels(to:) appends "parakeet-eou-streaming/320ms" under the root we pass.
-    // Our root already ends in "parakeet-eou-streaming", so the on-disk path is doubled.
+    // SDK's loadModels(to:) appends "parakeet-eou-streaming/320ms" under the passed root.
+    // cacheBase() already ends in "parakeet-eou-streaming", so the on-disk path is doubled.
     nonisolated static func variantDirectory() -> URL {
         cacheBase().appendingPathComponent("parakeet-eou-streaming/320ms")
     }
@@ -82,6 +82,16 @@ actor EouStreamingEngine: StreamingTranscriber {
         await mgr.cleanup()
     }
 
+    // Warms macOS Core ML JIT caches at app launch so the first streaming session's
+    // engine.start() returns in hundreds of ms rather than seconds. Without this, the FIFO
+    // can fill mid-utterance before the consumer drains. No-op if model isn't installed.
+    nonisolated static func warmUp() async {
+        guard isInstalled() else { return }
+        let mgr = StreamingEouAsrManager(chunkSize: .ms320)
+        _ = try? await mgr.loadModels()
+        await mgr.cleanup()
+    }
+
     nonisolated static func delete() throws {
         let dir = cacheBase()
         if FileManager.default.fileExists(atPath: dir.path) {
@@ -93,14 +103,6 @@ actor EouStreamingEngine: StreamingTranscriber {
 
     func start(sampleRate: Double) async throws {
         guard Self.isInstalled() else { throw EngineError.notInstalled }
-
-        // Store the session's input format so feed(_:) honors the negotiated rate.
-        self.inputFormat = AVAudioFormat(
-            commonFormat: .pcmFormatFloat32,
-            sampleRate: sampleRate,
-            channels: 1,
-            interleaved: false
-        )
 
         let mgr = StreamingEouAsrManager(chunkSize: .ms320)
         try await mgr.loadModels()
@@ -114,24 +116,15 @@ actor EouStreamingEngine: StreamingTranscriber {
         // (no volatile tail), so confirmed = partial, volatile = "".
         await mgr.setPartialTranscriptCallback { [weak self] partial in
             Task { await self?.emitPartial(partial) }
-            #if DEBUG
-            print("tt-stream eou partial=\"\(partial)\"")
-            #endif
         }
 
-        // Drain our FIFO input → manager.appendAudio + processBufferedAudio in arrival order.
+        // Drain FIFO input → manager.appendAudio + processBufferedAudio in arrival order.
         consumerTask = Task { [inputStream = self.inputStream, mgr] in
             for await buffer in inputStream {
                 try? await mgr.appendAudio(buffer)
                 try? await mgr.processBufferedAudio()
             }
         }
-    }
-
-    func feed(_ samples: [Float]) async {
-        guard let format = inputFormat,
-              let buffer = makeBuffer(samples: samples, format: format) else { return }
-        inputContinuation.yield(buffer)
     }
 
     var updates: AsyncStream<StreamingUpdate> {
@@ -147,7 +140,6 @@ actor EouStreamingEngine: StreamingTranscriber {
         consumerTask?.cancel(); consumerTask = nil
         await mgr.cleanup()
         manager = nil
-        inputFormat = nil
         return final
     }
 
@@ -159,7 +151,6 @@ actor EouStreamingEngine: StreamingTranscriber {
         }
         updateContinuation?.finish()
         manager = nil
-        inputFormat = nil
     }
 
     private func emitPartial(_ partial: String) {

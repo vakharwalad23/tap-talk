@@ -69,11 +69,28 @@ final class AppController: ObservableObject {
     func setup() {
         suppressAppNap()
         sweepDownloadResidue()
+        reconcileStreamingFlag()
+        warmUpStreamingEngineIfNeeded()
         refresh()
         FloatingPillController.shared.hide()
         resolveMicThenSetupHotkey()
         observeBackendChanges()
         observeSystemEvents()
+    }
+
+    // Forces streamingEnabled=false when the EOU model isn't installed so the Settings
+    // toggle (hidden when EOU is missing) can't disagree with the persisted bool.
+    private func reconcileStreamingFlag() {
+        if settings.streamingEnabled && !EouStreamingEngine.isInstalled() {
+            settings.streamingEnabled = false
+        }
+    }
+
+    // Warms Core ML JIT caches for the EOU model so the first streaming session starts in
+    // hundreds of ms instead of seconds — cuts the cold-start audio backlog window.
+    private func warmUpStreamingEngineIfNeeded() {
+        guard settings.streamingEnabled, EouStreamingEngine.isInstalled() else { return }
+        Task.detached { await EouStreamingEngine.warmUp() }
     }
 
     // Reclaims disk from downloads interrupted by a previous app quit (the Rust core sweeps
@@ -408,8 +425,15 @@ final class AppController: ObservableObject {
         state.streamingVolatile = ""
 
         // Don't keep a previously loaded whisper.cpp / Parakeet / WhisperKit model resident
-        // while EOU streams — release them off the main thread.
-        Task { [weak self] in await self?.releaseEngines(keep: .none) }
+        // while EOU streams. Serialize through engineTask so a concurrent loadSelectedTier
+        // can't reload an engine mid-stream; bumping the generation makes any in-flight load
+        // a no-op when it resumes.
+        engineLoadGeneration &+= 1
+        let previousEngineTask = engineTask
+        engineTask = Task { [weak self] in
+            await previousEngineTask?.value
+            await self?.releaseEngines(keep: .none)
+        }
 
         // Wire chunks to the engine's Sendable FIFO right away. Yielding into AsyncStream
         // is sync and order-preserving — no Task scheduling race per audio chunk.
@@ -436,12 +460,14 @@ final class AppController: ObservableObject {
                 await engine.cancel()
                 await MainActor.run {
                     self.state.status = "Live typing failed: \(error.localizedDescription)"
+                    self.liveInserter.cancel()
                     self.tearDownStreamingSession()
                 }
             }
         }
     }
 
+    @MainActor
     private func tearDownStreamingSession() {
         // Idempotent: a double-call (cancel arriving while error path also tears down)
         // becomes a no-op once the session flags are already cleared.
@@ -537,6 +563,9 @@ final class AppController: ObservableObject {
                     await MainActor.run {
                         guard !Task.isCancelled else { return }
                         let typed = self.liveInserter.commit(processed)
+                        // Tear down streaming flags first so the final-transcript card shows
+                        // without a one-frame overlap with the streaming preview.
+                        self.tearDownStreamingSession()
                         if processed.isEmpty {
                             self.state.finish()
                             self.state.status = "Too short — hold longer"
@@ -549,8 +578,9 @@ final class AppController: ObservableObject {
                             self.state.finish()
                             self.state.status = "Done"
                             // Fallback: live typing was dropped (secure input / focus moved) —
-                            // paste the final utterance so the user doesn't lose it.
-                            if !typed && hotkeyTriggeredLocal {
+                            // paste the final utterance so it isn't silently lost. Fires
+                            // regardless of how recording was triggered.
+                            if !typed {
                                 PasteService.paste(processed)
                             }
                             if hotkeyTriggeredLocal {
@@ -559,7 +589,6 @@ final class AppController: ObservableObject {
                                 FloatingPillController.shared.hide()
                             }
                         }
-                        self.tearDownStreamingSession()
                         self.scheduleIdleRelease()
                     }
                 } catch {
