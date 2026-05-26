@@ -385,9 +385,16 @@ final class AppController: ObservableObject {
     }
 
     // Boots the streaming engine and wires the recorder's chunk callback to feed it.
-    // Updates land on the main actor and drive both LiveInserter (live typing) and the UI.
+    // Chunk callback is set IMMEDIATELY (before engine.start finishes loading), so audio
+    // buffers in the engine's FIFO from the first sample — no audio is dropped while the
+    // model loads on a cold start. Updates land on the main actor and drive both the
+    // LiveInserter (live typing) and the UI preview.
     private func beginStreamingSession() {
         let rate = Double(recorder.inputSampleRate() ?? 16_000)
+        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: rate, channels: 1, interleaved: false) else {
+            state.status = "Live typing failed: invalid sample rate"
+            return
+        }
         let engine = ParakeetStreamingEngine()
         streamingEngine = engine
         liveInserter.begin()
@@ -395,17 +402,16 @@ final class AppController: ObservableObject {
         state.streamingConfirmed = ""
         state.streamingVolatile = ""
 
+        // Wire chunks to the engine's Sendable FIFO right away. Yielding into AsyncStream
+        // is sync and order-preserving — no Task scheduling race per audio chunk.
+        let handler = StreamingChunkHandler(format: format, continuation: engine.inputContinuation)
+        streamingChunkHandler = handler
+        recorder.setAudioChunkCallback(callback: handler)
+
         streamConsumerTask = Task { [weak self] in
             guard let self else { return }
             do {
                 try await engine.start(sampleRate: rate)
-                // Session may have been torn down while we were starting up.
-                await MainActor.run {
-                    guard self.streamingEngine === engine else { return }
-                    let handler = StreamingChunkHandler(engine: engine)
-                    self.streamingChunkHandler = handler
-                    self.recorder.setAudioChunkCallback(callback: handler)
-                }
                 let stream = await engine.updates
                 for await update in stream {
                     if update.isFinal { continue }   // commit() handles the final pass
@@ -756,12 +762,18 @@ private final class PillLevelHandler: AudioLevelCallback {
     }
 }
 
-// Forwards live mono audio chunks from the Rust recorder to the streaming engine.
-// Fire-and-forget Task per chunk; actor serializes feeds in arrival order.
+// Forwards live mono audio chunks from the Rust recorder to the streaming engine via a
+// Sendable FIFO continuation. Yielding is sync and thread-safe, preserving arrival order —
+// critical for streaming ASR (out-of-order chunks corrupt the recognizer state).
 final class StreamingChunkHandler: AudioChunkCallback {
-    let engine: ParakeetStreamingEngine
-    init(engine: ParakeetStreamingEngine) { self.engine = engine }
+    let format: AVAudioFormat
+    let continuation: AsyncStream<AVAudioPCMBuffer>.Continuation
+    init(format: AVAudioFormat, continuation: AsyncStream<AVAudioPCMBuffer>.Continuation) {
+        self.format = format
+        self.continuation = continuation
+    }
     func onChunk(samples: [Float]) {
-        Task { [engine] in await engine.feed(samples) }
+        guard !samples.isEmpty, let buffer = makeBuffer(samples: samples, format: format) else { return }
+        continuation.yield(buffer)
     }
 }
