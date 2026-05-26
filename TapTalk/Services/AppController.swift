@@ -385,12 +385,17 @@ final class AppController: ObservableObject {
     func cancelRecording() {
         guard state.recording else { return }
         cancelRecordingWatchdog()
-        _ = try? recorder.stop()
+        // Reset UI/state first; tear the audio stream down off the main thread. A slow
+        // cpal pause() (CoreAudio start->pause race) used to block this method and leave
+        // the app stuck in the .recording phase.
         state.cancel()
         state.status = "Cancelled"
         AppRecordingState.shared.isRecording = false
         FloatingPillController.shared.hide()
         scheduleIdleRelease()
+        Task.detached { [recorder] in
+            _ = try? recorder.stop()
+        }
     }
 
     func cancelTranscription() {
