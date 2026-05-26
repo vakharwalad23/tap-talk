@@ -57,11 +57,17 @@ final class LiveInserter {
     }
 
     // Finalizes the session: ensures the typed text matches `finalText`, then resets.
-    func commit(_ finalText: String) {
+    // Returns true if the text was typed/replaced; false if dropped (secure input or focus moved).
+    @discardableResult
+    func commit(_ finalText: String) -> Bool {
         pendingWork?.cancel(); pendingWork = nil
-        guard !secureInputActive, !focusChanged() else { inserted = ""; return }
+        if secureInputActive || focusChanged() {
+            inserted = ""
+            return false
+        }
         reconcile(to: finalText)
         inserted = ""
+        return true
     }
 
     // Aborts the session: removes everything typed (if the focused field is still ours).

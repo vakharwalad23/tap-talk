@@ -82,6 +82,7 @@ final class AppController: ObservableObject {
         Task.detached {
             WhisperKitEngine.sweepOrphans()
             ParakeetEngine.sweepOrphans()
+            EouStreamingEngine.sweepOrphans()
         }
     }
 
@@ -339,6 +340,7 @@ final class AppController: ObservableObject {
     // works — the transcribe path reloads on demand (ensureLoaded / is_loaded).
     private func releaseIdleEngines() {
         guard state.phase == .idle else { return }
+        guard streamingEngine == nil else { return }
         engineLoadGeneration &+= 1
         let previous = engineTask
         engineTask = Task { [weak self] in
@@ -377,8 +379,8 @@ final class AppController: ObservableObject {
 
     // Whether the current recording should stream live text. Smart Mode opts out — the LLM
     // rewrite needs the full transcript — and cloud/whisper.cpp do not support streaming.
-    // Also requires the EOU 120M realtime model to be installed; without it we use the
-    // whole-clip flow instead of a janky SlidingWindow approximation.
+    // Also requires the EOU 120M realtime model to be installed; without the EOU realtime
+    // model, fall back to whole-clip transcription.
     private func shouldStream(smart: Bool) -> Bool {
         settings.streamingEnabled
             && settings.transcriptionEngine == .local
@@ -405,6 +407,10 @@ final class AppController: ObservableObject {
         state.streamingConfirmed = ""
         state.streamingVolatile = ""
 
+        // Don't keep a previously loaded whisper.cpp / Parakeet / WhisperKit model resident
+        // while EOU streams — release them off the main thread.
+        Task { [weak self] in await self?.releaseEngines(keep: .none) }
+
         // Wire chunks to the engine's Sendable FIFO right away. Yielding into AsyncStream
         // is sync and order-preserving — no Task scheduling race per audio chunk.
         let handler = StreamingChunkHandler(format: format, continuation: engine.inputContinuation)
@@ -426,6 +432,8 @@ final class AppController: ObservableObject {
                     }
                 }
             } catch {
+                // Cancel the engine to free a half-loaded model before tearing down session state.
+                await engine.cancel()
                 await MainActor.run {
                     self.state.status = "Live typing failed: \(error.localizedDescription)"
                     self.tearDownStreamingSession()
@@ -435,6 +443,9 @@ final class AppController: ObservableObject {
     }
 
     private func tearDownStreamingSession() {
+        // Idempotent: a double-call (cancel arriving while error path also tears down)
+        // becomes a no-op once the session flags are already cleared.
+        guard state.streamingActive || streamingEngine != nil || streamConsumerTask != nil else { return }
         recorder.clearAudioChunkCallback()
         streamConsumerTask?.cancel()
         streamConsumerTask = nil
@@ -475,6 +486,8 @@ final class AppController: ObservableObject {
         scheduleIdleRelease()
 
         // Streaming session: backspace whatever was typed live, then tear down.
+        // Capture the engine locally then clear `streamingEngine` immediately (via teardown) so
+        // a concurrent error path can't re-touch the same instance during the detached cancel.
         let activeStreamingEngine = streamingEngine
         if activeStreamingEngine != nil {
             liveInserter.cancel()
@@ -509,6 +522,9 @@ final class AppController: ObservableObject {
 
         // Streaming session: text was typed live; just finalize, reconcile, and clean up.
         if let engine = streamingEngine {
+            // Clear instance var immediately so a concurrent cancelRecording can't re-touch
+            // this engine while the detached finish() is in flight.
+            self.streamingEngine = nil
             recorder.clearAudioChunkCallback()
             let segments = settings.dictionarySegments
             let hotkeyTriggeredLocal = hotkeyTriggered
@@ -520,7 +536,7 @@ final class AppController: ObservableObject {
                     let processed = PostProcessingService.applyDictionary(final, segments: segments)
                     await MainActor.run {
                         guard !Task.isCancelled else { return }
-                        self.liveInserter.commit(processed)
+                        let typed = self.liveInserter.commit(processed)
                         if processed.isEmpty {
                             self.state.finish()
                             self.state.status = "Too short — hold longer"
@@ -532,6 +548,11 @@ final class AppController: ObservableObject {
                             self.state.audioDuration = 0
                             self.state.finish()
                             self.state.status = "Done"
+                            // Fallback: live typing was dropped (secure input / focus moved) —
+                            // paste the final utterance so the user doesn't lose it.
+                            if !typed && hotkeyTriggeredLocal {
+                                PasteService.paste(processed)
+                            }
                             if hotkeyTriggeredLocal {
                                 FloatingPillController.shared.show(state: .done)
                             } else {
@@ -542,6 +563,8 @@ final class AppController: ObservableObject {
                         self.scheduleIdleRelease()
                     }
                 } catch {
+                    // Free the half-loaded engine before resetting session state.
+                    await engine.cancel()
                     await MainActor.run {
                         guard !Task.isCancelled else { return }
                         self.state.finish()
