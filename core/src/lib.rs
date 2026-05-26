@@ -28,6 +28,11 @@ pub trait AudioLevelCallback: Send + Sync {
     fn on_level(&self, rms: f32);
 }
 
+#[uniffi::export(callback_interface)]
+pub trait AudioChunkCallback: Send + Sync {
+    fn on_chunk(&self, samples: Vec<f32>);
+}
+
 #[derive(uniffi::Object)]
 pub struct Recorder {
     inner: audio::AudioRecorder,
@@ -51,6 +56,23 @@ impl Recorder {
     /// Registers a sink for live mic RMS level (~30 Hz) to drive the recording pill.
     pub fn set_level_callback(&self, callback: Box<dyn AudioLevelCallback>) {
         self.inner.set_level_callback(Box::new(move |rms| callback.on_level(rms)));
+    }
+
+    /// Registers a sink for live mono audio chunks at the device's source sample rate.
+    /// Set this before start() to feed a streaming transcriber; clear it after finish/cancel.
+    pub fn set_audio_chunk_callback(&self, callback: Box<dyn AudioChunkCallback>) {
+        self.inner.set_chunk_callback(Box::new(move |samples| callback.on_chunk(samples)));
+    }
+
+    /// Removes any previously-set chunk callback. Zero overhead in the audio thread afterward.
+    pub fn clear_audio_chunk_callback(&self) {
+        self.inner.clear_chunk_callback();
+    }
+
+    /// Source sample rate of the warmed input stream, in Hz. None if warm_up() has not run.
+    /// Streaming engines need this to build AVAudioPCMBuffer in the right format.
+    pub fn input_sample_rate(&self) -> Option<u32> {
+        self.inner.source_sample_rate()
     }
 
     /// Pre-creates the CoreAudio AudioUnit so the TCC mic dialog happens early.

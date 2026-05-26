@@ -7,6 +7,7 @@ const LEVEL_EMIT_HZ: u32 = 30;
 const RECORDING_BUFFER_CAPACITY: usize = 16_000 * 30;
 
 type LevelFn = Box<dyn Fn(f32) + Send>;
+type ChunkFn = Box<dyn Fn(Vec<f32>) + Send>;
 
 struct PersistentStream {
     stream: cpal::Stream,
@@ -23,6 +24,9 @@ pub struct AudioRecorder {
     buffer: Arc<Mutex<Vec<f32>>>,
     stream_state: Mutex<Option<PersistentStream>>,
     level_sink: Arc<Mutex<Option<LevelFn>>>,
+    // Streaming sink: when set, the audio thread forwards each callback's mono samples here
+    // so a streaming ASR engine can consume them live. Zero overhead when None.
+    chunk_sink: Arc<Mutex<Option<ChunkFn>>>,
 }
 
 impl AudioRecorder {
@@ -32,6 +36,7 @@ impl AudioRecorder {
             buffer: Arc::new(Mutex::new(Vec::with_capacity(RECORDING_BUFFER_CAPACITY))),
             stream_state: Mutex::new(None),
             level_sink: Arc::new(Mutex::new(None)),
+            chunk_sink: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -41,6 +46,25 @@ impl AudioRecorder {
         if let Ok(mut guard) = self.level_sink.lock() {
             *guard = Some(callback);
         }
+    }
+
+    // Registers a sink for live mono audio chunks at the device's source sample rate, used to
+    // drive a streaming transcriber. Set before start(); clear after finish/cancel.
+    pub fn set_chunk_callback(&self, callback: ChunkFn) {
+        if let Ok(mut guard) = self.chunk_sink.lock() {
+            *guard = Some(callback);
+        }
+    }
+
+    pub fn clear_chunk_callback(&self) {
+        if let Ok(mut guard) = self.chunk_sink.lock() {
+            *guard = None;
+        }
+    }
+
+    // Source sample rate of the currently-warmed input stream (None if warm_up not called yet).
+    pub fn source_sample_rate(&self) -> Option<u32> {
+        self.stream_state.lock().ok().and_then(|g| g.as_ref().map(|s| s.source_sample_rate))
     }
 
     // Creates the CoreAudio stream once; subsequent calls are a no-op.
@@ -65,6 +89,7 @@ impl AudioRecorder {
         let buf_ref = Arc::clone(&self.buffer);
         let rec_ref = Arc::clone(&self.recording);
         let level_ref = Arc::clone(&self.level_sink);
+        let chunk_ref = Arc::clone(&self.chunk_sink);
         let emit_interval = (source_rate / LEVEL_EMIT_HZ).max(1);
         let mut frames_since_emit: u32 = 0;
 
@@ -72,14 +97,25 @@ impl AudioRecorder {
             &config.into(),
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 if !rec_ref.load(Ordering::Relaxed) { return; }
+
+                // Build mono samples once: zero-copy slice for mono, downmix Vec otherwise.
+                let mono_owned: Option<Vec<f32>> = if channels > 1 {
+                    Some(
+                        data.chunks(channels)
+                            .map(|frame| frame.iter().sum::<f32>() / channels as f32)
+                            .collect()
+                    )
+                } else { None };
+                let mono: &[f32] = mono_owned.as_deref().unwrap_or(data);
+
                 if let Ok(mut buf) = buf_ref.try_lock() {
-                    if channels == 1 {
-                        buf.extend_from_slice(data);
-                    } else {
-                        for frame in data.chunks(channels) {
-                            let sum: f32 = frame.iter().sum();
-                            buf.push(sum / channels as f32);
-                        }
+                    buf.extend_from_slice(mono);
+                }
+
+                // Forward to the streaming sink if active. Allocation only when a sink is set.
+                if let Ok(guard) = chunk_ref.try_lock() {
+                    if let Some(ref sink) = *guard {
+                        sink(mono.to_vec());
                     }
                 }
 
