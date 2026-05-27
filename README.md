@@ -54,20 +54,22 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 | Engine | Best for | Languages | Download | Runs on |
 |---|---|---|---|---|
 | **Whisper** (whisper.cpp) | Broadest language coverage, full control | 99 languages | Tiny 75 MB · Small 466 MB · **Large v3 Turbo 1.6 GB** · Large v3 3 GB | GPU/Metal, optional Neural Engine encoder |
-| **Parakeet** (NVIDIA TDT 0.6B v3) | Fastest English/European dictation | ~25 European languages (auto) | ~490 MB | Neural Engine |
+| **Parakeet** (NVIDIA TDT 0.6B v3) | Fastest English/European dictation, optional live typing | ~25 European languages (auto) | ~490 MB · Live typing add-on ~440 MB | Neural Engine |
 | **WhisperKit** (Argmax) | Fast multilingual on the Neural Engine | 99 languages (auto-detect) | Turbo ~632 MB · Large v3 ~947 MB | Neural Engine |
 | **Cloud (optional)** | When you explicitly want OpenAI | OpenAI Whisper | — | Your OpenAI account (opt-in) |
 
 - **Whisper** is the default. Add the optional Core ML encoder ("Speed up") to run the encoder on the Neural Engine; remove it anytime to reclaim disk.
 - **Parakeet** and **WhisperKit** auto-detect the spoken language, so they show an "Auto" indicator instead of a language picker.
+- **Live typing** (Parakeet only) — install the optional Realtime EOU add-on from the Models page and enable the toggle in Settings. Words appear in the focused text field as you speak, with sub-second latency on the Neural Engine. Streaming runs locally and is mutually exclusive with Smart Mode (which needs the whole transcript).
 
 ## Features
 
 - **Multiple engines, your choice** — Whisper, Parakeet, and WhisperKit, all on-device; an optional OpenAI cloud engine for those who want it.
+- **Live typing** — optional streaming mode (Parakeet + Realtime EOU): words appear in the focused text field as you speak, with sub-second latency.
 - **90+ languages** — depending on the engine, with automatic language detection on Parakeet/WhisperKit.
 - **Neural Engine acceleration** — Core ML inference on Apple Silicon across Parakeet, WhisperKit, and the optional Whisper encoder.
 - **Global push-to-talk** — a system-wide hotkey that works from any application.
-- **Auto-paste** — transcribed text is inserted into the focused text field.
+- **Auto-paste** — transcribed text is inserted into the focused text field (or typed live, when streaming is on).
 - **Word dictionary** — custom replacement rules (technical jargon, proper nouns, shorthand) applied as post-processing.
 - **Smart Mode** — TapTalk reads the context of where you're typing and rewrites your words to fit. Dropping a message in Slack? Casual. Writing in Notion? Clean prose. Powered by a local LLM by default.
 - **Resource-conscious** — switching engines releases the inactive model, and idle models are unloaded to free memory and the Neural Engine.

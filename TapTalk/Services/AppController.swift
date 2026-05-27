@@ -467,7 +467,6 @@ final class AppController: ObservableObject {
         }
     }
 
-    @MainActor
     private func tearDownStreamingSession() {
         // Idempotent: a double-call (cancel arriving while error path also tears down)
         // becomes a no-op once the session flags are already cleared.
