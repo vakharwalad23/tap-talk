@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import os
 
 // Manages a llama-server subprocess for local LLM inference.
 // The server exposes an OpenAI-compatible HTTP API on localhost.
@@ -9,6 +10,11 @@ final class LlamaServerManager {
     private var process: Process?
     private var readyCheckTask: Task<Void, Never>?
     private var logHandle: FileHandle?
+
+    // Pinned llama.cpp release. Tracking "latest" made the binary non-reproducible across
+    // machines and let an upstream flag rename break Smart Mode silently. Bump deliberately,
+    // after confirming the flags in start() still exist in the new build.
+    static let pinnedRelease = "b10107"
 
     private static let portRange = 8899...8910
     private(set) var port = 8899
@@ -47,20 +53,30 @@ final class LlamaServerManager {
                 port: NWEndpoint.Port(integerLiteral: UInt16(self.port)),
                 using: .tcp
             )
-            var settled = false
+            // The state handler and the timeout run on a concurrent queue, so the guard has
+            // to be atomic — resuming a CheckedContinuation twice traps.
+            let settled = OSAllocatedUnfairLock(initialState: false)
+            @Sendable func claim() -> Bool {
+                settled.withLock { done in
+                    if done { return false }
+                    done = true
+                    return true
+                }
+            }
+
             let queue = DispatchQueue.global(qos: .userInitiated)
             conn.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    if !settled { settled = true; conn.cancel(); cont.resume(returning: true) }
+                    if claim() { conn.cancel(); cont.resume(returning: true) }
                 case .failed, .cancelled:
-                    if !settled { settled = true; cont.resume(returning: false) }
+                    if claim() { cont.resume(returning: false) }
                 default: break
                 }
             }
             conn.start(queue: queue)
             queue.asyncAfter(deadline: .now() + 0.1) {
-                if !settled { settled = true; conn.cancel(); cont.resume(returning: false) }
+                if claim() { conn.cancel(); cont.resume(returning: false) }
             }
         }
     }
@@ -207,8 +223,21 @@ final class LlamaServerManager {
         return dir
     }
 
+    // Records which release the installed binary came from, so a changed pin re-provisions
+    // instead of silently keeping whatever "latest" happened to be at first install.
+    private func installedReleasePath() -> String {
+        let dir = LlamaServerManager.binaryDirectory()
+        return (dir as NSString).appendingPathComponent(".release")
+    }
+
+    private func installedRelease() -> String? {
+        try? String(contentsOfFile: installedReleasePath(), encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     func isBinaryInstalled() -> Bool {
         FileManager.default.fileExists(atPath: binaryPath())
+            && installedRelease() == Self.pinnedRelease
     }
 
     // Wipes the entire bin directory (binary + bundled dylibs).
@@ -218,16 +247,16 @@ final class LlamaServerManager {
         try? FileManager.default.removeItem(atPath: dir)
     }
 
-    // Downloads and extracts llama-server binary if not present.
+    // Downloads and extracts llama-server binary if the pinned release is not present.
     func ensureBinaryAvailable() async throws -> String {
         let path = binaryPath()
-        if FileManager.default.fileExists(atPath: path) { return path }
+        if isBinaryInstalled() { return path }
         try await downloadBinary(to: path, onBytesProgress: nil)
         return path
     }
 
     func fetchBinaryAsset() async throws -> (url: URL, size: UInt64) {
-        let info = try await fetchLatestReleaseInfo()
+        let info = try await fetchPinnedReleaseInfo()
         guard let url = info.arm64MacosURL else {
             throw LlamaServerError.binaryNotFound
         }
@@ -261,6 +290,10 @@ final class LlamaServerManager {
         }
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: destination)
         stripQuarantine(at: (destination as NSString).deletingLastPathComponent)
+
+        // Written last so a run that dies mid-extract leaves the install marked incomplete
+        // and re-provisions on the next attempt.
+        try Self.pinnedRelease.write(toFile: installedReleasePath(), atomically: true, encoding: .utf8)
     }
 
     private func downloadFile(
@@ -355,8 +388,9 @@ final class LlamaServerManager {
         let arm64MacosSize: UInt64
     }
 
-    private func fetchLatestReleaseInfo() async throws -> ReleaseInfo {
-        guard let apiURL = URL(string: "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest") else {
+    private func fetchPinnedReleaseInfo() async throws -> ReleaseInfo {
+        let endpoint = "https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/\(Self.pinnedRelease)"
+        guard let apiURL = URL(string: endpoint) else {
             throw LlamaServerError.downloadFailed("invalid GitHub API URL")
         }
         var req = URLRequest(url: apiURL, timeoutInterval: 15)
