@@ -1,6 +1,11 @@
-use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use rubato::{SincFixedIn, SincInterpolationParameters, SincInterpolationType, Resampler, WindowFunction};
+use rubato::{
+    Resampler, SincFixedIn, SincInterpolationParameters, SincInterpolationType, WindowFunction,
+};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 
 const TARGET_SAMPLE_RATE: u32 = 16_000;
 const LEVEL_EMIT_HZ: u32 = 30;
@@ -64,21 +69,24 @@ impl AudioRecorder {
 
     // Source sample rate of the currently-warmed input stream (None if warm_up not called yet).
     pub fn source_sample_rate(&self) -> Option<u32> {
-        self.stream_state.lock().ok().and_then(|g| g.as_ref().map(|s| s.source_sample_rate))
+        self.stream_state
+            .lock()
+            .ok()
+            .and_then(|g| g.as_ref().map(|s| s.source_sample_rate))
     }
 
     // Creates the CoreAudio stream once; subsequent calls are a no-op.
     // Keeping the stream alive across recordings prevents macOS TCC
     // from re-validating mic permission on each start().
     fn ensure_stream(&self) -> Result<u32, String> {
-        let mut guard = self.stream_state.lock()
-            .map_err(|e| format!("lock: {e}"))?;
+        let mut guard = self.stream_state.lock().map_err(|e| format!("lock: {e}"))?;
         if let Some(ref s) = *guard {
             return Ok(s.source_sample_rate);
         }
 
         let host = cpal::default_host();
-        let device = host.default_input_device()
+        let device = host
+            .default_input_device()
             .ok_or("no input device available")?;
 
         let config_range = pick_input_config(&device)?;
@@ -93,49 +101,55 @@ impl AudioRecorder {
         let emit_interval = (source_rate / LEVEL_EMIT_HZ).max(1);
         let mut frames_since_emit: u32 = 0;
 
-        let stream = device.build_input_stream(
-            &config.into(),
-            move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                if !rec_ref.load(Ordering::Relaxed) { return; }
-
-                // Build mono samples once: zero-copy slice for mono, downmix Vec otherwise.
-                let mono_owned: Option<Vec<f32>> = if channels > 1 {
-                    Some(
-                        data.chunks(channels)
-                            .map(|frame| frame.iter().sum::<f32>() / channels as f32)
-                            .collect()
-                    )
-                } else { None };
-                let mono: &[f32] = mono_owned.as_deref().unwrap_or(data);
-
-                if let Ok(mut buf) = buf_ref.try_lock() {
-                    buf.extend_from_slice(mono);
-                }
-
-                // Forward to the streaming sink if active. Allocation only when a sink is set.
-                if let Ok(guard) = chunk_ref.try_lock() {
-                    if let Some(ref sink) = *guard {
-                        sink(mono.to_vec());
+        let stream = device
+            .build_input_stream(
+                &config.into(),
+                move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                    if !rec_ref.load(Ordering::Relaxed) {
+                        return;
                     }
-                }
 
-                // Throttled RMS for the pill waveform.
-                let frame_count = (data.len() / channels.max(1)) as u32;
-                frames_since_emit += frame_count;
-                if frames_since_emit >= emit_interval && !data.is_empty() {
-                    frames_since_emit = 0;
-                    let sum_sq: f32 = data.iter().map(|s| s * s).sum();
-                    let rms = (sum_sq / data.len() as f32).sqrt();
-                    if let Ok(guard) = level_ref.try_lock() {
+                    // Build mono samples once: zero-copy slice for mono, downmix Vec otherwise.
+                    let mono_owned: Option<Vec<f32>> = if channels > 1 {
+                        Some(
+                            data.chunks(channels)
+                                .map(|frame| frame.iter().sum::<f32>() / channels as f32)
+                                .collect(),
+                        )
+                    } else {
+                        None
+                    };
+                    let mono: &[f32] = mono_owned.as_deref().unwrap_or(data);
+
+                    if let Ok(mut buf) = buf_ref.try_lock() {
+                        buf.extend_from_slice(mono);
+                    }
+
+                    // Forward to the streaming sink if active. Allocation only when a sink is set.
+                    if let Ok(guard) = chunk_ref.try_lock() {
                         if let Some(ref sink) = *guard {
-                            sink(rms);
+                            sink(mono.to_vec());
                         }
                     }
-                }
-            },
-            |err| eprintln!("audio input error: {err}"),
-            None,
-        ).map_err(|e| format!("failed to build input stream: {e}"))?;
+
+                    // Throttled RMS for the pill waveform.
+                    let frame_count = (data.len() / channels.max(1)) as u32;
+                    frames_since_emit += frame_count;
+                    if frames_since_emit >= emit_interval && !data.is_empty() {
+                        frames_since_emit = 0;
+                        let sum_sq: f32 = data.iter().map(|s| s * s).sum();
+                        let rms = (sum_sq / data.len() as f32).sqrt();
+                        if let Ok(guard) = level_ref.try_lock() {
+                            if let Some(ref sink) = *guard {
+                                sink(rms);
+                            }
+                        }
+                    }
+                },
+                |err| eprintln!("audio input error: {err}"),
+                None,
+            )
+            .map_err(|e| format!("failed to build input stream: {e}"))?;
 
         *guard = Some(PersistentStream {
             stream,
@@ -163,10 +177,10 @@ impl AudioRecorder {
 
         self.recording.store(true, Ordering::Relaxed);
 
-        let guard = self.stream_state.lock()
-            .map_err(|e| format!("lock: {e}"))?;
+        let guard = self.stream_state.lock().map_err(|e| format!("lock: {e}"))?;
         if let Some(ref s) = *guard {
-            s.stream.play()
+            s.stream
+                .play()
                 .map_err(|e| format!("failed to start stream: {e}"))?;
         }
 
@@ -182,18 +196,20 @@ impl AudioRecorder {
 
         // Pause keeps the AudioUnit alive; mic indicator goes away
         let source_rate = {
-            let guard = self.stream_state.lock()
-                .map_err(|e| format!("lock: {e}"))?;
+            let guard = self.stream_state.lock().map_err(|e| format!("lock: {e}"))?;
             if let Some(ref s) = *guard {
                 let _ = s.stream.pause();
             }
-            guard.as_ref()
+            guard
+                .as_ref()
                 .map(|s| s.source_sample_rate)
                 .unwrap_or(TARGET_SAMPLE_RATE)
         };
 
         let samples = {
-            let mut buf = self.buffer.lock()
+            let mut buf = self
+                .buffer
+                .lock()
                 .map_err(|e| format!("buffer lock: {e}"))?;
             // Swap in a pre-reserved buffer so the next recording doesn't reallocate
             // on the realtime audio thread as it grows.
@@ -213,7 +229,8 @@ impl AudioRecorder {
 }
 
 fn pick_input_config(device: &cpal::Device) -> Result<cpal::SupportedStreamConfigRange, String> {
-    let mut configs: Vec<_> = device.supported_input_configs()
+    let mut configs: Vec<_> = device
+        .supported_input_configs()
         .map_err(|e| format!("failed to query input configs: {e}"))?
         .collect();
 
@@ -241,13 +258,8 @@ fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Result<Vec<f32>, S
     let ratio = to_rate as f64 / from_rate as f64;
     let chunk_size = 1024;
 
-    let mut resampler = SincFixedIn::<f32>::new(
-        ratio,
-        2.0,
-        params,
-        chunk_size,
-        1,
-    ).map_err(|e| format!("resampler init: {e}"))?;
+    let mut resampler = SincFixedIn::<f32>::new(ratio, 2.0, params, chunk_size, 1)
+        .map_err(|e| format!("resampler init: {e}"))?;
 
     let mut output = Vec::with_capacity((samples.len() as f64 * ratio) as usize + chunk_size);
 
@@ -257,7 +269,8 @@ fn resample(samples: &[f32], from_rate: u32, to_rate: u32) -> Result<Vec<f32>, S
             padded.resize(chunk_size, 0.0);
         }
 
-        let result = resampler.process(&[padded], None)
+        let result = resampler
+            .process(&[padded], None)
             .map_err(|e| format!("resample: {e}"))?;
 
         output.extend_from_slice(&result[0]);

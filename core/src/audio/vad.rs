@@ -19,7 +19,8 @@ pub fn trim_silence(samples: &[f32]) -> Result<Vec<f32>, String> {
         .build()
         .map_err(|e| format!("vad init: {e}"))?;
 
-    let chunks: Vec<&[f32]> = samples.chunks(CHUNK_SIZE)
+    let chunks: Vec<&[f32]> = samples
+        .chunks(CHUNK_SIZE)
         .filter(|c| c.len() == CHUNK_SIZE)
         .collect();
 
@@ -27,7 +28,8 @@ pub fn trim_silence(samples: &[f32]) -> Result<Vec<f32>, String> {
         return Ok(samples.to_vec());
     }
 
-    let speech_flags: Vec<bool> = chunks.iter()
+    let speech_flags: Vec<bool> = chunks
+        .iter()
         .map(|chunk| vad.predict(chunk.iter().copied()) >= SPEECH_THRESHOLD)
         .collect();
 
@@ -36,7 +38,10 @@ pub fn trim_silence(samples: &[f32]) -> Result<Vec<f32>, String> {
         None => return Ok(Vec::new()),
     };
 
-    let last_speech = speech_flags.iter().rposition(|&s| s).unwrap_or(first_speech);
+    let last_speech = speech_flags
+        .iter()
+        .rposition(|&s| s)
+        .unwrap_or(first_speech);
 
     let start = first_speech.saturating_sub(PAD_CHUNKS);
     let end = (last_speech + PAD_CHUNKS + 1).min(chunks.len());
