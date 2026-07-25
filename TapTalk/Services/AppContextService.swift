@@ -6,7 +6,7 @@ struct AppContextService {
     }
 
     static func systemPrompt(appName: String?) -> String {
-        let base = "You process voice dictations from the user. The user just held a push-to-talk hotkey and dictated something; you receive the Whisper transcript. Output ONLY the raw text that should be pasted — never wrap output in backticks, code fences, markdown formatting, or quotation marks. No preamble, no explanation."
+        let base = "You process voice dictations from the user. The user just held a push-to-talk hotkey and dictated something; you receive the speech-to-text transcript. Output ONLY the raw text that should be pasted — never wrap output in backticks, code fences, markdown formatting, or quotation marks. No preamble, no explanation."
 
         guard let app = appName else {
             return "\(base) Clean the dictation: fix grammar, remove filler words, preserve the user's meaning and tone."

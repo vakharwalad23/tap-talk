@@ -8,15 +8,12 @@ enum TranscriptionEngine: String {
 
 // Which local engine runs when transcriptionEngine == .local.
 enum LocalEngine: String, CaseIterable {
-    case whisper      // Rust whisper.cpp core (default, 99 languages)
-    case parakeet     // FluidAudio / NVIDIA Parakeet (faster, English/EU, punctuation)
-    case whisperKit   // WhisperKit (Argmax) — full Core ML/ANE Whisper, 99 languages
+    case parakeet     // FluidAudio / NVIDIA Parakeet (English/EU, punctuation)
 
     // Whether the engine lets the user pick a language. Engines that only auto-detect
     // (Parakeet) hide the picker and run in auto mode.
     var supportsLanguageSelection: Bool {
         switch self {
-        case .whisper, .whisperKit: return true
         case .parakeet: return false
         }
     }
@@ -25,7 +22,6 @@ enum LocalEngine: String, CaseIterable {
     var autoLanguageLabel: String {
         switch self {
         case .parakeet: return "Auto · EU"
-        default:        return "Auto"
         }
     }
 
@@ -34,7 +30,6 @@ enum LocalEngine: String, CaseIterable {
     var supportsStreaming: Bool {
         switch self {
         case .parakeet: return true   // Parakeet + EOU realtime endpointing model
-        case .whisper, .whisperKit: return false   // whisper.cpp = no streaming; WhisperKit lands in S2
         }
     }
 }
@@ -49,10 +44,6 @@ final class SettingsStore: ObservableObject {
 
     private static let apiKeyAccount    = "openai-api-key"
     private static let llmApiKeyAccount = "llm-api-key"
-
-    @Published var selectedTier: UInt8 {
-        didSet { UserDefaults.standard.set(Int(selectedTier), forKey: "selectedTier") }
-    }
 
     @Published var selectedLanguage: String? {
         didSet { UserDefaults.standard.set(selectedLanguage, forKey: "selectedLanguage") }
@@ -72,10 +63,6 @@ final class SettingsStore: ObservableObject {
 
     @Published var localEngine: LocalEngine {
         didSet { UserDefaults.standard.set(localEngine.rawValue, forKey: "localEngine") }
-    }
-
-    @Published var whisperKitModel: WhisperKitEngine.Model {
-        didSet { UserDefaults.standard.set(whisperKitModel.rawValue, forKey: "whisperKitModel") }
     }
 
     @Published var streamingEnabled: Bool {
@@ -125,9 +112,6 @@ final class SettingsStore: ObservableObject {
     }
 
     private init() {
-        let rawTier = UserDefaults.standard.integer(forKey: "selectedTier")
-        selectedTier = rawTier > 0 ? UInt8(rawTier) : 1
-
         selectedLanguage = UserDefaults.standard.string(forKey: "selectedLanguage")
 
         let rawCode = UserDefaults.standard.integer(forKey: "hotkeyCode")
@@ -138,11 +122,8 @@ final class SettingsStore: ObservableObject {
         let rawEngine = UserDefaults.standard.string(forKey: "transcriptionEngine") ?? "local"
         transcriptionEngine = TranscriptionEngine(rawValue: rawEngine) ?? .local
 
-        let rawLocalEngine = UserDefaults.standard.string(forKey: "localEngine") ?? "whisper"
-        localEngine = LocalEngine(rawValue: rawLocalEngine) ?? .whisper
-
-        let rawWhisperKit = UserDefaults.standard.string(forKey: "whisperKitModel") ?? "turbo"
-        whisperKitModel = WhisperKitEngine.Model(rawValue: rawWhisperKit) ?? .turbo
+        let rawLocalEngine = UserDefaults.standard.string(forKey: "localEngine") ?? "parakeet"
+        localEngine = LocalEngine(rawValue: rawLocalEngine) ?? .parakeet
 
         streamingEnabled = UserDefaults.standard.bool(forKey: "streamingEnabled")
 

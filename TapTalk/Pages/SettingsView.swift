@@ -145,62 +145,18 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Local engine picker (Whisper / Parakeet / WhisperKit)
+    // MARK: Local engine picker
 
     private var localEnginePicker: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Local model")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(AppTheme.secondary)
-            // 3-column grid so all three engines sit in one tidy row (no empty cell).
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
-                localEngineButton(.whisper, label: "Whisper", sub: "90+ languages")
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: LocalEngine.allCases.count), spacing: 8) {
                 localEngineButton(.parakeet, label: "Parakeet", sub: "Fastest · EN/EU")
-                localEngineButton(.whisperKit, label: "WhisperKit", sub: "Fast · 90+ langs")
-            }
-
-            if settings.localEngine == .whisperKit {
-                Divider().background(AppTheme.divider)
-                whisperKitModelPicker
             }
         }
         .padding(.top, 2)
-    }
-
-    private var whisperKitModelPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("WhisperKit model")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(AppTheme.secondary)
-            HStack(spacing: 8) {
-                ForEach(WhisperKitEngine.Model.allCases, id: \.self) { model in
-                    whisperKitModelButton(model)
-                }
-            }
-        }
-    }
-
-    private func whisperKitModelButton(_ model: WhisperKitEngine.Model) -> some View {
-        let active = settings.whisperKitModel == model
-        return Button(action: { settings.whisperKitModel = model }) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(model.displayName)
-                    .font(.system(size: 12, weight: .semibold))
-                Text("~\(model.diskSizeMB) MB")
-                    .font(.system(size: 10))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(active ? AppTheme.accent : AppTheme.windowBg)
-            .foregroundStyle(active ? AppTheme.windowBg : AppTheme.secondary)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(AppTheme.divider, lineWidth: active ? 0 : 1)
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     private func localEngineButton(_ le: LocalEngine, label: String, sub: String) -> some View {

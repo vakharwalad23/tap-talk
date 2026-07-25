@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RecordView: View {
-    // ctrl for actions and installedTiers (AppController @Published properties)
+    // ctrl for actions and published state (AppController @Published properties)
     @ObservedObject private var ctrl     = AppController.shared
     // state observed directly — nested ObservableObject changes don't bubble up through ctrl
     @ObservedObject private var state    = AppController.shared.state
@@ -82,27 +82,20 @@ struct RecordView: View {
         .background(AppTheme.windowBg)
         // Re-register on window open to pick up any hotkey code change from settings
         .onAppear { ctrl.setupHotkey() }
-        // selectedTier has no Combine sink, so reload here; engine/model changes are handled
-        // centrally by AppController's sinks (avoids a duplicate, racing reload).
-        .onChange(of: settings.selectedTier) { _ in ctrl.loadSelectedTier() }
     }
 
     private var keyLabel: String { AppTheme.keyLabel(for: settings.hotkeyCode) }
 
-    // Left control: a tier picker for whisper.cpp, a static chip for the other engines.
+    // Left control: a static chip naming the active engine.
     @ViewBuilder
     private var modelControl: some View {
         if settings.transcriptionEngine == .local {
             switch settings.localEngine {
-            case .whisper:
-                ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
             case .parakeet:
                 engineChip("Parakeet", icon: "bolt.fill")
-            case .whisperKit:
-                engineChip("WhisperKit · \(settings.whisperKitModel.displayName)", icon: "waveform")
             }
         } else {
-            ModelTierPicker(selectedTier: $settings.selectedTier, installedTiers: ctrl.installedTiers)
+            engineChip("Cloud · \(settings.cloudModel)", icon: "cloud")
         }
     }
 

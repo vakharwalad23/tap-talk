@@ -2,7 +2,7 @@ import Foundation
 import FluidAudio
 
 // Local NVIDIA Parakeet (TDT 0.6B v3) engine via FluidAudio (Core ML / Apple Neural
-// Engine). A second engine alongside the Rust whisper.cpp core. The model is downloaded
+// Engine). The model is downloaded
 // only on explicit user action from the model catalog — never auto-downloaded.
 actor ParakeetEngine {
     private static let version: AsrModelVersion = .v3

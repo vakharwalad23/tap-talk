@@ -28,7 +28,7 @@ struct AboutView: View {
                         .foregroundStyle(AppTheme.secondary)
                 }
 
-                Text("Local speech-to-text for macOS. Hold a hotkey, speak, release — your words appear wherever the cursor is. Runs entirely on-device using Whisper. No account, no cloud by default.")
+                Text("Local speech-to-text for macOS. Hold a hotkey, speak, release — your words appear wherever the cursor is. Runs entirely on-device on the Neural Engine. No account, no cloud by default.")
                     .font(.system(size: 12))
                     .foregroundStyle(AppTheme.secondary)
                     .lineSpacing(3)
@@ -37,7 +37,7 @@ struct AboutView: View {
                 Divider().background(AppTheme.divider)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    infoRow("Engine", value: "Whisper (whisper.cpp via Rust)")
+                    infoRow("Engine", value: "Parakeet TDT (Core ML via FluidAudio)")
                     infoRow("Audio", value: "cpal · VAD silence trimming")
                     infoRow("Platform", value: "macOS 13+ · Apple Silicon")
                 }

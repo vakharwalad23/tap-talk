@@ -1,6 +1,11 @@
 use std::time::Instant;
 
-use super::engine::TranscriptionResult;
+#[derive(Clone, Debug)]
+pub struct TranscriptionResult {
+    pub text: String,
+    pub language: String,
+    pub duration_ms: u64,
+}
 
 const OPENAI_URL: &str = "https://api.openai.com/v1/audio/transcriptions";
 const OPENAI_MODELS_URL: &str = "https://api.openai.com/v1/models";

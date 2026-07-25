@@ -3,7 +3,7 @@ import Carbon.HIToolbox
 import AVFoundation
 import Combine
 
-/// App-level singleton. Owns recorder, transcriber, state, and hotkey registration.
+/// App-level singleton. Owns recorder, engines, state, and hotkey registration.
 /// Lives for the full app lifetime — independent of any window.
 final class AppController: ObservableObject {
     static let shared = AppController()
@@ -11,13 +11,10 @@ final class AppController: ObservableObject {
     // Lazy: defer audio-unit initialization until after mic permission has been resolved.
     // Eager construction at singleton init touches CoreAudio before TCC has been queried, which can re-prompt on rebuild.
     private(set) lazy var recorder: Recorder = Recorder()
-    let transcriber = Transcriber()
     let parakeet    = ParakeetEngine()
-    let whisperKit  = WhisperKitEngine()
     let manager:      ModelManager
 
-    @Published var state          = RecordingState()
-    @Published var installedTiers: [UInt8] = []
+    @Published var state = RecordingState()
 
     private let settings = SettingsStore.shared
     private var transcribeTask:    Task<Void, Never>?
@@ -97,7 +94,6 @@ final class AppController: ObservableObject {
     // its own dir at init). Best-effort, off the main thread.
     private func sweepDownloadResidue() {
         Task.detached {
-            WhisperKitEngine.sweepOrphans()
             ParakeetEngine.sweepOrphans()
             EouStreamingEngine.sweepOrphans()
         }
@@ -156,17 +152,6 @@ final class AppController: ObservableObject {
                 self?.refresh()
             }
             .store(in: &settingsCancellables)
-
-        // Reload when the active WhisperKit model changes.
-        settings.$whisperKitModel
-            .dropFirst()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                guard let self, self.settings.localEngine == .whisperKit else { return }
-                self.clearTranscript()
-                self.loadSelectedTier()
-            }
-            .store(in: &settingsCancellables)
     }
 
     private func clearTranscript() {
@@ -211,48 +196,27 @@ final class AppController: ObservableObject {
     }
 
     func refresh() {
-        installedTiers = manager.installedTiers().sorted()
-
-        // Only the Rust whisper.cpp engine depends on installed whisper tiers; cloud and the
-        // other local engines (Parakeet, WhisperKit) manage their own models.
-        if settings.transcriptionEngine == .cloud || settings.localEngine != .whisper {
-            loadSelectedTier()
-            return
-        }
-
-        if let first = installedTiers.first {
-            if !installedTiers.contains(settings.selectedTier) {
-                settings.selectedTier = first
-            }
-            loadSelectedTier()
-        } else {
-            state.status = "No models installed"
-            state.setModel(.none)
-        }
+        loadActiveEngine()
     }
 
-    private enum ActiveEngine { case whisper, parakeet, whisperKit, none }
+    private enum ActiveEngine { case parakeet, none }
 
     private enum EnginePlan {
         case cloud
-        case whisper(tier: UInt8, name: String)
         case parakeet
-        case whisperKit(WhisperKitEngine.Model)
         case unavailable(status: String)
     }
 
-    func loadSelectedTier() {
+    func loadActiveEngine() {
         engineLoadGeneration &+= 1
         let gen = engineLoadGeneration
         let plan = resolveEnginePlan()
 
         // Immediate UI feedback before the (serialized) load runs.
         switch plan {
-        case .cloud:                state.setModel(.ready);   state.status = "Cloud (OpenAI)"
-        case .whisper(_, let name): state.setModel(.loading); state.status = "Loading \(name)..."
-        case .parakeet:             state.setModel(.loading); state.status = "Loading Parakeet..."
-        case .whisperKit(let m):    state.setModel(.loading); state.status = "Loading WhisperKit \(m.displayName)..."
-        case .unavailable(let s):   state.setModel(.none);    state.status = s
+        case .cloud:              state.setModel(.ready);   state.status = "Cloud (OpenAI)"
+        case .parakeet:           state.setModel(.loading); state.status = "Loading Parakeet..."
+        case .unavailable(let s): state.setModel(.none);    state.status = s
         }
 
         // Serialize all engine load/unload through one chain so a rapid switch can't run an
@@ -268,30 +232,16 @@ final class AppController: ObservableObject {
     private func resolveEnginePlan() -> EnginePlan {
         guard settings.transcriptionEngine == .local else { return .cloud }
         switch settings.localEngine {
-        case .whisper:
-            let tier = settings.selectedTier
-            guard installedTiers.contains(tier) else {
-                return .unavailable(status: installedTiers.isEmpty ? "No models installed" : "Select an installed model")
-            }
-            let name = availableTiers().first(where: { $0.id == tier })?.name ?? ""
-            return .whisper(tier: tier, name: name)
         case .parakeet:
             return ParakeetEngine.isInstalled()
                 ? .parakeet
                 : .unavailable(status: "Parakeet not installed — download it in Models")
-        case .whisperKit:
-            let m = settings.whisperKitModel
-            return WhisperKitEngine.isInstalled(m)
-                ? .whisperKit(m)
-                : .unavailable(status: "WhisperKit \(m.displayName) not installed — download it in Models")
         }
     }
 
     private func applyEnginePlan(_ plan: EnginePlan, generation gen: Int) async {
         switch plan {
-        case .whisper:             await releaseEngines(keep: .whisper)
         case .parakeet:            await releaseEngines(keep: .parakeet)
-        case .whisperKit:          await releaseEngines(keep: .whisperKit)
         case .cloud, .unavailable: await releaseEngines(keep: .none)
         }
         guard await isCurrentGeneration(gen) else { return }
@@ -299,13 +249,6 @@ final class AppController: ObservableObject {
         switch plan {
         case .cloud, .unavailable:
             return  // nothing to load; UI already set
-        case .whisper(let tier, let name):
-            do {
-                try transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
-                await finishLoad(gen, model: .ready, status: "\(name) ready")
-            } catch {
-                await finishLoad(gen, model: .none, status: "Failed: \(error.localizedDescription)")
-            }
         case .parakeet:
             do {
                 try await parakeet.ensureLoaded()
@@ -313,21 +256,12 @@ final class AppController: ObservableObject {
             } catch {
                 await finishLoad(gen, model: .none, status: "Parakeet failed: \(error.localizedDescription)")
             }
-        case .whisperKit(let m):
-            do {
-                try await whisperKit.ensureLoaded(m)
-                await finishLoad(gen, model: .ready, status: "WhisperKit \(m.displayName) ready")
-            } catch {
-                await finishLoad(gen, model: .none, status: "WhisperKit failed: \(error.localizedDescription)")
-            }
         }
     }
 
     // Unloads every engine except the one being kept, freeing its RAM/ANE footprint.
     private func releaseEngines(keep: ActiveEngine) async {
-        if keep != .whisper { transcriber.unload() }
         if keep != .parakeet { await parakeet.unload() }
-        if keep != .whisperKit { await whisperKit.unload() }
     }
 
     @MainActor private func isCurrentGeneration(_ gen: Int) -> Bool { engineLoadGeneration == gen }
@@ -395,7 +329,7 @@ final class AppController: ObservableObject {
     }
 
     // Whether the current recording should stream live text. Smart Mode opts out — the LLM
-    // rewrite needs the full transcript — and cloud/whisper.cpp do not support streaming.
+    // rewrite needs the full transcript — and the cloud engine does not support streaming.
     // Also requires the EOU 120M realtime model to be installed; without the EOU realtime
     // model, fall back to whole-clip transcription.
     private func shouldStream(smart: Bool) -> Bool {
@@ -424,8 +358,8 @@ final class AppController: ObservableObject {
         state.streamingConfirmed = ""
         state.streamingVolatile = ""
 
-        // Don't keep a previously loaded whisper.cpp / Parakeet / WhisperKit model resident
-        // while EOU streams. Serialize through engineTask so a concurrent loadSelectedTier
+        // Don't keep a previously loaded batch model resident
+        // while EOU streams. Serialize through engineTask so a concurrent loadActiveEngine
         // can't reload an engine mid-stream; bumping the generation makes any in-flight load
         // a no-op when it resumes.
         engineLoadGeneration &+= 1
@@ -608,9 +542,6 @@ final class AppController: ObservableObject {
 
         let lang       = settings.selectedLanguage
         let engine     = settings.transcriptionEngine
-        let localEngine = settings.localEngine
-        let wkModel    = settings.whisperKitModel
-        let tier       = settings.selectedTier
         let cloudModel = settings.cloudModel
         let apiKey     = settings.apiKey
         let segments   = settings.dictionarySegments
@@ -641,22 +572,10 @@ final class AppController: ObservableObject {
                         model: cloudModel,
                         apiKey: apiKey
                     )
-                } else if localEngine == .parakeet {
+                } else {
                     let out = try await self.parakeet.transcribe(samples: audio.samples)
                     // Parakeet auto-detects (EU); don't fabricate a specific language label.
                     result = TranscriptionResult(text: out.text, language: "auto", durationMs: out.processingMs)
-                } else if localEngine == .whisperKit {
-                    let out = try await self.whisperKit.transcribe(samples: audio.samples, language: lang, model: wkModel)
-                    result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
-                } else {
-                    // Reload on demand if an idle release unloaded the model.
-                    if !self.transcriber.isLoaded() {
-                        try self.transcriber.loadModel(tier: tier, modelsDir: Self.modelsDirectory())
-                    }
-                    result = try self.transcriber.transcribe(
-                        samples: audio.samples,
-                        language: lang
-                    )
                 }
 
                 if Task.isCancelled { return }

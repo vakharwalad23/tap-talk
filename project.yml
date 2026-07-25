@@ -9,9 +9,6 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     from: "0.12.4"
-  WhisperKit:
-    url: https://github.com/argmaxinc/WhisperKit.git
-    from: "1.0.0"
 
 targets:
   TapTalk:
@@ -19,7 +16,6 @@ targets:
     platform: macOS
     dependencies:
       - package: FluidAudio
-      - package: WhisperKit
     sources:
       - path: TapTalk
         excludes:

@@ -18,7 +18,7 @@ struct PrivacyView: View {
 
                 privacySection("Microphone", body: "Audio is recorded directly from your microphone and processed immediately. No audio files are saved to disk. The recording is discarded after transcription.")
 
-                privacySection("Local transcription", body: "When using the Local engine, transcription runs entirely on your device using Whisper models stored in Application Support. Your audio never leaves your Mac.")
+                privacySection("Local transcription", body: "When using the Local engine, transcription runs entirely on your device using models stored in Application Support. Your audio never leaves your Mac.")
 
                 privacySection("Cloud transcription", body: "When using the Cloud engine, audio is sent to OpenAI's Whisper API over HTTPS using your API key. OpenAI's data retention and usage policies apply. Your API key is stored in the macOS Keychain — never in plain text or UserDefaults.")
 
