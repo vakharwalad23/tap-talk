@@ -35,6 +35,8 @@ Coding standards live in `.claude/rules/`:
 - `commits.md` — Conventional commits (feat/fix/refactor), no co-authored-by
 - `comments.md` — Minimal comments, no decorative, no first-person
 - `architecture.md` — Modular, pluggable, configurable design
+- `performance.md` — Key-up-to-paste latency budget, ANE/MLX selection, warm paths
+- `resources.md` — Memory, lifecycle, and concurrency audit required after every change
 
 ## Key Constraints
 

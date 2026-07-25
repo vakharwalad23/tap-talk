@@ -30,3 +30,15 @@ Subject line max 50 chars. Imperative mood ("add" not "added").
 - Body optional — add only when "why" isn't obvious from subject.
 - Reference issue numbers in body if applicable: `Closes #42`.
 - Never commit secrets, build artifacts, or generated files.
+
+## Branch Names
+```
+<type>/<what-it-does>
+```
+- Describe the change, not its position in any schedule: `feat/remove-whisper-core`.
+- Never a number, stage, step, or sequence: not `feat/phase-3`, not `feat/step-2-engines`.
+
+## No Planning Artifacts
+- Commit messages, branch names, tag messages, and PR bodies describe the change on its own terms.
+- No references to phases, steps, milestones, roadmaps, plan documents, or working notes.
+- Local working documents are never committed. Verify with `git status` before every commit.
