@@ -93,6 +93,8 @@ struct RecordView: View {
             switch settings.localEngine {
             case .parakeet:
                 engineChip("Parakeet", icon: "bolt.fill")
+            case .nemotron:
+                engineChip("Multilingual", icon: "globe")
             }
         } else {
             engineChip("Cloud · \(settings.cloudModel)", icon: "cloud")
@@ -104,8 +106,16 @@ struct RecordView: View {
     private var languageControl: some View {
         if settings.transcriptionEngine == .local && !settings.localEngine.supportsLanguageSelection {
             autoLangChip(settings.localEngine.autoLanguageLabel)
+        } else if settings.transcriptionEngine == .local {
+            LanguagePicker(
+                selectedLanguage: $settings.selectedLanguage,
+                languages: settings.localEngine.supportedLanguages
+            )
         } else {
-            LanguagePicker(selectedLanguage: $settings.selectedLanguage)
+            LanguagePicker(
+                selectedLanguage: $settings.selectedLanguage,
+                languages: LanguagePicker.cloudLanguages
+            )
         }
     }
 

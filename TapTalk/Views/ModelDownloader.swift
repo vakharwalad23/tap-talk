@@ -5,6 +5,7 @@ struct ModelDownloader: View {
         VStack(spacing: 12) {
             VStack(spacing: 8) {
                 ParakeetCard()
+                NemotronCard()
             }
         }
     }

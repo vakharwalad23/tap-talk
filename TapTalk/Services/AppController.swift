@@ -12,6 +12,7 @@ final class AppController: ObservableObject {
     // Eager construction at singleton init touches CoreAudio before TCC has been queried, which can re-prompt on rebuild.
     private(set) lazy var recorder: Recorder = Recorder()
     let parakeet    = ParakeetEngine()
+    let nemotron    = NemotronEngine()
     let manager:      ModelManager
 
     @Published var state = RecordingState()
@@ -95,6 +96,7 @@ final class AppController: ObservableObject {
     private func sweepDownloadResidue() {
         Task.detached {
             ParakeetEngine.sweepOrphans()
+            NemotronEngine.sweepOrphans()
             EouStreamingEngine.sweepOrphans()
         }
     }
@@ -149,9 +151,22 @@ final class AppController: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _, _ in
                 self?.clearTranscript()   // the old result belongs to the old engine
+                self?.reconcileSelectedLanguage()
                 self?.refresh()
             }
             .store(in: &settingsCancellables)
+    }
+
+    // Engines cover different language sets. A selection the new engine cannot produce
+    // would leave the picker blank and silently fall back to auto-detect, so clear it.
+    private func reconcileSelectedLanguage() {
+        guard settings.transcriptionEngine == .local,
+              let selected = settings.selectedLanguage else { return }
+        let supported = settings.localEngine.supportedLanguages
+        guard !supported.isEmpty else { return }
+        if !supported.contains(where: { $0.id == selected }) {
+            settings.selectedLanguage = nil
+        }
     }
 
     private func clearTranscript() {
@@ -199,11 +214,12 @@ final class AppController: ObservableObject {
         loadActiveEngine()
     }
 
-    private enum ActiveEngine { case parakeet, none }
+    private enum ActiveEngine { case parakeet, nemotron, none }
 
     private enum EnginePlan {
         case cloud
         case parakeet
+        case nemotron
         case unavailable(status: String)
     }
 
@@ -216,6 +232,7 @@ final class AppController: ObservableObject {
         switch plan {
         case .cloud:              state.setModel(.ready);   state.status = "Cloud (OpenAI)"
         case .parakeet:           state.setModel(.loading); state.status = "Loading Parakeet..."
+        case .nemotron:           state.setModel(.loading); state.status = "Loading Multilingual..."
         case .unavailable(let s): state.setModel(.none);    state.status = s
         }
 
@@ -236,12 +253,17 @@ final class AppController: ObservableObject {
             return ParakeetEngine.isInstalled()
                 ? .parakeet
                 : .unavailable(status: "Parakeet not installed — download it in Models")
+        case .nemotron:
+            return NemotronEngine.isInstalled()
+                ? .nemotron
+                : .unavailable(status: "Multilingual model not installed — download it in Models")
         }
     }
 
     private func applyEnginePlan(_ plan: EnginePlan, generation gen: Int) async {
         switch plan {
         case .parakeet:            await releaseEngines(keep: .parakeet)
+        case .nemotron:            await releaseEngines(keep: .nemotron)
         case .cloud, .unavailable: await releaseEngines(keep: .none)
         }
         guard await isCurrentGeneration(gen) else { return }
@@ -256,12 +278,20 @@ final class AppController: ObservableObject {
             } catch {
                 await finishLoad(gen, model: .none, status: "Parakeet failed: \(error.localizedDescription)")
             }
+        case .nemotron:
+            do {
+                try await nemotron.ensureLoaded()
+                await finishLoad(gen, model: .ready, status: "Multilingual ready")
+            } catch {
+                await finishLoad(gen, model: .none, status: "Multilingual failed: \(error.localizedDescription)")
+            }
         }
     }
 
     // Unloads every engine except the one being kept, freeing its RAM/ANE footprint.
     private func releaseEngines(keep: ActiveEngine) async {
         if keep != .parakeet { await parakeet.unload() }
+        if keep != .nemotron { await nemotron.unload() }
     }
 
     @MainActor private func isCurrentGeneration(_ gen: Int) -> Bool { engineLoadGeneration == gen }
@@ -540,9 +570,10 @@ final class AppController: ObservableObject {
             return
         }
 
-        let lang       = settings.selectedLanguage
-        let engine     = settings.transcriptionEngine
-        let cloudModel = settings.cloudModel
+        let lang        = settings.selectedLanguage
+        let engine      = settings.transcriptionEngine
+        let localEngine = settings.localEngine
+        let cloudModel  = settings.cloudModel
         let apiKey     = settings.apiKey
         let segments   = settings.dictionarySegments
         let llmEnabled = settings.llmEnabled
@@ -572,6 +603,9 @@ final class AppController: ObservableObject {
                         model: cloudModel,
                         apiKey: apiKey
                     )
+                } else if localEngine == .nemotron {
+                    let out = try await self.nemotron.transcribe(samples: audio.samples, language: lang)
+                    result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
                 } else {
                     let out = try await self.parakeet.transcribe(samples: audio.samples)
                     // Parakeet auto-detects (EU); don't fabricate a specific language label.

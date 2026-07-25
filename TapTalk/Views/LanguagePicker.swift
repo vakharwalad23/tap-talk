@@ -3,7 +3,13 @@ import SwiftUI
 struct LanguagePicker: View {
     @Binding var selectedLanguage: String?
 
-    private let languages: [(id: String?, label: String)] = [
+    // Supplied by the active engine so the menu never offers a language the model cannot
+    // produce. Codes must be the exact keys the engine's model recognizes.
+    let languages: [(id: String?, label: String)]
+
+    // OpenAI's cloud model covers far more than any on-device engine, so it keeps the
+    // broad list. On-device engines supply their own verified subset.
+    static let cloudLanguages: [(id: String?, label: String)] = [
         (nil, "Auto-detect"),
         ("en", "English"),
         ("hi", "Hindi"),

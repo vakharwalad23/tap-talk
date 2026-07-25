@@ -54,9 +54,11 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 | Engine | Best for | Languages | Download | Runs on |
 |---|---|---|---|---|
 | **Parakeet** (NVIDIA TDT 0.6B v3) | Fast English/European dictation, optional live typing | ~25 European languages (auto) | ~490 MB · Live typing add-on ~440 MB | Neural Engine |
+| **Multilingual** (NVIDIA Nemotron 3.5 ASR 0.6B) | Hindi and other languages Parakeet doesn't cover | Hindi, Marathi, Urdu, Chinese, Japanese + English/European | ~640 MB | Neural Engine |
 | **Cloud (optional)** | When you explicitly want OpenAI | OpenAI Whisper | — | Your OpenAI account (opt-in) |
 
 - **Parakeet** auto-detects the spoken language, so it shows an "Auto" indicator instead of a language picker.
+- **Multilingual** lets you pick a language in the Record tab. The list is restricted to what the model can actually produce — measured from its own vocabulary, so it never offers a language it would emit as garbage.
 - **Live typing** — install the optional Realtime EOU add-on from the Models page and enable the toggle in Settings. Words appear in the focused text field as you speak, with sub-second latency on the Neural Engine. Streaming runs locally and is mutually exclusive with Smart Mode (which needs the whole transcript).
 
 ## Features
@@ -131,6 +133,7 @@ When you press the hotkey, TapTalk captures audio from your default input device
 TapTalk stands on excellent open work. Model weights are downloaded at runtime under their own licenses:
 
 - **NVIDIA Parakeet TDT 0.6B v3** — weights under CC-BY-4.0 (attribution: NVIDIA); run via [FluidAudio](https://github.com/FluidInference/FluidAudio) (Apache-2.0).
+- **NVIDIA Nemotron 3.5 ASR Streaming Multilingual 0.6B** — the multilingual engine, under the OpenMDW-1.1 license (attribution: NVIDIA); Core ML conversion from `FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML`.
 - **NVIDIA Parakeet Realtime EOU 120M** — the optional Live typing add-on, under the NVIDIA Open Model License; Core ML conversion from `FluidInference/parakeet-realtime-eou-120m-coreml`.
 - **Qwen 2.5 1.5B Instruct** — Smart Mode LLM, Apache-2.0; run via llama.cpp.
 

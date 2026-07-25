@@ -9,12 +9,14 @@ enum TranscriptionEngine: String {
 // Which local engine runs when transcriptionEngine == .local.
 enum LocalEngine: String, CaseIterable {
     case parakeet     // FluidAudio / NVIDIA Parakeet (English/EU, punctuation)
+    case nemotron     // FluidAudio / NVIDIA Nemotron 3.5 multilingual (Hindi and beyond)
 
     // Whether the engine lets the user pick a language. Engines that only auto-detect
     // (Parakeet) hide the picker and run in auto mode.
     var supportsLanguageSelection: Bool {
         switch self {
         case .parakeet: return false
+        case .nemotron: return true
         }
     }
 
@@ -22,6 +24,7 @@ enum LocalEngine: String, CaseIterable {
     var autoLanguageLabel: String {
         switch self {
         case .parakeet: return "Auto · EU"
+        case .nemotron: return "Auto"
         }
     }
 
@@ -30,6 +33,16 @@ enum LocalEngine: String, CaseIterable {
     var supportsStreaming: Bool {
         switch self {
         case .parakeet: return true   // Parakeet + EOU realtime endpointing model
+        case .nemotron: return false  // batch only here; the EOU add-on is Parakeet-specific
+        }
+    }
+
+    // Languages the engine's model can actually produce. Empty for auto-only engines,
+    // which show a chip instead of a picker.
+    var supportedLanguages: [(id: String?, label: String)] {
+        switch self {
+        case .parakeet: return []
+        case .nemotron: return NemotronEngine.supportedLanguages
         }
     }
 }

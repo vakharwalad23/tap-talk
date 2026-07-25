@@ -154,6 +154,7 @@ struct SettingsView: View {
                 .foregroundStyle(AppTheme.secondary)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: LocalEngine.allCases.count), spacing: 8) {
                 localEngineButton(.parakeet, label: "Parakeet", sub: "Fastest · EN/EU")
+                localEngineButton(.nemotron, label: "Multilingual", sub: "Hindi · 100+ langs")
             }
         }
         .padding(.top, 2)

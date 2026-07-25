@@ -8,7 +8,7 @@ options:
 packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    from: "0.12.4"
+    exactVersion: "0.15.5"
 
 targets:
   TapTalk:
