@@ -581,10 +581,13 @@ final class AppController: ObservableObject {
         let llmClient  = makeLLMClient(settings: settings)
         let llmMissingForSmart = smartMode && llmEnabled && llmClient == nil && llmBackend == .local
 
+        var trace = LatencyTrace()
+
         transcribeTask = Task.detached { [weak self] in
             guard let self = self else { return }
             do {
                 let audio = try self.recorder.stop()
+                trace.mark("audio")
 
                 if Task.isCancelled {
                     await MainActor.run {
@@ -613,6 +616,7 @@ final class AppController: ObservableObject {
                 }
 
                 if Task.isCancelled { return }
+                trace.mark("asr")
 
                 var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
 
@@ -629,24 +633,31 @@ final class AppController: ObservableObject {
                     } catch {
                         rewriteError = error.localizedDescription
                     }
+                    trace.mark("llm")
                 }
+
+                // Snapshot before crossing to the main actor — the closure must not capture
+                // the mutable locals it was still writing to a moment ago.
+                let finalTrace = trace
+                let finalText = processed
+                let finalError = rewriteError
 
                 await MainActor.run {
                     guard !Task.isCancelled else { return }
 
                     // Guard on the final text (post dictionary/rewrite) so an empty result
                     // never gets pasted as a blank transcript.
-                    if processed.isEmpty {
+                    if finalText.isEmpty {
                         self.state.finish()
                         self.state.status = "Too short — hold longer"
                         FloatingPillController.shared.hide()
                     } else {
-                        self.state.transcriptText = processed
+                        self.state.transcriptText = finalText
                         self.state.transcriptLang = result.language
                         self.state.transcriptMs   = result.durationMs
                         self.state.audioDuration  = audio.durationSecs
                         self.state.finish()
-                        if let err = rewriteError {
+                        if let err = finalError {
                             self.state.status = "Smart rewrite failed: \(err)"
                         } else if llmMissingForSmart {
                             self.state.status = "Local model not installed — pasted transcript only"
@@ -654,7 +665,8 @@ final class AppController: ObservableObject {
                             self.state.status = "Done"
                         }
                         if hotkeyTriggered {
-                            PasteService.paste(processed)
+                            PasteService.paste(finalText)
+                            finalTrace.finish("paste")
                             FloatingPillController.shared.show(state: .done)
                         } else {
                             FloatingPillController.shared.hide()
