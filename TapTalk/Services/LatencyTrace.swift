@@ -8,8 +8,11 @@ import os
 /// and the target application's own handling after Cmd-V is posted. Those are real but not
 /// ours to optimize, and including them would need a second process to observe.
 ///
-/// Emits one line per dictation. Read them with:
+/// Emits one line per dictation. Read them live with:
 ///   log stream --predicate 'subsystem == "talk.tap.app" && category == "latency"'
+///
+/// Logged at `notice` so it appears without `--level info`, and marked `.public` because
+/// os_log redacts interpolated values by default. Timings only — never transcript text.
 struct LatencyTrace {
     private static let logger = Logger(subsystem: "talk.tap.app", category: "latency")
 
@@ -38,7 +41,8 @@ struct LatencyTrace {
         let breakdown = trace.stages
             .map { "\($0.name)=\(String(format: "%.0f", $0.ms))" }
             .joined(separator: " ")
-        Self.logger.info("keyup→paste total=\(String(format: "%.0f", total))ms \(breakdown)")
+        let totalMs = String(format: "%.0f", total)
+        Self.logger.notice("keyup→paste total=\(totalMs, privacy: .public)ms \(breakdown, privacy: .public)")
     }
 
     private static func milliseconds(
