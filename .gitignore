@@ -1,3 +1,16 @@
+# Markdown is opt-in.
+#
+# Everything .md is ignored by default and re-included by name below
+*.md
+!README.md
+!CLAUDE.md
+!MODEL-LICENSES.md
+!docs/*.md
+!.claude/rules/*.md
+
+# Local working notes — plans, measurements, eval data. Never shipped.
+docs/plan/
+
 # Rust
 core/target/
 **/*.rs.bk
@@ -42,12 +55,8 @@ DerivedData/
 .claude/memory/
 .claude/todos/
 
-# Plan doc (working document, not shipped)
-PLAN.md
-
-# Distribution artifacts (DMG, etc.) and local docs/plans — not shipped in-repo
+# Distribution artifacts
 dist/
-docs/
 
 # IDE
 .idea/
