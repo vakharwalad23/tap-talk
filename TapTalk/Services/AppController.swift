@@ -98,6 +98,7 @@ final class AppController: ObservableObject {
             ParakeetEngine.sweepOrphans()
             NemotronEngine.sweepOrphans()
             EouStreamingEngine.sweepOrphans()
+            AppContextService.warmUp()
         }
     }
 

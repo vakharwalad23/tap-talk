@@ -192,13 +192,30 @@ struct AppContextService {
             "com.google.docs", "org.libreoffice",
         ]) { return .documents }
 
-        if matches([
-            "com.google.chrome", "com.apple.safari", "org.mozilla.firefox",
-            "company.thebrowser.browser", "com.brave.browser", "com.microsoft.edgemac",
-            "com.operasoftware", "com.vivaldi",
-        ]) { return .browser }
+        // Browsers are not matched against a list. macOS already knows which applications are
+        // browsers — they are the ones registered to open https — so ask it instead of trying
+        // to keep pace with Arc, Dia, Comet, Zen, Orion and whatever ships next month.
+        // Checked last so a specific category always wins over the generic browser answer.
+        if isBrowser(id) { return .browser }
 
         return .unknown
+    }
+
+    /// Whether the bundle identifier belongs to an application registered to open https.
+    ///
+    /// Queried live rather than cached: Launch Services answers in ~0.2 ms once warm, so there is
+    /// no reason to hold a snapshot that goes stale the moment a browser is installed. The first
+    /// call after launch costs ~12 ms, which `warmUp()` absorbs off the dictation path.
+    private static func isBrowser(_ bundleID: String) -> Bool {
+        guard let https = URL(string: "https://example.com") else { return false }
+        return NSWorkspace.shared.urlsForApplications(toOpen: https)
+            .contains { Bundle(url: $0)?.bundleIdentifier?.lowercased() == bundleID }
+    }
+
+    /// Primes the Launch Services handler lookup so the first dictation does not pay for it.
+    nonisolated static func warmUp() {
+        guard let https = URL(string: "https://example.com") else { return }
+        _ = NSWorkspace.shared.urlsForApplications(toOpen: https)
     }
 
     private static let closing =
