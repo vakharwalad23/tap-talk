@@ -138,9 +138,19 @@ TapTalk stands on excellent open work. Model weights are downloaded at runtime u
 - **NVIDIA Parakeet Realtime EOU 120M** — the optional Live typing add-on, under the NVIDIA Open Model License; Core ML conversion from `FluidInference/parakeet-realtime-eou-120m-coreml`.
 - **Qwen 2.5 1.5B Instruct** — Smart Mode LLM, Apache-2.0; run via llama.cpp.
 
+## Documentation
+
+- [`docs/architecture.md`](docs/architecture.md) — how the two layers fit together, and one full pass of the dictation path from key-down to paste
+- [`docs/rust-core.md`](docs/rust-core.md) — the audio path, the FFI surface, and the constants that are not tuning knobs
+- [`docs/swift-app.md`](docs/swift-app.md) — services, the engine contract, and the nine places adding an engine touches
+- [`docs/models.md`](docs/models.md) — which models run, the measurements behind each choice, and what was rejected
+- [`MODEL-LICENSES.md`](MODEL-LICENSES.md) — model terms and the boundary that keeps TapTalk a downloader rather than a distributor
+
 ## Contributing
 
 Contributions are welcome. Please open an issue to discuss your idea before submitting a pull request.
+
+Start with [`docs/architecture.md`](docs/architecture.md) — it walks one dictation end to end, which is the fastest way to find the code you need. [`docs/models.md`](docs/models.md) records what has already been measured and rejected, so it is worth a look before proposing a model or performance change.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feat/your-feature`)

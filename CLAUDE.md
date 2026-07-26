@@ -27,6 +27,17 @@ make clean        # remove all build artifacts
 - `project.yml` — xcodegen spec (generates `.xcodeproj`)
 - `scripts/` — build helper scripts
 
+## Documentation
+
+- `docs/architecture.md` — layer split and the dictation path end to end
+- `docs/rust-core.md` — audio path, FFI surface, VAD constants that must not be tuned blindly
+- `docs/swift-app.md` — services, engine actor contract, prompt-clause precedence
+- `docs/models.md` — model choices with their measurements, and rejected alternatives with reasons
+- `MODEL-LICENSES.md` — model terms; keep weights *and* tokenizer/config files out of the repo
+
+Read `docs/models.md` before proposing a model or inference change — several obvious optimizations
+are recorded there as measured dead ends.
+
 ## Rules
 
 Coding standards live in `.claude/rules/`:
