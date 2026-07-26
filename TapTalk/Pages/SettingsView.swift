@@ -156,8 +156,48 @@ struct SettingsView: View {
                 localEngineButton(.parakeet, label: LocalEngine.parakeet.displayName, sub: LocalEngine.parakeet.languageSummary)
                 localEngineButton(.nemotron, label: LocalEngine.nemotron.displayName, sub: LocalEngine.nemotron.languageSummary)
             }
+
+            // Only Nemotron produces Devanagari, so the choice is meaningless for Parakeet.
+            if settings.localEngine == .nemotron {
+                Divider().background(AppTheme.divider)
+                hindiScriptPicker
+            }
         }
         .padding(.top, 2)
+    }
+
+    private var hindiScriptPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Hindi script")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(AppTheme.secondary)
+            HStack(spacing: 8) {
+                ForEach(HindiScript.allCases, id: \.self) { script in
+                    scriptButton(script)
+                }
+            }
+            Text(settings.rewriteOptions.isEmpty && settings.hindiScript != .devanagari
+                 ? "Roman script is produced by the rewrite model, so it needs the smart hotkey — the plain hotkey always pastes Devanagari."
+                 : "Roman writes Hindi the way people type it in chat: main kal aaunga.")
+                .font(.system(size: 10))
+                .foregroundStyle(AppTheme.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func scriptButton(_ script: HindiScript) -> some View {
+        let active = settings.hindiScript == script
+        return Button(action: { settings.hindiScript = script }) {
+            Text(script.label)
+                .font(.system(size: 12, weight: .medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(active ? AppTheme.accent : AppTheme.sectionBg)
+                .foregroundStyle(active ? AppTheme.windowBg : AppTheme.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppTheme.divider, lineWidth: active ? 0 : 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private func localEngineButton(_ le: LocalEngine, label: String, sub: String) -> some View {

@@ -625,11 +625,11 @@ final class AppController: ObservableObject {
         let llmBackend = settings.llmBackend
         let llmClient  = makeLLMClient(settings: settings)
 
-        // The rewrite runs only when the smart hotkey asked for it AND the user has enabled at
-        // least one mode. Every mode is opt-in, so the smart hotkey is a no-op until then.
+        // The rewrite runs only when the smart hotkey asked for it and there is something to do —
+        // an enabled mode, or a script conversion the transcript actually needs. Both are opt-in,
+        // so the smart hotkey is a no-op until the user asks for one.
         let rewriteOptions = smartMode ? settings.rewriteOptions : []
-        let wantsRewrite = !rewriteOptions.isEmpty && llmEnabled
-        let llmMissingForSmart = wantsRewrite && llmClient == nil && llmBackend == .local
+        let hindiScript = settings.hindiScript
 
         var trace = LatencyTrace()
 
@@ -670,14 +670,22 @@ final class AppController: ObservableObject {
 
                 var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
 
+                // Script conversion is its own reason to call the model — a user who picked Roman
+                // should get Roman without also having to enable a rewrite mode.
+                let appContext = await MainActor.run { AppContextService.currentContext() }
+                let romanize = smartMode && AppContextService.shouldRomanize(
+                    processed, script: hindiScript, context: appContext)
+                let wantsRewrite = (!rewriteOptions.isEmpty || romanize) && llmEnabled
+                let llmMissingForSmart = wantsRewrite && llmClient == nil && llmBackend == .local
+
                 var rewriteError: String?
                 if wantsRewrite, let client = llmClient, !processed.isEmpty {
                     await MainActor.run {
                         self.state.beginRewriting()
                         FloatingPillController.shared.show(state: .rewriting)
                     }
-                    let appContext = await MainActor.run { AppContextService.currentContext() }
-                    let prompt = AppContextService.systemPrompt(context: appContext, options: rewriteOptions)
+                    let prompt = AppContextService.systemPrompt(
+                        context: appContext, options: rewriteOptions, romanize: romanize)
                     AppContextService.logResolvedContext(appContext, options: rewriteOptions)
                     do {
                         processed = try await PostProcessingService.rewrite(processed, systemPrompt: prompt, client: client)

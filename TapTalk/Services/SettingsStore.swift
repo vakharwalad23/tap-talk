@@ -64,6 +64,22 @@ enum LocalEngine: String, CaseIterable {
     }
 }
 
+/// Which script Hindi dictation should be pasted in. Devanagari is what the engine produces;
+/// Roman is what most people actually type into chat.
+enum HindiScript: String, CaseIterable {
+    case devanagari
+    case roman
+    case matchApp
+
+    var label: String {
+        switch self {
+        case .devanagari: return "Devanagari"
+        case .roman:      return "Roman"
+        case .matchApp:   return "Match the app"
+        }
+    }
+}
+
 enum LLMBackend: String {
     case custom
     case local
@@ -130,6 +146,10 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(rewriteOptions.rawValue, forKey: "rewriteOptions") }
     }
 
+    @Published var hindiScript: HindiScript {
+        didSet { UserDefaults.standard.set(hindiScript.rawValue, forKey: "hindiScript") }
+    }
+
     @Published var llmBackend: LLMBackend {
         didSet { UserDefaults.standard.set(llmBackend.rawValue, forKey: "llmBackend") }
     }
@@ -185,6 +205,9 @@ final class SettingsStore: ObservableObject {
         rewriteOptions = RewriteOptions(
             rawValue: UserDefaults.standard.integer(forKey: "rewriteOptions")
         )
+
+        let rawScript = UserDefaults.standard.string(forKey: "hindiScript") ?? "devanagari"
+        hindiScript = HindiScript(rawValue: rawScript) ?? .devanagari
 
         let rawLLMBackend = UserDefaults.standard.string(forKey: "llmBackend") ?? "custom"
         llmBackend = LLMBackend(rawValue: rawLLMBackend) ?? .custom

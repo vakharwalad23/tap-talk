@@ -61,7 +61,18 @@ struct AppContextService {
     /// readability: everything variable lives in the app-context clause, which sits last, so the
     /// stable prefix a server-side cache can reuse is as long as possible. Moving the app context
     /// earlier would invalidate the cache on every window-title change.
-    static func systemPrompt(context: AppContext?, options: RewriteOptions) -> String {
+    static func systemPrompt(
+        context: AppContext?, options: RewriteOptions, romanize: Bool = false
+    ) -> String {
+        // Romanization outranks everything, for the same reason match-the-app outranks the
+        // cleanup modes: this model does one job well and none when given two. Measured — folding
+        // the transliteration into the destination clause returned Devanagari 3/3, and appending
+        // it as a rival clause did the same.
+        //
+        // Little is lost. Romanized Hindi chat text is inherently casual, which is most of what
+        // the destination clause would have contributed for the apps this is used in.
+        if romanize { return romanizeClause }
+
         var parts: [String] = [base]
 
         // Match-the-app supersedes the cleanup modes rather than stacking with them.
@@ -84,6 +95,26 @@ struct AppContextService {
         parts.append(closing)
         return parts.joined(separator: " ")
     }
+
+    /// Transliteration instruction, few-shot rather than descriptive.
+    ///
+    /// The examples are the whole reason this works. Described in prose the model translated to
+    /// English, dropped words and changed the verb person; shown five worked pairs it became
+    /// stable and correct across runs. They also teach the two things a rule-based transform
+    /// cannot do: drop the inherent schwa (कल → "kal", not "kala") and leave English loanwords
+    /// as English (मीटिंग → "meeting", not "mitinga").
+    private static let romanizeClause = """
+        Transliterate Hindi (Devanagari) into Roman script exactly as Hindi speakers type in chat. \
+        Never translate. Keep English words in English. No diacritics.
+
+        मैं कल आऊँगा -> main kal aaunga
+        यार मीटिंग कब है -> yaar meeting kab hai
+        मुझे लगता है यह ठीक है -> mujhe lagta hai yeh theek hai
+        कैफे में मिलते हैं -> cafe mein milte hain
+        अगले हफ्ते तक finish हो जाएगा -> agle hafte tak finish ho jayega
+
+        Output only the transliteration — no preamble, no quotation marks.
+        """
 
     private static let base =
         "You process voice dictations from the user. The user just held a push-to-talk hotkey "
@@ -224,6 +255,34 @@ struct AppContextService {
         guard let https = URL(string: "https://example.com") else { return false }
         return NSWorkspace.shared.urlsForApplications(toOpen: https)
             .contains { Bundle(url: $0)?.bundleIdentifier?.lowercased() == bundleID }
+    }
+
+    /// Whether this transcript should be romanized: the user asked for Roman script and the text
+    /// actually contains Devanagari. Latin-only dictation is never touched, so the setting costs
+    /// nothing when the user is speaking English.
+    static func shouldRomanize(_ text: String, script: HindiScript, context: AppContext?) -> Bool {
+        guard containsDevanagari(text) else { return false }
+        switch script {
+        case .devanagari: return false
+        case .roman:      return true
+        case .matchApp:   return prefersRomanScript(context)
+        }
+    }
+
+    /// Devanagari block. One pass, no allocation — this runs on the paste path.
+    static func containsDevanagari(_ text: String) -> Bool {
+        text.unicodeScalars.contains { (0x0900...0x097F).contains($0.value) }
+    }
+
+    /// Chat is where people type Hinglish; documents and notes are where they keep Devanagari.
+    /// A browser is treated as chat because the web destinations people dictate into — messaging,
+    /// social, comments — behave like chat.
+    private static func prefersRomanScript(_ context: AppContext?) -> Bool {
+        guard let context else { return false }
+        switch category(for: context.bundleID) {
+        case .messaging, .browser: return true
+        case .email, .notes, .documents, .terminal, .editor, .unknown: return false
+        }
     }
 
     /// Records what the rewrite actually resolved, so a wrong result can be traced to the
