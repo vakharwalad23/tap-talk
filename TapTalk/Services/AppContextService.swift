@@ -1,25 +1,71 @@
 import AppKit
+import ApplicationServices
+
+/// What TapTalk knows about where the text is going.
+struct AppContext {
+    let name: String
+    let bundleID: String?
+    /// Focused window title. Often the only way to tell Gmail from YouTube in the same browser.
+    let windowTitle: String?
+}
 
 struct AppContextService {
-    static func frontmostAppName() -> String? {
-        NSWorkspace.shared.frontmostApplication?.localizedName
+    static func currentContext() -> AppContext? {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
+        return AppContext(
+            name: app.localizedName ?? "an application",
+            bundleID: app.bundleIdentifier,
+            windowTitle: focusedWindowTitle(pid: app.processIdentifier)
+        )
     }
+
+    // MARK: Window title
+
+    /// Reads the focused window's title over the Accessibility API — already granted for the
+    /// hotkey and paste, so this needs no additional permission.
+    ///
+    /// The messaging timeout is the important part: an AX request to a hung application blocks
+    /// the caller indefinitely by default, and this runs on the key-up→paste path. A quarter
+    /// second is far above a healthy app's response and far below anything a user would notice.
+    private static func focusedWindowTitle(pid: pid_t) -> String? {
+        let axApp = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(axApp, 0.25)
+
+        var windowRef: CFTypeRef?
+        guard
+            AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &windowRef)
+                == .success,
+            let window = windowRef, CFGetTypeID(window) == AXUIElementGetTypeID()
+        else { return nil }
+
+        var titleRef: CFTypeRef?
+        guard
+            AXUIElementCopyAttributeValue(
+                window as! AXUIElement, kAXTitleAttribute as CFString, &titleRef) == .success,
+            let title = titleRef as? String
+        else { return nil }
+
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        // Long titles are usually breadcrumb chains; the leading part carries the signal.
+        return String(trimmed.prefix(120))
+    }
+
+    // MARK: Prompt
 
     /// Builds the rewrite instruction from the enabled options.
     ///
-    /// Clause order is fixed — base, polish, restructure, app context — so the prompt is
-    /// byte-identical for a given (app, options) pair. That stability is what lets the LLM
-    /// server reuse a cached prefix instead of re-reading the whole instruction every time.
-    /// Reordering these, or interpolating anything variable, silently costs that.
-    static func systemPrompt(appName: String?, options: RewriteOptions) -> String {
+    /// Clause order is fixed — base, polish, restructure, app context, closing — so the prompt is
+    /// byte-identical for a given (options, app, title) triple. Order is deliberate beyond
+    /// readability: everything variable lives in the app-context clause, which sits last, so the
+    /// stable prefix a server-side cache can reuse is as long as possible. Moving the app context
+    /// earlier would invalidate the cache on every window-title change.
+    static func systemPrompt(context: AppContext?, options: RewriteOptions) -> String {
         var parts: [String] = [base]
 
         if options.contains(.polish) { parts.append(polishClause) }
         if options.contains(.restructure) { parts.append(restructureClause) }
-
-        if options.contains(.smart) {
-            parts.append(appName.map(smartClause) ?? smartClauseNoApp)
-        }
+        if options.contains(.smart) { parts.append(smartClause(context)) }
 
         parts.append(closing)
         return parts.joined(separator: " ")
@@ -36,7 +82,7 @@ struct AppContextService {
 
     // The failure mode this guards against is subtle: a half-corrected sentence that keeps both
     // the mistake and the correction reads as confident and wrong. The examples are worth their
-    // tokens, and they sit inside the cached prefix.
+    // tokens, and they sit inside the cacheable prefix.
     private static let restructureClause =
         "The speaker corrects themselves mid-dictation. Keep only what they settled on and "
         + "silently drop what they retracted, along with abandoned starts and repeated phrases. "
@@ -47,19 +93,113 @@ struct AppContextService {
         + "Example: \"can you send me the, actually can you send me the invoice\" "
         + "becomes \"Can you send me the invoice?\""
 
-    private static func smartClause(_ app: String) -> String {
-        "The user is currently in \(app). Based on what this application is typically used for, "
-        + "decide the most appropriate output format: if it is a code editor, output code for "
-        + "coding instructions or clean prose for comments/docs; if it is a terminal, output a "
-        + "shell command on one line; if it is a messaging app, write a casual concise message; "
-        + "if it is an email client, write a professional email body; if it is a note-taking app, "
-        + "structure as clean notes with bullets where appropriate. For any other app, clean the "
-        + "dictation with grammar fixes. Infer the user's intent from the dictation content and "
-        + "the app context."
+    private static func smartClause(_ context: AppContext?) -> String {
+        guard let context else {
+            return "Clean the dictation: fix grammar, remove filler words, preserve the user's "
+                + "meaning and tone."
+        }
+
+        var clause = "The user is dictating into \(context.name)"
+        if let title = context.windowTitle {
+            // Handed over raw rather than parsed. A title like
+            // "Inbox (12) - you@gmail.com - Gmail - Google Chrome" tells the model far more than
+            // any regex would extract, and title formats differ per app and per browser.
+            clause += ", with the current window titled \"\(title)\""
+        }
+        clause += ". "
+        clause += guidance(for: context)
+        clause += " Match the register and format that destination expects. If the window title "
+            + "names a specific site or document, weigh that over the application itself — a "
+            + "browser showing a mail client should be written like email, not like a web page. "
+            + "Infer intent from the dictation content as well as the destination; when the two "
+            + "disagree, follow the dictation."
+        return clause
     }
 
-    private static let smartClauseNoApp =
-        "Clean the dictation: fix grammar, remove filler words, preserve the user's meaning and tone."
+    /// Category guidance keyed on bundle identifier. Bundle IDs are stable and locale-independent,
+    /// unlike `localizedName`, which differs on a non-English system.
+    private static func guidance(for context: AppContext) -> String {
+        switch category(for: context.bundleID) {
+        case .terminal:
+            return "This is a terminal: output a single shell command on one line, no prose, no "
+                + "explanation, no code fence."
+        case .editor:
+            return "This is a code editor: output code when the dictation describes code, or "
+                + "clean prose when it describes a comment, commit message or documentation. "
+                + "Never wrap code in a fence."
+        case .messaging:
+            return "This is a messaging app: write a casual, concise message. No greeting or "
+                + "sign-off unless dictated. Keep it to what a person would actually type."
+        case .email:
+            return "This is an email client: write a clear, professional message body. Do not "
+                + "invent a subject line, greeting or signature unless the user dictated one."
+        case .notes:
+            return "This is a note-taking app: structure as clean notes, using short bullets "
+                + "when the dictation lists several things."
+        case .documents:
+            return "This is a document editor: write well-formed prose in complete sentences."
+        case .browser:
+            return "This is a web browser, so the window title is the best clue to the real "
+                + "destination — a search box, a mail client, a social post, a code review, or a "
+                + "long-form document all want different registers."
+        case .unknown:
+            return "Judge from the destination and the dictation what format fits best; when "
+                + "nothing suggests otherwise, clean the dictation and fix its grammar."
+        }
+    }
+
+    private enum Category {
+        case terminal, editor, messaging, email, notes, documents, browser, unknown
+    }
+
+    private static func category(for bundleID: String?) -> Category {
+        guard let id = bundleID?.lowercased() else { return .unknown }
+
+        // Prefix matching so version- and channel-specific IDs (JetBrains, browser betas,
+        // Electron rebuilds) resolve without an exhaustive list.
+        func matches(_ needles: [String]) -> Bool {
+            needles.contains { id == $0 || id.hasPrefix($0) }
+        }
+
+        if matches([
+            "com.apple.terminal", "com.googlecode.iterm2", "dev.warp", "co.zeit.hyper",
+            "net.kovidgoyal.kitty", "io.alacritty", "com.mitchellh.ghostty", "com.tabby",
+        ]) { return .terminal }
+
+        if matches([
+            "com.microsoft.vscode", "com.visualstudio.code", "com.apple.dt.xcode",
+            "com.jetbrains", "com.sublimetext", "dev.zed.zed", "com.todesktop",
+            "com.exafunction.windsurf", "org.vim", "org.gnu.emacs", "com.panic.nova",
+        ]) { return .editor }
+
+        if matches([
+            "com.tinyspeck.slackmacgap", "com.hnc.discord", "net.whatsapp", "com.apple.mobilesms",
+            "org.telegram", "com.microsoft.teams", "ru.keepcoder.telegram", "com.signal",
+        ]) { return .messaging }
+
+        if matches([
+            "com.apple.mail", "com.readdle.smartemail", "com.superhuman", "com.missiveapp",
+            "com.microsoft.outlook", "com.bloop.airmail",
+        ]) { return .email }
+
+        if matches([
+            "com.apple.notes", "notion.id", "md.obsidian", "com.agiletortoise.drafts",
+            "net.shinyfrog.bear", "com.reflect", "com.electron.logseq", "com.craft",
+        ]) { return .notes }
+
+        if matches([
+            "com.apple.iwork.pages", "com.microsoft.word", "com.apple.textedit",
+            "com.google.docs", "org.libreoffice",
+        ]) { return .documents }
+
+        if matches([
+            "com.google.chrome", "com.apple.safari", "org.mozilla.firefox",
+            "company.thebrowser.browser", "com.brave.browser", "com.microsoft.edgemac",
+            "com.operasoftware", "com.vivaldi",
+        ]) { return .browser }
+
+        return .unknown
+    }
 
     private static let closing =
         "Output ONLY the raw text that should be pasted — never wrap output in backticks, code "

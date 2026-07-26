@@ -36,6 +36,7 @@ Privacy isn't a feature bolted on — it's the default behavior.
 - **Secrets stay in the Keychain.** If you opt into the cloud engine or a custom LLM endpoint, the API key is stored in the macOS Keychain — never in plaintext, never in a config file.
 - **Cloud is strictly opt-in.** TapTalk ships with an optional OpenAI Whisper cloud engine for people who want it. It is off by default and only ever used if you select it *and* provide your own API key. When enabled, audio is sent directly from your Mac to OpenAI — nowhere else.
 - **Smart Mode runs locally too.** The optional LLM rewrite uses a local model (Qwen 2.5 1.5B via llama.cpp) by default; a custom endpoint is opt-in.
+- **Smart Mode sees where you're typing.** To match the destination's tone, the rewrite prompt includes the frontmost application's name and its **focused window title** — which can contain document names, email subjects or page titles. With the default local model this never leaves your Mac. **If you configure a custom LLM endpoint, that context goes wherever you point it**, along with the transcript. Smart Mode is off by default, and every rewrite mode is opt-in.
 - **Open source.** Licensed under MIT — the entire pipeline is auditable.
 
 ### Permissions TapTalk asks for
