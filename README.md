@@ -130,7 +130,7 @@ When you press the hotkey, TapTalk captures audio from your default input device
 
 ## Open-source models & attribution
 
-TapTalk stands on excellent open work. Model weights are downloaded at runtime under their own licenses:
+TapTalk stands on excellent open work. Model weights are downloaded at runtime under their own licenses — full terms and obligations are recorded in [MODEL-LICENSES.md](MODEL-LICENSES.md):
 
 - **NVIDIA Parakeet TDT 0.6B v3** — weights under CC-BY-4.0 (attribution: NVIDIA); run via [FluidAudio](https://github.com/FluidInference/FluidAudio) (Apache-2.0).
 - **NVIDIA Nemotron 3.5 ASR Streaming Multilingual 0.6B** — the multilingual engine, under the OpenMDW-1.1 license (attribution: NVIDIA); Core ML conversion from `FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML`.
