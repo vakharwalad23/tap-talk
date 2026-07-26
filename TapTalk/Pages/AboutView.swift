@@ -2,6 +2,8 @@ import SwiftUI
 import AppKit
 
 struct AboutView: View {
+    @State private var githubHovering = false
+
     private var version: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1"
     }
@@ -45,14 +47,35 @@ struct AboutView: View {
 
                 Divider().background(AppTheme.divider)
 
-                Button("View on GitHub") {
+                Button {
                     if let url = URL(string: "https://github.com/vakharwalad23/tap-talk") {
                         NSWorkspace.shared.open(url)
                     }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("View on GitHub")
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 9, weight: .semibold))
+                    }
+                    .font(.system(size: 12))
+                    .foregroundStyle(githubHovering ? AppTheme.accent : AppTheme.primary)
+                    .underline(githubHovering)
+                    // contentShape keeps the whole row hoverable; without it only the glyphs are.
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(AppTheme.primary)
-                .font(.system(size: 12))
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    githubHovering = hovering
+                    // set() rather than push()/pop(): a pushed cursor leaks if the view goes away
+                    // while hovered, and this view is in a tab the user can switch out of.
+                    (hovering ? NSCursor.pointingHand : NSCursor.arrow).set()
+                }
+                .onDisappear {
+                    if githubHovering {
+                        githubHovering = false
+                        NSCursor.arrow.set()
+                    }
+                }
             }
 
             Spacer()
