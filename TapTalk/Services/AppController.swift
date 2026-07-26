@@ -158,6 +158,24 @@ final class AppController: ObservableObject {
             .store(in: &settingsCancellables)
     }
 
+    // Starts the local LLM while the user is still speaking, so a cold server does not land on
+    // the key-up path. Measured cold start roughly doubles a dictation, and this window is dead
+    // time — recording has already begun and nothing else competes for it.
+    //
+    // Fire-and-forget and detached on purpose: this must never delay the recording it follows.
+    // ensureRunning is a no-op when the server is already up and reachable.
+    private func prewarmRewrite() {
+        guard settings.llmEnabled,
+              settings.llmBackend == .local,
+              !settings.rewriteOptions.isEmpty,
+              let modelPath = manager.llmModelPath(modelId: LocalIntelligenceInstaller.modelId)
+        else { return }
+
+        Task.detached(priority: .utility) {
+            try? await LlamaServerManager.shared.ensureRunning(modelPath: modelPath)
+        }
+    }
+
     // Engines cover different language sets. A selection the new engine cannot produce
     // would leave the picker blank and silently fall back to auto-detect, so clear it.
     private func reconcileSelectedLanguage() {
@@ -627,7 +645,14 @@ final class AppController: ObservableObject {
                 var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
 
                 var rewriteError: String?
-                if wantsRewrite, let client = llmClient, !processed.isEmpty {
+                // A cleanup-only rewrite on an already-clean transcript costs ~750 ms to return
+                // the same text. Match-the-app always runs — it reformats for the destination
+                // regardless of how tidy the input is.
+                let worthRewriting =
+                    rewriteOptions.contains(.smart)
+                    || PostProcessingService.needsCleanup(processed)
+
+                if wantsRewrite, worthRewriting, let client = llmClient, !processed.isEmpty {
                     await MainActor.run {
                         self.state.beginRewriting()
                         FloatingPillController.shared.show(state: .rewriting)
@@ -731,6 +756,7 @@ final class AppController: ObservableObject {
                     guard let self else { return }
                     if state.transcribing { cancelTranscription() }
                     startRecording(hotkey: true, smart: true)
+                    prewarmRewrite()
                 },
                 keyUp: { [weak self] in
                     guard let self else { return }

@@ -21,6 +21,36 @@ struct PostProcessingService {
         return result
     }
 
+    /// Whether the cleanup modes have anything to do. A round trip costs ~750 ms, so a transcript
+    /// that is already clean should be pasted as-is rather than sent for confirmation.
+    ///
+    /// Only applies to the cleanup modes. Match-the-app reformats for the destination regardless
+    /// of how tidy the transcript is — "list files by size" is spotless and still has to become a
+    /// shell command — so a smart rewrite is never skipped.
+    static func needsCleanup(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        // Long enough to plausibly contain a self-correction or a run-on worth fixing.
+        let words = trimmed.split(whereSeparator: \.isWhitespace)
+        if words.count > 12 { return true }
+
+        // Disfluency or self-correction markers anywhere means there is work to do.
+        let lowered = " " + trimmed.lowercased() + " "
+        for marker in disfluencyMarkers where lowered.contains(marker) { return true }
+
+        // Otherwise only worth a round trip if it isn't already a well-formed sentence.
+        let endsCleanly = trimmed.last.map { ".!?।".contains($0) } ?? false
+        let startsUpper = trimmed.first?.isUppercase ?? false
+        return !(endsCleanly && startsUpper)
+    }
+
+    // Padded with spaces so "um" does not match inside "album" and "like" not inside "unlike".
+    private static let disfluencyMarkers = [
+        " um ", " uh ", " er ", " erm ", " hmm ", " like ", " you know ", " i mean ",
+        " actually ", " no wait ", " sorry ", " scratch that ", " i meant ",
+    ]
+
     static func rewrite(
         _ text: String,
         systemPrompt: String,
