@@ -69,6 +69,10 @@ targets:
     info:
       path: TapTalk/Info.plist
       properties:
+        # Sourced from the build settings above so the bundle can never disagree with
+        # MARKETING_VERSION. xcodegen regenerates Info.plist, so setting them there is futile.
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSMicrophoneUsageDescription: "TapTalk needs microphone access to transcribe your speech locally."
         NSAccessibilityUsageDescription: "TapTalk needs accessibility permission to detect your push-to-talk hotkey globally."
         NSQuitAlwaysKeepsWindows: false

@@ -60,7 +60,7 @@ struct IntelligenceView: View {
     // MARK: Dictionary
 
     private var dictionarySection: some View {
-        intelligenceSection("Word Dictionary") {
+        SettingsSection("Word Dictionary") {
             if settings.dictionarySegments.isEmpty && !addingSegment {
                 Text("No segments yet. Add one to replace words in every transcription.")
                     .font(.system(size: 12))
@@ -255,8 +255,8 @@ struct IntelligenceView: View {
     // MARK: AI Rewriting
 
     private var aiSection: some View {
-        intelligenceSection("AI Rewriting") {
-            settingRow("Enable AI rewriting") {
+        SettingsSection("AI Rewriting") {
+            SettingRow("Enable AI rewriting") {
                 Toggle("", isOn: $settings.llmEnabled).labelsHidden()
             }
 
@@ -587,8 +587,8 @@ struct IntelligenceView: View {
     // MARK: Smart Hotkey
 
     private var smartHotkeySection: some View {
-        intelligenceSection("Smart Hotkey") {
-            settingRow("Enable smart hotkey") {
+        SettingsSection("Smart Hotkey") {
+            SettingRow("Enable smart hotkey") {
                 Toggle("", isOn: Binding(
                     get: { settings.smartHotkeyEnabled },
                     set: {
@@ -601,7 +601,7 @@ struct IntelligenceView: View {
 
             if settings.smartHotkeyEnabled {
                 Divider().background(AppTheme.divider)
-                settingRow("Smart key") {
+                SettingRow("Smart key") {
                     Button(listeningSmartKey ? "Press a key…" : keyName(settings.smartHotkeyCode)) {
                         startListeningSmartKey()
                     }
@@ -638,31 +638,5 @@ struct IntelligenceView: View {
 
     // MARK: Layout helpers
 
-    private func intelligenceSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(AppTheme.secondary)
-                .textCase(.uppercase)
 
-            VStack(alignment: .leading, spacing: 10) {
-                content()
-            }
-            .padding(14)
-            .background(AppTheme.sectionBg)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.divider, lineWidth: 1))
-        }
-        .padding(.bottom, 20)
-    }
-
-    private func settingRow<Content: View>(_ label: String, @ViewBuilder trailing: () -> Content) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 13))
-                .foregroundStyle(AppTheme.primary)
-            Spacer()
-            trailing()
-        }
-    }
 }

@@ -37,7 +37,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 pageHeader
 
-                settingsSection("Transcription engine") {
+                SettingsSection("Transcription engine") {
                     enginePicker
                     if settings.transcriptionEngine == .local {
                         Divider().background(AppTheme.divider)
@@ -57,15 +57,15 @@ struct SettingsView: View {
                     }
                 }
 
-                settingsSection("Startup") {
-                    settingRow("Launch at login") {
+                SettingsSection("Startup") {
+                    SettingRow("Launch at login") {
                         Toggle("", isOn: $settings.launchAtLogin)
                             .labelsHidden()
                     }
                 }
 
-                settingsSection("Hotkey") {
-                    settingRow("Push-to-talk key") {
+                SettingsSection("Hotkey") {
+                    SettingRow("Push-to-talk key") {
                         Button(listening ? "Press a key…" : keyName(settings.hotkeyCode)) {
                             startListening()
                         }
@@ -135,7 +135,7 @@ struct SettingsView: View {
 
     private var streamingToggle: some View {
         VStack(alignment: .leading, spacing: 4) {
-            settingRow("Live typing (stream as you speak)") {
+            SettingRow("Live typing (stream as you speak)") {
                 Toggle("", isOn: $settings.streamingEnabled).labelsHidden()
             }
             Text("Types words live into the focused app as Parakeet recognizes them. Uses the Parakeet Realtime (EOU) model. Off in Smart Mode.")
@@ -398,36 +398,7 @@ struct SettingsView: View {
 
     // MARK: Shared helpers
 
-    private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(AppTheme.secondary)
-                .textCase(.uppercase)
 
-            VStack(alignment: .leading, spacing: 10) {
-                content()
-            }
-            .padding(14)
-            .background(AppTheme.sectionBg)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(AppTheme.divider, lineWidth: 1)
-            )
-        }
-        .padding(.bottom, 20)
-    }
-
-    private func settingRow<Content: View>(_ label: String, @ViewBuilder trailing: () -> Content) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 13))
-                .foregroundStyle(AppTheme.primary)
-            Spacer()
-            trailing()
-        }
-    }
 
     private func startListening() {
         listening = true
@@ -443,60 +414,4 @@ struct SettingsView: View {
     }
 
     private func keyName(_ code: UInt16) -> String { AppTheme.keyLabel(for: code) }
-}
-
-final class KeyCapture {
-    private var tap: CFMachPort?
-    private var source: CFRunLoopSource?
-    private var onCapture: ((UInt16) -> Void)?
-
-    func start(onCapture: @escaping (UInt16) -> Void) {
-        stop()
-        self.onCapture = onCapture
-
-        let mask: CGEventMask = 1 << CGEventType.flagsChanged.rawValue
-        guard let t = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .listenOnly,
-            eventsOfInterest: mask,
-            callback: keyCaptureCallback,
-            userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ) else { return }
-
-        tap = t
-        source = CFMachPortCreateRunLoopSource(nil, t, 0)
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: t, enable: true)
-    }
-
-    func stop() {
-        if let s = source { CFRunLoopRemoveSource(CFRunLoopGetMain(), s, .commonModes) }
-        if let t = tap { CGEvent.tapEnable(tap: t, enable: false) }
-        tap = nil
-        source = nil
-        onCapture = nil
-    }
-
-    fileprivate func deliver(_ code: UInt16) {
-        let cb = onCapture
-        stop()
-        cb?(code)
-    }
-}
-
-private func keyCaptureCallback(
-    proxy: CGEventTapProxy,
-    type: CGEventType,
-    event: CGEvent,
-    userInfo: UnsafeMutableRawPointer?
-) -> Unmanaged<CGEvent>? {
-    guard let userInfo, type == .flagsChanged else {
-        return Unmanaged.passRetained(event)
-    }
-    let capture = Unmanaged<KeyCapture>.fromOpaque(userInfo).takeUnretainedValue()
-    let code = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-    guard !event.flags.isEmpty else { return Unmanaged.passRetained(event) }
-    DispatchQueue.main.async { capture.deliver(code) }
-    return Unmanaged.passRetained(event)
 }
