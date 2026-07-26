@@ -1,5 +1,8 @@
 .PHONY: all rust bindings xcode build run install kill clean release notarize staple dmg dmg-unsigned
 
+# Single source of truth is project.yml; anything else drifts from the bundle.
+VERSION := $(shell awk -F'"' '/^ *MARKETING_VERSION:/{print $$2; exit}' project.yml)
+
 all: build
 
 rust:
@@ -69,7 +72,7 @@ dmg: notarize staple
 	mkdir -p dist
 	hdiutil create -volname "TapTalk" \
 		-srcfolder build/Build/Products/Release/TapTalk.app \
-		-ov -format UDZO dist/TapTalk-1.0.dmg
+		-ov -format UDZO dist/TapTalk-$(VERSION).dmg
 
 dmg-unsigned:
 	cd core && cargo build --release
@@ -93,7 +96,7 @@ dmg-unsigned:
 		--icon "TapTalk.app" 130 180 \
 		--app-drop-link 400 180 \
 		--no-internet-enable \
-		dist/TapTalk-1.0.dmg \
+		dist/TapTalk-$(VERSION).dmg \
 		build/Build/Products/Release/TapTalk.app
 
 clean:
