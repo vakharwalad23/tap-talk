@@ -645,14 +645,7 @@ final class AppController: ObservableObject {
                 var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
 
                 var rewriteError: String?
-                // A cleanup-only rewrite on an already-clean transcript costs ~750 ms to return
-                // the same text. Match-the-app always runs — it reformats for the destination
-                // regardless of how tidy the input is.
-                let worthRewriting =
-                    rewriteOptions.contains(.smart)
-                    || PostProcessingService.needsCleanup(processed)
-
-                if wantsRewrite, worthRewriting, let client = llmClient, !processed.isEmpty {
+                if wantsRewrite, let client = llmClient, !processed.isEmpty {
                     await MainActor.run {
                         self.state.beginRewriting()
                         FloatingPillController.shared.show(state: .rewriting)
