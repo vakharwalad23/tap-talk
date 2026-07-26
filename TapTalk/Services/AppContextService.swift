@@ -63,9 +63,22 @@ struct AppContextService {
     static func systemPrompt(context: AppContext?, options: RewriteOptions) -> String {
         var parts: [String] = [base]
 
-        if options.contains(.polish) { parts.append(polishClause) }
-        if options.contains(.restructure) { parts.append(restructureClause) }
-        if options.contains(.smart) { parts.append(smartClause(context)) }
+        // Match-the-app supersedes the cleanup modes rather than stacking with them.
+        //
+        // Measured against the shipped 1.5B model, any cleanup clause placed alongside the
+        // destination clause caused it to be ignored entirely — the model anchored on "tidy this
+        // text" and echoed the dictation instead of acting on it. Reproduced 3/3 with Polish, 3/3
+        // with Restructure, and 3/3 with the destination clause moved first, so it is a capability
+        // limit of a small model following a multi-part instruction, not a wording problem.
+        //
+        // Nothing is lost by the precedence: rewriting a dictation into an email inherently drops
+        // fillers and honours self-corrections. Verified 3/3 on a dictation containing both.
+        if options.contains(.smart) {
+            parts.append(smartClause(context))
+        } else {
+            if options.contains(.polish) { parts.append(polishClause) }
+            if options.contains(.restructure) { parts.append(restructureClause) }
+        }
 
         parts.append(closing)
         return parts.joined(separator: " ")

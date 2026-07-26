@@ -309,16 +309,25 @@ struct IntelligenceView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(AppTheme.tertiary)
                     .padding(.top, 2)
+            } else if settings.rewriteOptions.contains(.smart) {
+                Text("Match the app already removes filler and resolves corrections, so it replaces the other two while it's on.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(AppTheme.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
             }
         }
     }
 
     private func modeToggle(_ option: RewriteOptions, label: String, sub: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        // Superseded toggles stay operable — turning Match-the-app off restores them — but read
+        // as inactive so the UI never claims an effect the prompt does not have.
+        let superseded = option != .smart && settings.rewriteOptions.contains(.smart)
+        return HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(AppTheme.primary)
+                    .foregroundStyle(superseded ? AppTheme.tertiary : AppTheme.primary)
                 Text(sub)
                     .font(.system(size: 10))
                     .foregroundStyle(AppTheme.tertiary)
