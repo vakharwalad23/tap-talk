@@ -257,12 +257,36 @@ struct AppContextService {
             .contains { Bundle(url: $0)?.bundleIdentifier?.lowercased() == bundleID }
     }
 
-    /// Whether this transcript should be romanized: the user asked for Roman script and the text
-    /// actually contains Devanagari. Latin-only dictation is never touched, so the setting costs
-    /// nothing when the user is speaking English.
-    static func shouldRomanize(_ text: String, script: HindiScript) -> Bool {
-        script == .roman && containsDevanagari(text)
+    /// Whether this transcript should be romanized.
+    ///
+    /// Every condition has to hold, and each rules out a way this could fire when it should not:
+    ///
+    /// - **Roman requested.** The setting is the user's explicit instruction.
+    /// - **Local transcription.** The cloud engine is a different model with its own output.
+    /// - **Nemotron selected.** Parakeet cannot produce Devanagari at all, so a stale `roman`
+    ///   setting left over from using Nemotron must not follow the user back to Parakeet.
+    /// - **Hindi selected.** This is the condition that actually bites: **Marathi is written in
+    ///   Devanagari too**, so a script check alone would romanize Marathi with a prompt whose
+    ///   examples are entirely Hindi. The transliteration is language-specific, not script-specific.
+    /// - **Devanagari present.** English dictation costs nothing even with Roman selected.
+    static func shouldRomanize(
+        _ text: String,
+        script: HindiScript,
+        transcriptionEngine: TranscriptionEngine,
+        localEngine: LocalEngine,
+        language: String?
+    ) -> Bool {
+        guard script == .roman,
+              transcriptionEngine == .local,
+              localEngine == .nemotron,
+              language == hindiLanguageCode
+        else { return false }
+        return containsDevanagari(text)
     }
+
+    /// The language key Nemotron recognizes for Hindi, and the only one the few-shot
+    /// transliteration examples cover.
+    static let hindiLanguageCode = "hi"
 
     /// Devanagari block. One pass, no allocation — this runs on the paste path.
     static func containsDevanagari(_ text: String) -> Bool {

@@ -176,13 +176,23 @@ struct SettingsView: View {
                     scriptButton(script)
                 }
             }
-            Text(settings.rewriteOptions.isEmpty && settings.hindiScript != .devanagari
-                 ? "Roman script is produced by the rewrite model, so it needs the smart hotkey — the plain hotkey always pastes Devanagari."
-                 : "Roman writes Hindi the way people type it in chat: main kal aaunga.")
+            Text(scriptHint)
                 .font(.system(size: 10))
                 .foregroundStyle(AppTheme.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // The picker is only meaningful for Hindi on Nemotron via the smart hotkey. Say which of
+    // those is missing rather than leaving a control that quietly does nothing.
+    private var scriptHint: String {
+        guard settings.hindiScript == .roman else {
+            return "Devanagari is what the model produces. Roman writes it the way people type in chat."
+        }
+        if settings.selectedLanguage != AppContextService.hindiLanguageCode {
+            return "Roman applies to Hindi only — pick Hindi in the Record tab. Other languages are pasted as the model produces them."
+        }
+        return "Roman writes Hindi the way people type it in chat: main kal aaunga. Produced by the rewrite model, so it needs the smart hotkey."
     }
 
     private func scriptButton(_ script: HindiScript) -> some View {
