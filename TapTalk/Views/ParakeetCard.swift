@@ -109,7 +109,7 @@ struct ParakeetCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 7) {
-                Text("Parakeet")
+                Text(LocalEngine.parakeet.displayName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppTheme.primary)
                 Text("Optimized")
@@ -127,7 +127,7 @@ struct ParakeetCard: View {
             }
 
             HStack(alignment: .center) {
-                Text("The fastest option for English and European languages. Adds punctuation for you.")
+                Text("NVIDIA Parakeet TDT 0.6B v3. The fastest option for English and European languages. Adds punctuation for you.")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -194,7 +194,7 @@ struct ParakeetCard: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(AppTheme.divider, lineWidth: 1)
         )
-        .alert("Remove Parakeet model?", isPresented: $pendingRemoval) {
+        .alert("Remove \(LocalEngine.parakeet.displayName)?", isPresented: $pendingRemoval) {
             Button("Cancel", role: .cancel) {}
             Button("Remove", role: .destructive) { model.remove() }
         } message: {

@@ -44,7 +44,7 @@ actor NemotronEngine {
         case notInstalled
         var errorDescription: String? {
             switch self {
-            case .notInstalled: return "Multilingual model not installed — download it in Models"
+            case .notInstalled: return "Nemotron 3.5 not installed — download it in Models"
             }
         }
     }

@@ -11,6 +11,23 @@ enum LocalEngine: String, CaseIterable {
     case parakeet     // FluidAudio / NVIDIA Parakeet (English/EU, punctuation)
     case nemotron     // FluidAudio / NVIDIA Nemotron 3.5 multilingual (Hindi and beyond)
 
+    /// Model name, credited rather than described. Both engines are multilingual — they simply
+    /// cover different language sets — so "Multilingual" was never a distinguishing label.
+    var displayName: String {
+        switch self {
+        case .parakeet: return "Parakeet TDT"
+        case .nemotron: return "Nemotron 3.5"
+        }
+    }
+
+    /// What each engine actually covers, which is the real difference between them.
+    var languageSummary: String {
+        switch self {
+        case .parakeet: return "English + 24 European"
+        case .nemotron: return "Hindi + 100 languages"
+        }
+    }
+
     // Whether the engine lets the user pick a language. Engines that only auto-detect
     // (Parakeet) hide the picker and run in auto mode.
     var supportsLanguageSelection: Bool {

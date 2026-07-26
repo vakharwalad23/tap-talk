@@ -232,8 +232,8 @@ final class AppController: ObservableObject {
         // Immediate UI feedback before the (serialized) load runs.
         switch plan {
         case .cloud:              state.setModel(.ready);   state.status = "Cloud (OpenAI)"
-        case .parakeet:           state.setModel(.loading); state.status = "Loading Parakeet..."
-        case .nemotron:           state.setModel(.loading); state.status = "Loading Multilingual..."
+        case .parakeet:           state.setModel(.loading); state.status = "Loading \(LocalEngine.parakeet.displayName)..."
+        case .nemotron:           state.setModel(.loading); state.status = "Loading \(LocalEngine.nemotron.displayName)..."
         case .unavailable(let s): state.setModel(.none);    state.status = s
         }
 
@@ -253,11 +253,11 @@ final class AppController: ObservableObject {
         case .parakeet:
             return ParakeetEngine.isInstalled()
                 ? .parakeet
-                : .unavailable(status: "Parakeet not installed — download it in Models")
+                : .unavailable(status: "\(LocalEngine.parakeet.displayName) not installed — download it in Models")
         case .nemotron:
             return NemotronEngine.isInstalled()
                 ? .nemotron
-                : .unavailable(status: "Multilingual model not installed — download it in Models")
+                : .unavailable(status: "\(LocalEngine.nemotron.displayName) not installed — download it in Models")
         }
     }
 
@@ -275,16 +275,16 @@ final class AppController: ObservableObject {
         case .parakeet:
             do {
                 try await parakeet.ensureLoaded()
-                await finishLoad(gen, model: .ready, status: "Parakeet ready")
+                await finishLoad(gen, model: .ready, status: "\(LocalEngine.parakeet.displayName) ready")
             } catch {
-                await finishLoad(gen, model: .none, status: "Parakeet failed: \(error.localizedDescription)")
+                await finishLoad(gen, model: .none, status: "\(LocalEngine.parakeet.displayName) failed: \(error.localizedDescription)")
             }
         case .nemotron:
             do {
                 try await nemotron.ensureLoaded()
-                await finishLoad(gen, model: .ready, status: "Multilingual ready")
+                await finishLoad(gen, model: .ready, status: "\(LocalEngine.nemotron.displayName) ready")
             } catch {
-                await finishLoad(gen, model: .none, status: "Multilingual failed: \(error.localizedDescription)")
+                await finishLoad(gen, model: .none, status: "\(LocalEngine.nemotron.displayName) failed: \(error.localizedDescription)")
             }
         }
     }

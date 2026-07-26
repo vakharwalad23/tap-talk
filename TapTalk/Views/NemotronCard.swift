@@ -56,7 +56,7 @@ struct NemotronCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 7) {
-                Text("Multilingual")
+                Text(LocalEngine.nemotron.displayName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppTheme.primary)
                 Spacer()
@@ -67,7 +67,7 @@ struct NemotronCard: View {
             }
 
             HStack(alignment: .center) {
-                Text("For Hindi and other languages Parakeet doesn't cover. Pick your language in the Record tab.")
+                Text("NVIDIA Nemotron 3.5 ASR. Covers Hindi and the languages Parakeet doesn't — pick yours in the Record tab.")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -128,7 +128,7 @@ struct NemotronCard: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(AppTheme.divider, lineWidth: 1)
         )
-        .alert("Remove Multilingual model?", isPresented: $pendingRemoval) {
+        .alert("Remove \(LocalEngine.nemotron.displayName)?", isPresented: $pendingRemoval) {
             Button("Cancel", role: .cancel) {}
             Button("Remove", role: .destructive) { model.remove() }
         } message: {

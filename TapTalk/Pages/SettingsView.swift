@@ -153,8 +153,8 @@ struct SettingsView: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(AppTheme.secondary)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: LocalEngine.allCases.count), spacing: 8) {
-                localEngineButton(.parakeet, label: "Parakeet", sub: "Fastest · EN/EU")
-                localEngineButton(.nemotron, label: "Multilingual", sub: "Hindi · 100+ langs")
+                localEngineButton(.parakeet, label: LocalEngine.parakeet.displayName, sub: LocalEngine.parakeet.languageSummary)
+                localEngineButton(.nemotron, label: LocalEngine.nemotron.displayName, sub: LocalEngine.nemotron.languageSummary)
             }
         }
         .padding(.top, 2)

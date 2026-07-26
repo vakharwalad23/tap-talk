@@ -92,9 +92,9 @@ struct RecordView: View {
         if settings.transcriptionEngine == .local {
             switch settings.localEngine {
             case .parakeet:
-                engineChip("Parakeet", icon: "bolt.fill")
+                engineChip(LocalEngine.parakeet.displayName, icon: "bolt.fill")
             case .nemotron:
-                engineChip("Multilingual", icon: "globe")
+                engineChip(LocalEngine.nemotron.displayName, icon: "globe")
             }
         } else {
             engineChip("Cloud · \(settings.cloudModel)", icon: "cloud")

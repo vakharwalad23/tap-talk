@@ -37,9 +37,10 @@ struct AboutView: View {
                 Divider().background(AppTheme.divider)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    infoRow("Engine", value: "Parakeet TDT (Core ML via FluidAudio)")
-                    infoRow("Audio", value: "cpal · VAD silence trimming")
-                    infoRow("Platform", value: "macOS 13+ · Apple Silicon")
+                    infoRow("Engines", value: "NVIDIA Parakeet TDT · Nemotron 3.5 ASR")
+                    infoRow("Runtime", value: "Core ML / Neural Engine via FluidAudio")
+                    infoRow("Audio", value: "cpal · Silero VAD silence trimming")
+                    infoRow("Platform", value: "macOS 14+ · Apple Silicon")
                 }
 
                 Divider().background(AppTheme.divider)
