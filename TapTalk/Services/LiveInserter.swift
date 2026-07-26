@@ -275,11 +275,3 @@ final class LiveInserter {
         return count
     }
 }
-
-extension NSPasteboard.PasteboardType {
-    // Community conventions honored by clipboard managers (Maccy, Paste, Pastebot, …) and
-    // macOS 26's built-in Clipboard History — tells the manager to skip this item.
-    // Used by password managers (1Password, etc.) and streaming pastes here.
-    static let transient = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
-    static let concealed = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
-}
