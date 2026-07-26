@@ -260,29 +260,13 @@ struct AppContextService {
     /// Whether this transcript should be romanized: the user asked for Roman script and the text
     /// actually contains Devanagari. Latin-only dictation is never touched, so the setting costs
     /// nothing when the user is speaking English.
-    static func shouldRomanize(_ text: String, script: HindiScript, context: AppContext?) -> Bool {
-        guard containsDevanagari(text) else { return false }
-        switch script {
-        case .devanagari: return false
-        case .roman:      return true
-        case .matchApp:   return prefersRomanScript(context)
-        }
+    static func shouldRomanize(_ text: String, script: HindiScript) -> Bool {
+        script == .roman && containsDevanagari(text)
     }
 
     /// Devanagari block. One pass, no allocation — this runs on the paste path.
     static func containsDevanagari(_ text: String) -> Bool {
         text.unicodeScalars.contains { (0x0900...0x097F).contains($0.value) }
-    }
-
-    /// Chat is where people type Hinglish; documents and notes are where they keep Devanagari.
-    /// A browser is treated as chat because the web destinations people dictate into — messaging,
-    /// social, comments — behave like chat.
-    private static func prefersRomanScript(_ context: AppContext?) -> Bool {
-        guard let context else { return false }
-        switch category(for: context.bundleID) {
-        case .messaging, .browser: return true
-        case .email, .notes, .documents, .terminal, .editor, .unknown: return false
-        }
     }
 
     /// Records what the rewrite actually resolved, so a wrong result can be traced to the

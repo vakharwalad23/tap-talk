@@ -69,13 +69,11 @@ enum LocalEngine: String, CaseIterable {
 enum HindiScript: String, CaseIterable {
     case devanagari
     case roman
-    case matchApp
 
     var label: String {
         switch self {
         case .devanagari: return "Devanagari"
         case .roman:      return "Roman"
-        case .matchApp:   return "Match the app"
         }
     }
 }

@@ -674,7 +674,7 @@ final class AppController: ObservableObject {
                 // should get Roman without also having to enable a rewrite mode.
                 let appContext = await MainActor.run { AppContextService.currentContext() }
                 let romanize = smartMode && AppContextService.shouldRomanize(
-                    processed, script: hindiScript, context: appContext)
+                    processed, script: hindiScript)
                 let wantsRewrite = (!rewriteOptions.isEmpty || romanize) && llmEnabled
                 let llmMissingForSmart = wantsRewrite && llmClient == nil && llmBackend == .local
 
