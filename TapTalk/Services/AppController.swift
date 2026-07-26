@@ -34,8 +34,18 @@ final class AppController: ObservableObject {
     private var engineLoadGeneration = 0
     private var engineTask: Task<Void, Never>?
     // Releases the loaded model after a period of inactivity so an idle app holds no model.
+    //
+    // 30 minutes rather than 5. Reloading costs a measurable cold start — roughly double the
+    // key-up→paste time on the next dictation — and holding the model is cheaper than it looks,
+    // because Core ML weights are memory-mapped (164 MB resident with Parakeet loaded, against
+    // ~490 MB on disk). A dictation tool is used in bursts across a day, so a 5 minute timer made
+    // most dictations pay cold start.
+    //
+    // The timer is only a backstop; memoryPressureSource releases immediately when the system
+    // actually wants the RAM, which is the signal that matters.
     private var idleReleaseTimer: Timer?
-    private let idleReleaseSeconds: TimeInterval = 300
+    private let idleReleaseSeconds: TimeInterval = 1800
+    private var memoryPressureSource: DispatchSourceMemoryPressure?
 
     // Live-typing state. Non-nil only while a streaming recording session is in flight.
     let liveInserter = LiveInserter()
@@ -74,6 +84,22 @@ final class AppController: ObservableObject {
         resolveMicThenSetupHotkey()
         observeBackendChanges()
         observeSystemEvents()
+        observeMemoryPressure()
+    }
+
+    // Holding a model resident is a bet that RAM is free. Let the system settle that bet rather
+    // than a fixed timer: release everything the moment macOS reports pressure, so a long idle
+    // hold never competes with what the user is actually doing.
+    private func observeMemoryPressure() {
+        guard memoryPressureSource == nil else { return }
+        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
+        source.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.releaseIdleEngines()
+            LlamaServerManager.shared.stop()
+        }
+        source.resume()
+        memoryPressureSource = source
     }
 
     // Forces streamingEnabled=false when the EOU model isn't installed so the Settings

@@ -23,7 +23,11 @@ final class LlamaServerManager {
     private(set) var isRunning = false
 
     private var idleTask: Task<Void, Never>?
-    private static let idleTimeout: TimeInterval = 600
+    // Matches the engine idle release. Respawning costs a process start plus a model load on the
+    // next rewrite, and the resident cost of staying up is ~279 MB footprint — the GGUF is
+    // memory-mapped, not resident in full. AppController stops the server outright on memory
+    // pressure, so this only bounds a genuinely idle app.
+    private static let idleTimeout: TimeInterval = 1800
 
     // Activity counters guarded by activityLock — read by the idle task on a
     // separate cooperative thread, written by LLM client calls on transcribe tasks.
