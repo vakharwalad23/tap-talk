@@ -52,6 +52,20 @@ enum LLMBackend: String {
     case local
 }
 
+/// What the rewrite pass should do. Independent toggles, composed into a single prompt and a
+/// single LLM call. Empty means no rewrite runs at all, which is the default — every mode is
+/// opt-in, so the smart hotkey does nothing until the user asks for something.
+struct RewriteOptions: OptionSet, Sendable {
+    let rawValue: Int
+
+    /// Remove filler and disfluencies, fix grammar and punctuation. Wording is preserved.
+    static let polish      = RewriteOptions(rawValue: 1 << 0)
+    /// Resolve spoken self-corrections and drop abandoned starts, keeping only the final intent.
+    static let restructure = RewriteOptions(rawValue: 1 << 1)
+    /// Reformat to suit the app being typed into. The opinionated one.
+    static let smart       = RewriteOptions(rawValue: 1 << 2)
+}
+
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
 
@@ -93,6 +107,10 @@ final class SettingsStore: ObservableObject {
 
     @Published var llmEnabled: Bool {
         didSet { UserDefaults.standard.set(llmEnabled, forKey: "llmEnabled") }
+    }
+
+    @Published var rewriteOptions: RewriteOptions {
+        didSet { UserDefaults.standard.set(rewriteOptions.rawValue, forKey: "rewriteOptions") }
     }
 
     @Published var llmBackend: LLMBackend {
@@ -145,6 +163,11 @@ final class SettingsStore: ObservableObject {
         apiKey = KeychainService.load(account: Self.apiKeyAccount) ?? ""
 
         llmEnabled = UserDefaults.standard.bool(forKey: "llmEnabled")
+
+        // Every mode is opt-in: absent key means none enabled, and the rewrite is skipped.
+        rewriteOptions = RewriteOptions(
+            rawValue: UserDefaults.standard.integer(forKey: "rewriteOptions")
+        )
 
         let rawLLMBackend = UserDefaults.standard.string(forKey: "llmBackend") ?? "custom"
         llmBackend = LLMBackend(rawValue: rawLLMBackend) ?? .custom

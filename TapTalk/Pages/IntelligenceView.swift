@@ -263,6 +263,10 @@ struct IntelligenceView: View {
             if settings.llmEnabled {
                 Divider().background(AppTheme.divider)
 
+                rewriteModes
+
+                Divider().background(AppTheme.divider)
+
                 backendPicker
 
                 if settings.llmBackend == .custom {
@@ -273,6 +277,62 @@ struct IntelligenceView: View {
                     localBackendSection
                 }
             }
+        }
+    }
+
+    // Independent toggles — any combination runs as a single rewrite pass. All start off, so
+    // the section states plainly when the smart hotkey would do nothing.
+    private var rewriteModes: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("What the smart hotkey does")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(AppTheme.secondary)
+
+            modeToggle(
+                .polish,
+                label: "Polish",
+                sub: "Removes um, uh and false starts. Fixes grammar, keeps your wording."
+            )
+            modeToggle(
+                .restructure,
+                label: "Restructure",
+                sub: "You said 10am then corrected to 11am — only 11am is pasted."
+            )
+            modeToggle(
+                .smart,
+                label: "Match the app",
+                sub: "Casual in Slack, a shell command in Terminal, prose in Notes."
+            )
+
+            if settings.rewriteOptions.isEmpty {
+                Text("Nothing enabled — the smart hotkey pastes the plain transcript.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(AppTheme.tertiary)
+                    .padding(.top, 2)
+            }
+        }
+    }
+
+    private func modeToggle(_ option: RewriteOptions, label: String, sub: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppTheme.primary)
+                Text(sub)
+                    .font(.system(size: 10))
+                    .foregroundStyle(AppTheme.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Toggle("", isOn: Binding(
+                get: { settings.rewriteOptions.contains(option) },
+                set: { on in
+                    if on { settings.rewriteOptions.insert(option) }
+                    else { settings.rewriteOptions.remove(option) }
+                }
+            ))
+            .labelsHidden()
         }
     }
 

@@ -579,7 +579,12 @@ final class AppController: ObservableObject {
         let llmEnabled = settings.llmEnabled
         let llmBackend = settings.llmBackend
         let llmClient  = makeLLMClient(settings: settings)
-        let llmMissingForSmart = smartMode && llmEnabled && llmClient == nil && llmBackend == .local
+
+        // The rewrite runs only when the smart hotkey asked for it AND the user has enabled at
+        // least one mode. Every mode is opt-in, so the smart hotkey is a no-op until then.
+        let rewriteOptions = smartMode ? settings.rewriteOptions : []
+        let wantsRewrite = !rewriteOptions.isEmpty && llmEnabled
+        let llmMissingForSmart = wantsRewrite && llmClient == nil && llmBackend == .local
 
         var trace = LatencyTrace()
 
@@ -621,13 +626,13 @@ final class AppController: ObservableObject {
                 var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
 
                 var rewriteError: String?
-                if smartMode && llmEnabled, let client = llmClient, !processed.isEmpty {
+                if wantsRewrite, let client = llmClient, !processed.isEmpty {
                     await MainActor.run {
                         self.state.beginRewriting()
                         FloatingPillController.shared.show(state: .rewriting)
                     }
                     let appName = await MainActor.run { AppContextService.frontmostAppName() }
-                    let prompt = AppContextService.systemPrompt(appName: appName)
+                    let prompt = AppContextService.systemPrompt(appName: appName, options: rewriteOptions)
                     do {
                         processed = try await PostProcessingService.rewrite(processed, systemPrompt: prompt, client: client)
                     } catch {
