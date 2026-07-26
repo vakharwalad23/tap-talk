@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import os
 
 /// What TapTalk knows about where the text is going.
 struct AppContext {
@@ -223,6 +224,32 @@ struct AppContextService {
         guard let https = URL(string: "https://example.com") else { return false }
         return NSWorkspace.shared.urlsForApplications(toOpen: https)
             .contains { Bundle(url: $0)?.bundleIdentifier?.lowercased() == bundleID }
+    }
+
+    /// Records what the rewrite actually resolved, so a wrong result can be traced to the
+    /// destination, the category or the enabled modes without guessing.
+    ///
+    /// The window title's *content* is deliberately not logged — it can hold document names and
+    /// email subjects, and unlike the model call this would persist in the system log. Its
+    /// presence and length are enough to tell a failed Accessibility read from a bad category.
+    nonisolated static func logResolvedContext(_ context: AppContext?, options: RewriteOptions) {
+        var modes: [String] = []
+        if options.contains(.smart) { modes.append("smart") }
+        if options.contains(.polish) { modes.append("polish") }
+        if options.contains(.restructure) { modes.append("restructure") }
+
+        let app = context?.name ?? "none"
+        let bundle = context?.bundleID ?? "none"
+        let cat = context.map { String(describing: category(for: $0.bundleID)) } ?? "none"
+        let titleLen = context?.windowTitle?.count ?? -1
+
+        Logger(subsystem: "talk.tap.app", category: "context").notice(
+            """
+            rewrite app=\(app, privacy: .public) bundle=\(bundle, privacy: .public) \
+            category=\(cat, privacy: .public) titleChars=\(titleLen, privacy: .public) \
+            modes=\(modes.joined(separator: "+"), privacy: .public)
+            """
+        )
     }
 
     /// Primes the Launch Services handler lookup so the first dictation does not pay for it.

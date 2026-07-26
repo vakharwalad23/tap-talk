@@ -634,6 +634,7 @@ final class AppController: ObservableObject {
                     }
                     let appContext = await MainActor.run { AppContextService.currentContext() }
                     let prompt = AppContextService.systemPrompt(context: appContext, options: rewriteOptions)
+                    AppContextService.logResolvedContext(appContext, options: rewriteOptions)
                     do {
                         processed = try await PostProcessingService.rewrite(processed, systemPrompt: prompt, client: client)
                     } catch {
