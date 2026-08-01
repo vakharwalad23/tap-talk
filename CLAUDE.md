@@ -4,7 +4,7 @@ Local speech-to-text for macOS. Native SwiftUI + Rust. No cloud, no web tech.
 
 ## Stack
 
-- **UI:** SwiftUI (macOS 13+, Apple Silicon)
+- **UI:** SwiftUI (macOS 14+, Apple Silicon)
 - **Core:** Rust static library (`core/`) — audio capture, VAD, model downloads
 - **Bridge:** UniFFI proc macros → auto-generated Swift bindings
 - **Build:** `make run` (cargo → uniffi-bindgen → xcodegen → xcodebuild)

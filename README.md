@@ -85,11 +85,21 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 
 Swift Package dependencies (FluidAudio, for Parakeet) are resolved automatically by Xcode on first build.
 
-## Download
+## Install
 
-Pre-built DMG is available on the [Releases](https://github.com/vakharwalad23/tap-talk/releases) page.
+### Homebrew (recommended)
 
-> **Note:** TapTalk is not yet notarized. If macOS blocks the app on first launch, right-click → Open to bypass it. Notarization is coming in a future release.
+```bash
+brew install --cask vakharwalad23/tap/taptalk
+```
+
+The cask downloads the DMG and clears the Gatekeeper quarantine flag for you, so the app launches on the first try.
+
+### Manual
+
+Download the pre-built DMG from the [Releases](https://github.com/vakharwalad23/tap-talk/releases) page and drag `TapTalk.app` to `/Applications`.
+
+> **Note:** TapTalk is not yet notarized. If macOS blocks the app on first launch, clear the quarantine flag (see [Troubleshooting](#troubleshooting)) or right-click → Open to bypass it. Notarization is coming in a future release.
 
 ## Troubleshooting
 
