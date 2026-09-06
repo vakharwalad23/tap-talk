@@ -1,0 +1,187 @@
+/* The app's own light palette (AppTheme.swift). Fixed, so the replica stays true in dark mode. */
+.window {
+	--a-bg: #f4f3f1;
+	--a-side: #eceae6;
+	--a-div: #dddad5;
+	--a-ink: #1a1917;
+	/* The app uses 0.6 and 0.4; lifted slightly so small replica text meets contrast. */
+	--a-ink60: rgba(26, 25, 23, 0.72);
+	--a-ink40: rgba(26, 25, 23, 0.62);
+	--a-ink07: rgba(26, 25, 23, 0.07);
+	--a-danger: #ff3b30;
+	--a-ok: #33c759;
+	color-scheme: light;
+	color: var(--a-ink);
+	background: var(--a-bg);
+	font-family: var(--font-sans);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.h1 {
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: 0;
+}
+
+.sub {
+	font-size: 12px;
+	color: var(--a-ink40);
+	margin-top: 4px;
+}
+
+.sectionTitle {
+	font-size: 12px;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.secondary {
+	color: var(--a-ink60);
+}
+
+.tertiary {
+	color: var(--a-ink40);
+}
+
+.card {
+	background: var(--a-side);
+	border: 1px solid var(--a-div);
+	border-radius: 8px;
+	padding: 12px;
+}
+
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 10px;
+	border-radius: 6px;
+	background: var(--a-side);
+	border: 1px solid var(--a-div);
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.chipMuted {
+	color: var(--a-ink60);
+}
+
+.primaryButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	height: 42px;
+	padding: 0 16px;
+	border-radius: 10px;
+	background: var(--a-ink);
+	color: #fff;
+	font-size: 14px;
+	font-weight: 600;
+	width: 100%;
+}
+
+.smallButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 26px;
+	padding: 0 12px;
+	border-radius: 6px;
+	background: var(--a-ink);
+	color: #fff;
+	font-size: 12px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.ghostButton {
+	composes: smallButton;
+	background: transparent;
+	color: var(--a-ink);
+	border: 1px solid var(--a-div);
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 10px 0;
+	border-top: 1px solid var(--a-div);
+}
+
+.rowFirst {
+	border-top: 0;
+	padding-top: 0;
+}
+
+.rowText {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rowTitle {
+	font-weight: 600;
+}
+
+.toggle {
+	flex-shrink: 0;
+	width: 34px;
+	height: 20px;
+	border-radius: 999px;
+	background: var(--a-div);
+	position: relative;
+}
+
+.toggle::after {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+	transition: transform 0.2s var(--ease-out);
+}
+
+.toggleOn {
+	background: var(--a-ink);
+}
+
+.toggleOn::after {
+	transform: translateX(14px);
+}
+
+.dot {
+	display: inline-block;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--a-ok);
+	margin-right: 6px;
+}
+
+.divider {
+	height: 1px;
+	background: var(--a-div);
+	margin: 14px 0;
+}
+
+.kbd {
+	display: inline-block;
+	padding: 1px 7px 2px;
+	border-radius: 5px;
+	border: 1px solid var(--a-div);
+	border-bottom-width: 2px;
+	background: #fff;
+	font-size: 11px;
+	font-weight: 600;
+}

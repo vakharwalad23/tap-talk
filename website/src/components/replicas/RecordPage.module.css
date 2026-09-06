@@ -1,0 +1,79 @@
+.page {
+	display: flex;
+	flex-direction: column;
+	min-height: 372px;
+}
+
+.chips {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 20px;
+}
+
+.waveform {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	height: 40px;
+	margin-bottom: 8px;
+}
+
+.bar {
+	width: 4px;
+	height: 4px;
+	border-radius: 2px;
+	background: rgba(26, 25, 23, 0.2);
+}
+
+.status {
+	text-align: center;
+	font-size: 12px;
+	height: 18px;
+	margin-bottom: 16px;
+}
+
+.transcript {
+	background: var(--a-side);
+	border: 1px solid var(--a-div);
+	border-radius: 8px;
+	padding: 12px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.meta {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-top: 10px;
+	font-size: 11px;
+	color: var(--a-ink40);
+}
+
+.meta span {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.copy {
+	margin-left: auto;
+	color: var(--a-ink);
+	font-weight: 600;
+}
+
+.bottom {
+	margin-top: auto;
+	padding-top: 16px;
+}
+
+.hotkey {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	margin-top: 10px;
+	font-size: 11px;
+	color: var(--a-ok);
+}

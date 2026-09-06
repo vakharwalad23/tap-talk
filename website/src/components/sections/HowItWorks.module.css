@@ -1,0 +1,9 @@
+.footer {
+	margin-top: 28px;
+	padding: 14px 18px;
+	border-left: 3px solid var(--ok);
+	background: var(--surface);
+	border-radius: 0 var(--radius) var(--radius) 0;
+	color: var(--ink-60);
+	font-size: 0.95rem;
+}

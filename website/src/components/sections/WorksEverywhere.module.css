@@ -1,0 +1,25 @@
+.row {
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+}
+
+.app {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 16px;
+	border-radius: 999px;
+	border: 1px solid var(--divider);
+	background: var(--surface);
+	font-size: 0.9rem;
+	font-weight: 500;
+	color: var(--ink-60);
+	transition: color 0.2s var(--ease-out);
+}
+
+.app:hover {
+	color: var(--ink);
+}

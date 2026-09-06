@@ -1,0 +1,57 @@
+:root {
+	color-scheme: light dark;
+
+	--bg: #f4f3f1;
+	--surface: #eceae6;
+	--surface-2: #e4e1dc;
+	--divider: #dddad5;
+	--ink: #1a1917;
+	/* Tertiary text stays above 4.5:1 on both paper and surface backgrounds. */
+	--ink-60: rgba(26, 25, 23, 0.78);
+	--ink-40: rgba(26, 25, 23, 0.66);
+	--ink-10: rgba(26, 25, 23, 0.07);
+	--on-ink: #f4f3f1;
+
+	--rec: #ff4d42;
+	--smart: #9e7aff;
+	--smart-text: #6a45e0;
+	--ok: #33c759;
+	--pill-bg: #17171a;
+	--pill-fg: rgba(255, 255, 255, 0.85);
+
+	--font-sans:
+		-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui,
+		"Segoe UI", sans-serif;
+	--font-mono:
+		"SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+
+	--radius-sm: 6px;
+	--radius: 10px;
+	--radius-lg: 18px;
+	--max: 1080px;
+	--gutter: 24px;
+	--section-y: clamp(72px, 10vw, 128px);
+
+	--shadow-pill: 0 2px 6px rgba(0, 0, 0, 0.28);
+	--shadow-card:
+		0 1px 2px rgba(26, 25, 23, 0.06), 0 12px 32px -16px rgba(26, 25, 23, 0.25);
+
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #17171a;
+		--surface: #212125;
+		--surface-2: #2a2a2f;
+		--divider: #303036;
+		--ink: #f4f3f1;
+		--ink-60: rgba(244, 243, 241, 0.76);
+		--ink-40: rgba(244, 243, 241, 0.6);
+		--ink-10: rgba(244, 243, 241, 0.08);
+		--on-ink: #17171a;
+		--smart-text: #b9a6ff;
+		--shadow-card:
+			0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+	}
+}

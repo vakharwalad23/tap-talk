@@ -1,0 +1,82 @@
+.footer {
+	padding: 48px 0 56px;
+	border-top: 1px solid var(--divider);
+	font-size: 0.9rem;
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: 1.4fr 1fr 1.4fr 1fr;
+	gap: 32px;
+}
+
+.brand {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	max-width: 32ch;
+}
+
+.logoRow {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 1.05rem;
+}
+
+.icon {
+	border-radius: 8px;
+}
+
+.col h3 {
+	font-size: 0.78rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-40);
+	margin-bottom: 12px;
+}
+
+.col ul {
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.col a {
+	text-decoration: none;
+	color: var(--ink-60);
+}
+
+.col a:hover {
+	color: var(--ink);
+	text-decoration: underline;
+}
+
+.col .siteLogos {
+	flex-direction: row;
+	gap: 14px;
+	margin-top: 12px;
+}
+
+.siteLogos a {
+	display: block;
+	color: var(--ink-40);
+}
+
+.siteLogos a:hover {
+	color: var(--ink);
+}
+
+@media (max-width: 900px) {
+	.grid {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	.grid {
+		grid-template-columns: 1fr;
+	}
+}
