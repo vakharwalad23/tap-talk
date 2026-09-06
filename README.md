@@ -6,6 +6,11 @@
 
 **Local speech-to-text for macOS. Press a key, speak, paste — your voice never leaves your Mac.**
 
+**Website:** [taptalk.dhruvvakharwala.dev](https://taptalk.dhruvvakharwala.dev)
+
+[![Website](https://img.shields.io/badge/website-taptalk.dhruvvakharwala.dev-000)](https://taptalk.dhruvvakharwala.dev)
+[![Release](https://img.shields.io/github/v/release/vakharwalad23/tap-talk?label=release)](https://github.com/vakharwalad23/tap-talk/releases/latest)
+[![GitHub stars](https://img.shields.io/github/stars/vakharwalad23/tap-talk?logo=github)](https://github.com/vakharwalad23/tap-talk/stargazers)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-only-000?logo=apple&logoColor=white)](#requirements)
 [![Privacy](https://img.shields.io/badge/privacy-on--device-2ea44f)](#privacy--data-safety)
@@ -22,6 +27,8 @@ Built with SwiftUI and Rust, TapTalk runs inference on the **Apple Neural Engine
 ## Why TapTalk?
 
 Most dictation tools stream your audio to a server. TapTalk doesn't. Every byte of audio is processed on your machine. There's no account to create, no subscription, and — unless you explicitly turn on the optional cloud engine — nothing ever leaves your device.
+
+It is a free, open-source alternative to Wispr Flow, superwhisper, and MacWhisper that runs 100 percent on-device, with no account and no subscription.
 
 It's also fast and frugal. On Apple Silicon the models run with low latency on the Neural Engine, and TapTalk releases models from memory when idle so it isn't a resource hog sitting in your menu bar.
 
@@ -78,7 +85,7 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 ## Requirements
 
 - macOS 14 or later
-- Apple Silicon (M1, M2, M3, M4, or newer)
+- Any Apple Silicon Mac (newer Neural Engines are faster)
 - Xcode 16 or later
 - Rust 1.77 or later
 - [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)

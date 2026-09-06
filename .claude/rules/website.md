@@ -68,7 +68,9 @@
   (section 24). Follow it. Never publish a claim it marks unverified.
 
 ## Commits and deploy
-- `.claude/rules/commits.md` applies. Work on `feat/landing-page`. Never commit `node_modules/`, `dist/`,
-  `.wrangler/`, or secrets.
+- `.claude/rules/commits.md` applies. Branch from `dev` as `<type>/<what-it-does>`; `dev` merges to `main`.
+  Never commit `node_modules/`, `dist/`, `.wrangler/`, or secrets.
+- On each app release, bump `version` in `src/content/site.ts`; it drives the direct DMG download link, the
+  footer, and the JSON-LD `softwareVersion`.
 - Deploy with `pnpm run deploy` (check, typecheck, build, then `wrangler deploy`). Never bare `pnpm deploy`,
   which is pnpm's own workspace command. Run `pnpm exec wrangler deploy --dry-run` first.
