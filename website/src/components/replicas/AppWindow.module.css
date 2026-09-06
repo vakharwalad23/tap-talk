@@ -1,0 +1,113 @@
+.stage {
+	position: relative;
+	display: flex;
+	justify-content: center;
+	padding-bottom: 34px;
+}
+
+/* One scale factor drives the whole window so proportions match the real app. */
+.frame {
+	--s: 1.25;
+	width: calc(580px * var(--s));
+	height: calc(480px * var(--s));
+}
+
+.window {
+	width: 580px;
+	height: 480px;
+	transform: scale(var(--s));
+	transform-origin: top left;
+	display: grid;
+	grid-template-columns: 140px minmax(0, 1fr);
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.12),
+		0 30px 60px -24px rgba(0, 0, 0, 0.45);
+}
+
+.sidebar {
+	position: relative;
+	background: var(--a-side);
+	border-right: 1px solid var(--a-div);
+	padding-top: 52px;
+}
+
+.lights {
+	position: absolute;
+	top: 18px;
+	left: 18px;
+	display: flex;
+	gap: 8px;
+}
+
+.lights span {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+}
+
+.close {
+	background: #ff5f57;
+}
+
+.min {
+	background: #febc2e;
+}
+
+.max {
+	background: #28c840;
+}
+
+.brand {
+	font-size: 13px;
+	font-weight: 700;
+	padding: 0 16px 16px;
+}
+
+.nav {
+	list-style: none;
+}
+
+.navItem {
+	font-size: 13px;
+	padding: 6px 16px;
+	color: var(--a-ink40);
+}
+
+.navActive {
+	color: var(--a-ink);
+	font-weight: 500;
+	background: var(--a-ink07);
+}
+
+.content {
+	padding: 24px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.pill {
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	transform: translateX(-50%);
+}
+
+@media (max-width: 1000px) {
+	.frame {
+		--s: 1;
+	}
+}
+
+@media (max-width: 760px) {
+	.frame {
+		--s: 0.78;
+	}
+}
+
+@media (max-width: 480px) {
+	.frame {
+		--s: 0.58;
+	}
+}

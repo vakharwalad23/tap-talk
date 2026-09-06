@@ -1,0 +1,85 @@
+/* Sizes are PillView.swift points times 1.6. */
+.frame {
+	display: grid;
+	place-items: center;
+	width: 250px;
+	height: 64px;
+}
+
+.idleBar {
+	width: 86px;
+	height: 6px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.85);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.capsule {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 11px;
+	height: 48px;
+	border-radius: 999px;
+	background: var(--pill-bg);
+	border: 1px solid transparent;
+	box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+	transition:
+		width 0.3s cubic-bezier(0.34, 1.4, 0.64, 1),
+		border-color 0.3s var(--ease-out);
+	animation: pop 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes pop {
+	from {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.recording {
+	width: 154px;
+	border-color: rgba(255, 77, 66, 0.45);
+}
+
+.transcribing {
+	width: 154px;
+	border-color: rgba(255, 255, 255, 0.14);
+}
+
+.rewriting {
+	width: 198px;
+	border-color: rgba(158, 122, 255, 0.4);
+}
+
+.done {
+	width: 166px;
+	border-color: rgba(51, 199, 89, 0.55);
+	gap: 10px;
+}
+
+.canvas {
+	display: block;
+}
+
+.label {
+	font-size: 17px;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.8);
+	letter-spacing: -0.01em;
+}
+
+.check {
+	color: var(--ok);
+	stroke-width: 3;
+}
+
+.doneLabel {
+	font-size: 19px;
+	font-weight: 600;
+	color: #fff;
+}

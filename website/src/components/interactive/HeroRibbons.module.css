@@ -1,0 +1,68 @@
+.stage {
+	position: relative;
+	display: flex;
+	justify-content: center;
+	height: 420px;
+	overflow: hidden;
+}
+
+/* The drawing is 1200 wide; narrower screens see its center, the pill. */
+.svg {
+	flex: none;
+	width: max(1200px, 100%);
+	height: 420px;
+	color: var(--ink);
+	font-family: var(--font-sans);
+}
+
+.path {
+	fill: none;
+	stroke: none;
+}
+
+.band {
+	stroke: currentColor;
+	stroke-width: 34;
+	stroke-linecap: round;
+}
+
+.text {
+	font-size: 18px;
+	letter-spacing: 0.01em;
+}
+
+.in {
+	fill: var(--ink-40);
+}
+
+.out {
+	fill: var(--on-ink);
+	font-weight: 600;
+	font-size: 17px;
+}
+
+.label {
+	fill: var(--ink-40);
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.pill {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+
+@media (max-width: 640px) {
+	.stage,
+	.svg {
+		height: 340px;
+	}
+
+	.label {
+		display: none;
+	}
+}

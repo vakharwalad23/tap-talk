@@ -1,0 +1,13 @@
+.wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin-bottom: clamp(22px, 3vw, 36px);
+	max-width: 720px;
+}
+
+.center {
+	align-items: center;
+	text-align: center;
+	margin-inline: auto;
+}

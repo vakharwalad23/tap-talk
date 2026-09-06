@@ -1,0 +1,129 @@
+.wrap {
+	margin: 0;
+	padding: 96px 0 0;
+	overflow: hidden;
+}
+
+.bar {
+	position: relative;
+	display: flex;
+	justify-content: flex-end;
+	height: 30px;
+	padding: 0 12px;
+	border-radius: 8px 8px 0 0;
+	background: #1c1c1f;
+	color: rgba(255, 255, 255, 0.92);
+}
+
+.items {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	height: 100%;
+}
+
+.glyph {
+	display: block;
+}
+
+.anchor {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: 100%;
+}
+
+.item {
+	display: grid;
+	place-items: center;
+	height: 22px;
+	padding: 0 6px;
+	border-radius: 5px;
+}
+
+.itemOpen {
+	background: rgba(255, 255, 255, 0.18);
+}
+
+/* Magnified copy of the status item, tethered to its spot in the bar. */
+.lens {
+	position: absolute;
+	left: 50%;
+	bottom: 42px;
+	transform: translateX(-50%);
+	display: grid;
+	place-items: center;
+	width: 72px;
+	height: 72px;
+	border-radius: 50%;
+	background: #1c1c1f;
+	border: 2px solid var(--ink);
+	color: #fff;
+	box-shadow: var(--shadow-card);
+}
+
+.stem {
+	position: absolute;
+	left: 50%;
+	bottom: 26px;
+	width: 2px;
+	height: 16px;
+	background: var(--ink);
+}
+
+.menu {
+	position: absolute;
+	top: 36px;
+	left: 50%;
+	transform: translateX(-24%);
+	width: 200px;
+	padding: 8px 6px;
+	border-radius: 10px;
+	background: rgba(44, 44, 48, 0.96);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+	color: #fff;
+	font-size: 13px;
+	z-index: 2;
+}
+
+.menuRow {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 8px;
+	border-radius: 6px;
+}
+
+.menuRowActive {
+	background: #2b7fff;
+}
+
+.menuDivider {
+	height: 1px;
+	margin: 4px 8px;
+	background: rgba(255, 255, 255, 0.14);
+}
+
+.clock {
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
+	padding-left: 4px;
+}
+
+.caption {
+	margin-top: 112px;
+	font-size: 0.85rem;
+	color: var(--ink-60);
+}
+
+@media (max-width: 560px) {
+	.items {
+		gap: 10px;
+	}
+
+	.clock {
+		display: none;
+	}
+}

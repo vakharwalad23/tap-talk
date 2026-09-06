@@ -1,0 +1,22 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "taptalk-website",
+	"compatibility_date": "2026-09-06",
+	"compatibility_flags": ["nodejs_compat"],
+	"main": "@tanstack/react-start/server-entry",
+	// Workers custom domain: Cloudflare creates the DNS record and certificate on deploy.
+	"routes": [
+		{ "pattern": "taptalk.dhruvvakharwala.dev", "custom_domain": true }
+	],
+	// Branch builds get a versioned preview URL without touching the custom domain.
+	"preview_urls": true,
+	// Prerendered pages are served as static assets; the Worker only runs for misses, so
+	// logging every invocation is cheap and traces add nothing for a site with no backend calls.
+	"observability": {
+		"logs": {
+			"enabled": true,
+			"invocation_logs": true,
+			"head_sampling_rate": 1
+		}
+	}
+}

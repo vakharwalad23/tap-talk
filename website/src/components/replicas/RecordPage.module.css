@@ -1,0 +1,88 @@
+.page {
+	display: flex;
+	flex-direction: column;
+	height: 432px;
+}
+
+.chips {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 20px;
+}
+
+.engineChip {
+	width: 200px;
+}
+
+.langChip {
+	width: 140px;
+	color: var(--a-ink60);
+}
+
+.waveform {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	height: 32px;
+	margin-bottom: 8px;
+}
+
+.bar {
+	width: 4px;
+	height: 4px;
+	border-radius: 2px;
+	background: rgba(26, 25, 23, 0.2);
+}
+
+.status {
+	height: 18px;
+	margin-bottom: 16px;
+	text-align: center;
+	font-size: 12px;
+	color: var(--a-ink60);
+}
+
+.transcript {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px;
+	background: var(--a-side);
+	border: 1px solid var(--a-div);
+	border-radius: 8px;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.meta {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-size: 10px;
+	color: var(--a-ink60);
+}
+
+.meta span {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.copy {
+	margin-left: auto;
+}
+
+.bottom {
+	margin-top: auto;
+}
+
+.hotkey {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	margin-top: 10px;
+	font-size: 11px;
+	color: var(--a-ok);
+}

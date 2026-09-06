@@ -1,0 +1,45 @@
+.wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	max-width: 100%;
+	padding: 8px 8px 8px 14px;
+	border-radius: var(--radius);
+	border: 1px solid var(--divider);
+	background: var(--surface);
+	font-family: var(--font-mono);
+	font-size: 0.9rem;
+}
+
+.prompt {
+	color: var(--ink-40);
+	user-select: none;
+}
+
+.command {
+	/* min-width 0 lets the nowrap text shrink instead of widening every ancestor on mobile. */
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.copy {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 10px;
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: var(--ink);
+	color: var(--on-ink);
+	font-family: var(--font-sans);
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.copy:hover {
+	opacity: 0.88;
+}

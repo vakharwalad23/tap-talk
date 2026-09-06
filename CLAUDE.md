@@ -26,6 +26,7 @@ make clean        # remove all build artifacts
 - `TapTalk/Generated/` — UniFFI-generated bindings (rebuild with `make bindings`)
 - `project.yml` — xcodegen spec (generates `.xcodeproj`)
 - `scripts/` — build helper scripts
+- `website/` — marketing site, a separate TanStack Start project (see `.claude/rules/website.md`)
 
 ## Documentation
 
@@ -48,10 +49,11 @@ Coding standards live in `.claude/rules/`:
 - `architecture.md` — Modular, pluggable, configurable design
 - `performance.md` — Key-up-to-paste latency budget, ANE/MLX selection, warm paths
 - `resources.md` — Memory, lifecycle, and concurrency audit required after every change
+- `website.md` — Marketing site only: TanStack Start, strict TypeScript, Biome, Cloudflare deploy
 
 ## Key Constraints
 
-- No web tech (no React, Electron, WebView, npm, pnpm)
+- No web tech in the app (no React, Electron, WebView, npm, pnpm) — `website/` is the one exception
 - No Python anywhere
 - No `unwrap()` in Rust outside tests
 - No force-unwrap in Swift outside previews
