@@ -178,10 +178,12 @@ export function HeroRibbons() {
 				<text x="40" y="214" className={styles.label}>
 					{hero.demo.speakLabel}
 				</text>
-				<text x="1160" y="52" textAnchor="end" className={styles.label}>
+				{/* Captions sit between the two output ribbons: the slice crop on wide screens eats the
+				    outer rows, so anything near y=50 or y=380 gets cut by the stage edge. */}
+				<text x="1160" y="148" textAnchor="end" className={styles.label}>
 					{hero.demo.plainLabel}
 				</text>
-				<text x="1160" y="380" textAnchor="end" className={styles.label}>
+				<text x="1160" y="272" textAnchor="end" className={styles.label}>
 					{hero.demo.smartLabel}
 				</text>
 			</svg>
