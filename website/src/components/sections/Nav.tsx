@@ -113,9 +113,7 @@ export function Nav() {
 						<Logo name="github" size={16} />
 						<StarCount repoSlug={site.repoSlug} fallback="Star" />
 					</ButtonLink>
-					<ButtonLink href={site.downloadUrl} external>
-						Download free
-					</ButtonLink>
+					<ButtonLink href={site.downloadUrl}>Download free</ButtonLink>
 				</div>
 			</div>
 		</header>

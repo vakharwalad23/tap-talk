@@ -15,7 +15,7 @@ export function Hero() {
 				<h1 id="hero-title">{hero.headline}</h1>
 				<p className={`lede ${styles.lede}`}>{hero.sub}</p>
 				<div className={styles.ctas}>
-					<ButtonLink href={site.downloadUrl} size="lg" external>
+					<ButtonLink href={site.downloadUrl} size="lg">
 						<Icon name="download" size={18} />
 						Download free
 					</ButtonLink>

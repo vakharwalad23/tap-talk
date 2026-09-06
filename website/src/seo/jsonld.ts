@@ -13,7 +13,7 @@ function softwareApplication(): JsonLd {
 		operatingSystem: "macOS 14.0 or later, Apple Silicon",
 		description: site.shortDescription,
 		url: site.url,
-		downloadUrl: site.releasesUrl,
+		downloadUrl: site.downloadUrl,
 		softwareVersion: site.version,
 		license: site.licenseUrl,
 		isAccessibleForFree: true,

@@ -17,7 +17,6 @@ export function FinalCta() {
 						<ButtonLink
 							href={site.downloadUrl}
 							size="lg"
-							external
 							className={styles.primary}
 						>
 							<Icon name="download" size={18} />
