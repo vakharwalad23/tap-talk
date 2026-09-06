@@ -55,6 +55,8 @@ Coding standards live in `.claude/rules/`:
 
 - No web tech in the app (no React, Electron, WebView, npm, pnpm) - `website/` is the one exception
 - No Python anywhere
+- ASCII only in code, comments, docs, and UI strings: no em or en dashes, smart quotes, arrows, or
+  ellipsis characters. Devanagari in Hindi examples and demo data is the one exception.
 - No `unwrap()` in Rust outside tests
 - No force-unwrap in Swift outside previews
 - No bundled models - download at runtime to Application Support
