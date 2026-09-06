@@ -25,14 +25,18 @@ export function FlowDiagram() {
 							style={nodeVars}
 							className={cx(
 								styles.node,
-								styles[node.layer],
 								dimmed && styles.dimmed,
 								node.id === selectedId && styles.selected,
 							)}
 							aria-pressed={node.id === selectedId}
 							onClick={() => setSelectedId(node.id)}
 						>
-							<span className={styles.step}>{index + 1}</span>
+							<span className={styles.head}>
+								<span className={styles.step}>{index + 1}</span>
+								<span className={styles.layer}>
+									{node.layer === "rust" ? "Rust" : "Swift + ANE"}
+								</span>
+							</span>
 							<span className={styles.title}>{node.title}</span>
 							<span className={styles.summary}>{node.summary}</span>
 							{node.optional ? (
@@ -61,16 +65,10 @@ export function FlowDiagram() {
 						/>
 						<span>Smart Mode adds the local rewrite step</span>
 					</label>
-					<ul className={styles.legend}>
-						<li>
-							<span className={cx(styles.swatch, styles.rustSwatch)} /> Rust
-							audio core
-						</li>
-						<li>
-							<span className={cx(styles.swatch, styles.swiftSwatch)} /> Swift
-							and Neural Engine
-						</li>
-					</ul>
+					<p className="faint">
+						Rust owns the audio path. Swift and the Neural Engine own
+						recognition, the rewrite, and the paste.
+					</p>
 					<p className="faint">{flowCopy.liveTypingNote}</p>
 				</div>
 			</div>

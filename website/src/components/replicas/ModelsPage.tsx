@@ -3,62 +3,79 @@ import { Icon } from "#/components/ui/Icon";
 import app from "./app.module.css";
 import styles from "./ModelsPage.module.css";
 
+function Installed() {
+	return (
+		<span className={styles.actions}>
+			<span className={app.installed}>
+				<Icon name="checkCircle" size={13} strokeWidth={2.2} />
+				Installed
+			</span>
+			<Icon name="trash" size={11} className={app.danger} />
+		</span>
+	);
+}
+
 export function ModelsPage() {
 	return (
 		<div>
-			<h3 className={app.h1}>Models</h3>
-			<p className={app.sub}>
-				Run entirely on your device. No internet required.
-			</p>
+			<div className={app.header}>
+				<h3 className={app.h1}>Models</h3>
+				<p className={app.sub}>
+					Run entirely on your device - no internet required.
+				</p>
+			</div>
 
 			<div className={styles.cards}>
 				<div className={app.card}>
-					<div className={styles.head}>
-						<div>
-							<div className={styles.name}>Parakeet</div>
-							<div className={app.secondary}>
-								Fast English and European dictation. Auto-detects the language
-								and adds punctuation.
-							</div>
-						</div>
-						<span className={styles.installed}>
-							<Icon name="check" size={11} />
-							Installed
+					<div className={app.row}>
+						<span className={styles.nameRow}>
+							<span className={styles.name}>Parakeet TDT</span>
+							<span className={app.badge}>Optimized</span>
 						</span>
+						<span className={app.size}>~490 MB</span>
 					</div>
-					<div className={styles.foot}>
-						<span className={app.tertiary}>490 MB, Neural Engine</span>
-						<span className={app.ghostButton}>Remove</span>
+					<div className={cx(app.row, styles.descRow)}>
+						<p className={cx(app.hint, styles.desc)}>
+							NVIDIA Parakeet TDT 0.6B v3. The fastest option for English and
+							European languages. Adds punctuation for you.
+						</p>
+						<Installed />
 					</div>
-					<div className={styles.addon}>
+					<div className={app.divider} />
+					<div className={cx(app.row, app.rowTop)}>
 						<div className={app.rowText}>
-							<span className={app.rowTitle}>Live typing add-on</span>
-							<span className={app.secondary}>
-								Words appear as you speak. 440 MB.
+							<span className={styles.nameRow}>
+								<span className={app.rowTitle}>Live typing add-on</span>
+								<span className={cx(app.size, styles.sizeSmall)}>~440 MB</span>
+							</span>
+							<span className={app.hint}>
+								Streams words live as you speak. Required for the Live typing
+								toggle in Settings.
 							</span>
 						</div>
-						<span className={app.smallButton}>Download</span>
+						<span className={styles.actions}>
+							<Icon
+								name="checkCircle"
+								size={13}
+								strokeWidth={2.2}
+								className={app.ok}
+							/>
+							<Icon name="trash" size={11} className={app.danger} />
+						</span>
 					</div>
 				</div>
 
 				<div className={app.card}>
-					<div className={styles.head}>
-						<div>
-							<div className={styles.name}>Multilingual</div>
-							<div className={app.secondary}>
-								Hindi, Marathi, Urdu, Chinese, Japanese and more. Pick the
-								language in Record.
-							</div>
-						</div>
+					<div className={app.row}>
+						<span className={styles.name}>Nemotron 3.5</span>
+						<span className={app.size}>~640 MB</span>
 					</div>
-					<div className={styles.progress} aria-hidden="true">
-						<span className={styles.progressBar} />
-					</div>
-					<div className={styles.foot}>
-						<span className={app.tertiary}>
-							Downloading 62 percent of 640 MB
-						</span>
-						<span className={cx(app.ghostButton)}>Cancel</span>
+					<div className={cx(app.row, styles.descRow)}>
+						<p className={cx(app.hint, styles.desc)}>
+							NVIDIA Nemotron 3.5 ASR. Covers Hindi and the languages Parakeet
+							doesn't - pick yours in the Record tab.
+						</p>
+						<span className={app.downloadButton}>Download</span>
 					</div>
 				</div>
 			</div>

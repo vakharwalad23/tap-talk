@@ -3,13 +3,7 @@
 	height: 260px;
 	border-radius: var(--radius-lg);
 	overflow: hidden;
-	background:
-		radial-gradient(
-			70% 90% at 50% 100%,
-			rgba(158, 122, 255, 0.22),
-			transparent 70%
-		),
-		linear-gradient(180deg, #2b2b31 0%, #1b1b1f 100%);
+	background: linear-gradient(180deg, #2a2a2f 0%, #1b1b1f 100%);
 	border: 1px solid rgba(255, 255, 255, 0.08);
 }
 

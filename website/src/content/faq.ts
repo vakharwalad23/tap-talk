@@ -31,7 +31,8 @@ export const faq: readonly FaqItem[] = [
 	},
 	{
 		question: "Which Macs does it support?",
-		answer: "Apple Silicon Macs (M1 and newer) running macOS 14 or later.",
+		answer:
+			"Any Apple Silicon Mac running macOS 14 or later. TapTalk runs on the Neural Engine, which gets faster with every chip generation: an M3 or M4 feels instant, and an M1 or M2 takes a beat longer.",
 	},
 	{
 		question: "Can I use it in any app?",

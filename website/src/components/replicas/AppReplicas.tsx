@@ -1,16 +1,20 @@
 import { SectionHeading } from "#/components/ui/SectionHeading";
+import { AboutPage } from "./AboutPage";
 import styles from "./AppReplicas.module.css";
 import { AppWindow } from "./AppWindow";
 import { IntelligencePage } from "./IntelligencePage";
 import { ModelsPage } from "./ModelsPage";
 import { PrivacyPage } from "./PrivacyPage";
 import { RecordPage } from "./RecordPage";
+import { SettingsPage } from "./SettingsPage";
 
 const tabs = [
 	{ id: "record", label: "Record" },
 	{ id: "models", label: "Models" },
+	{ id: "settings", label: "Settings" },
 	{ id: "intelligence", label: "Intelligence" },
 	{ id: "privacy", label: "Privacy" },
+	{ id: "about", label: "About" },
 ] as const;
 
 // Tabs are radio inputs styled with CSS so the switcher needs no JavaScript.
@@ -21,7 +25,7 @@ export function AppReplicas() {
 				<SectionHeading
 					eyebrow="Inside TapTalk"
 					title="The real interface, rebuilt in HTML."
-					lede="No screenshots. These are the app's own screens, reproduced from its SwiftUI source with the same colors, sizes, and copy."
+					lede="No screenshots. These are the app's own screens, reproduced from its SwiftUI source at the same sizes, with the same colors and copy."
 					id="inside-title"
 				/>
 				<div className={styles.tabs} data-reveal>
@@ -59,6 +63,11 @@ export function AppReplicas() {
 							</AppWindow>
 						</div>
 						<div className={styles.panel}>
+							<AppWindow active="Settings">
+								<SettingsPage />
+							</AppWindow>
+						</div>
+						<div className={styles.panel}>
 							<AppWindow active="Intelligence" pill="rewriting">
 								<IntelligencePage />
 							</AppWindow>
@@ -66,6 +75,11 @@ export function AppReplicas() {
 						<div className={styles.panel}>
 							<AppWindow active="Privacy">
 								<PrivacyPage />
+							</AppWindow>
+						</div>
+						<div className={styles.panel}>
+							<AppWindow active="About">
+								<AboutPage />
 							</AppWindow>
 						</div>
 					</div>

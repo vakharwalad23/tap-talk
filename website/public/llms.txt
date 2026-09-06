@@ -6,7 +6,7 @@
 
 - Price: free. No subscription, no trial, no account, no word limits.
 - License: MIT. Source: https://github.com/vakharwalad23/tap-talk
-- Platform: macOS 14 or later, Apple Silicon (M1 to M4). Version 0.3.0.
+- Platform: macOS 14 or later, any Apple Silicon Mac. Newer chips have a faster Neural Engine, so newer Macs are faster. Version 0.3.0.
 - Install: brew install --cask vakharwalad23/tap/taptalk, or the .dmg from GitHub Releases.
 - Privacy: audio is processed in memory on-device and discarded. No telemetry, no analytics, no crash reporting.
 - Speech models (downloaded at runtime, never bundled): NVIDIA Parakeet TDT 0.6B v3 (English and European, auto-detected), NVIDIA Nemotron 3.5 ASR Multilingual 0.6B (Hindi, Marathi, Urdu, Chinese, Japanese and more), NVIDIA Parakeet Realtime EOU 120M (optional live typing).

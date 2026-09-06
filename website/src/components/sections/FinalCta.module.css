@@ -6,13 +6,7 @@
 	gap: 18px;
 	padding: clamp(40px, 7vw, 72px) 24px;
 	border-radius: var(--radius-lg);
-	background:
-		radial-gradient(
-			60% 80% at 50% 0%,
-			rgba(158, 122, 255, 0.25),
-			transparent 70%
-		),
-		var(--pill-bg);
+	background: var(--pill-bg);
 	color: #f4f3f1;
 }
 

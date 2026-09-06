@@ -29,7 +29,7 @@
 }
 
 .arrow {
-	color: var(--smart);
+	color: rgba(244, 243, 241, 0.5);
 	transform: rotate(90deg);
 	width: 18px;
 	margin: 6px 0;

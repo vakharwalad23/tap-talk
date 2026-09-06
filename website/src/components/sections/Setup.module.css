@@ -64,8 +64,8 @@
 	font-weight: 600;
 	letter-spacing: 0.05em;
 	text-transform: uppercase;
-	color: var(--smart-text);
-	border: 1px solid rgba(158, 122, 255, 0.45);
+	color: var(--ink-40);
+	border: 1px solid var(--divider);
 }
 
 .command {
@@ -76,6 +76,10 @@
 	padding: 10px 14px;
 	border-radius: var(--radius-sm);
 	background: var(--surface);
-	border-left: 3px solid var(--rec);
+	border-left: 3px solid var(--ink-40);
 	font-size: 0.9rem;
+}
+
+.mock {
+	margin-top: 8px;
 }

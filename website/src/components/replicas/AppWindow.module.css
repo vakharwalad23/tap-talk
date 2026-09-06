@@ -1,32 +1,47 @@
 .stage {
 	position: relative;
+	display: flex;
+	justify-content: center;
 	padding-bottom: 34px;
 }
 
+/* One scale factor drives the whole window so proportions match the real app. */
+.frame {
+	--s: 1.25;
+	width: calc(580px * var(--s));
+	height: calc(480px * var(--s));
+}
+
 .window {
-	width: 100%;
-	max-width: 760px;
-	margin-inline: auto;
-	border-radius: 12px;
-	border: 1px solid rgba(0, 0, 0, 0.12);
-	box-shadow:
-		0 40px 80px -30px rgba(0, 0, 0, 0.45),
-		0 0 0 1px rgba(255, 255, 255, 0.35) inset;
-	overflow: hidden;
+	width: 580px;
+	height: 480px;
+	transform: scale(var(--s));
+	transform-origin: top left;
 	display: grid;
-	grid-template-rows: 30px 1fr;
+	grid-template-columns: 140px minmax(0, 1fr);
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.12),
+		0 30px 60px -24px rgba(0, 0, 0, 0.45);
 }
 
-.titlebar {
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	padding: 0 12px;
+.sidebar {
+	position: relative;
 	background: var(--a-side);
-	border-bottom: 1px solid var(--a-div);
+	border-right: 1px solid var(--a-div);
+	padding-top: 52px;
 }
 
-.light {
+.lights {
+	position: absolute;
+	top: 18px;
+	left: 18px;
+	display: flex;
+	gap: 8px;
+}
+
+.lights span {
 	width: 12px;
 	height: 12px;
 	border-radius: 50%;
@@ -42,17 +57,6 @@
 
 .max {
 	background: #28c840;
-}
-
-.body {
-	display: grid;
-	grid-template-columns: 140px 1px minmax(0, 1fr);
-	min-height: 420px;
-}
-
-.sidebar {
-	background: var(--a-side);
-	padding-top: 20px;
 }
 
 .brand {
@@ -77,13 +81,10 @@
 	background: var(--a-ink07);
 }
 
-.divider {
-	background: var(--a-div);
-}
-
 .content {
 	padding: 24px;
 	min-width: 0;
+	overflow: hidden;
 }
 
 .pill {
@@ -93,17 +94,20 @@
 	transform: translateX(-50%);
 }
 
-@media (max-width: 640px) {
-	.body {
-		grid-template-columns: 96px 1px minmax(0, 1fr);
+@media (max-width: 1000px) {
+	.frame {
+		--s: 1;
 	}
+}
 
-	.navItem,
-	.brand {
-		padding-inline: 10px;
+@media (max-width: 760px) {
+	.frame {
+		--s: 0.78;
 	}
+}
 
-	.content {
-		padding: 16px;
+@media (max-width: 480px) {
+	.frame {
+		--s: 0.58;
 	}
 }

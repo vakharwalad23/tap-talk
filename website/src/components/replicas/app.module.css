@@ -1,21 +1,23 @@
-/* The app's own light palette (AppTheme.swift). Fixed, so the replica stays true in dark mode. */
+/* The app's own light palette (AppTheme.swift), fixed so the replica stays true in dark mode.
+   Sizes are SwiftUI points; the window is scaled as a whole by AppWindow. */
 .window {
 	--a-bg: #f4f3f1;
 	--a-side: #eceae6;
 	--a-div: #dddad5;
 	--a-ink: #1a1917;
-	/* The app uses 0.6 and 0.4; lifted slightly so small replica text meets contrast. */
 	--a-ink60: rgba(26, 25, 23, 0.72);
 	--a-ink40: rgba(26, 25, 23, 0.62);
 	--a-ink07: rgba(26, 25, 23, 0.07);
 	--a-danger: #ff3b30;
 	--a-ok: #33c759;
+	--a-blue: #2b7fff;
+	--a-control: #dcdcdc;
 	color-scheme: light;
 	color: var(--a-ink);
 	background: var(--a-bg);
 	font-family: var(--font-sans);
 	font-size: 12px;
-	line-height: 1.4;
+	line-height: 1.35;
 }
 
 .h1 {
@@ -26,15 +28,32 @@
 }
 
 .sub {
-	font-size: 12px;
+	font-size: 10px;
 	color: var(--a-ink40);
 	margin-top: 4px;
+}
+
+.header {
+	margin-bottom: 20px;
 }
 
 .sectionTitle {
 	font-size: 12px;
 	font-weight: 600;
 	margin-bottom: 6px;
+}
+
+.sectionLabel {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	color: var(--a-ink60);
+	margin-bottom: 10px;
+}
+
+.section {
+	margin-bottom: 20px;
 }
 
 .secondary {
@@ -46,10 +65,175 @@
 }
 
 .card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 14px;
 	background: var(--a-side);
 	border: 1px solid var(--a-div);
+	border-radius: 10px;
+}
+
+.divider {
+	height: 1px;
+	background: var(--a-div);
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.rowTop {
+	align-items: flex-start;
+}
+
+.rowLabel {
+	font-size: 13px;
+}
+
+.rowText {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rowTitle {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.hint {
+	font-size: 11px;
+	color: var(--a-ink40);
+}
+
+.hintSmall {
+	font-size: 10px;
+	color: var(--a-ink40);
+}
+
+.label {
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--a-ink60);
+}
+
+.tiles {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.tile {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 8px 12px;
 	border-radius: 8px;
-	padding: 12px;
+	background: var(--a-side);
+	border: 1px solid var(--a-div);
+	color: var(--a-ink60);
+}
+
+.tile strong {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.tile span {
+	font-size: 10px;
+}
+
+.tileActive {
+	background: var(--a-ink);
+	border-color: var(--a-ink);
+	color: var(--a-bg);
+}
+
+.checkbox {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	border-radius: 4px;
+	background: var(--a-control);
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	display: grid;
+	place-items: center;
+	color: #fff;
+}
+
+.checkboxOn {
+	background: var(--a-blue);
+	border-color: var(--a-blue);
+}
+
+.bordered {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 10px;
+	border-radius: 5px;
+	background: var(--a-control);
+	font-size: 13px;
+	white-space: nowrap;
+}
+
+.borderedMuted {
+	color: var(--a-ink60);
+}
+
+.badge {
+	display: inline-block;
+	padding: 2.5px 6px;
+	border-radius: 4px;
+	background: var(--a-ink);
+	color: #fff;
+	font-size: 9px;
+	font-weight: 700;
+}
+
+.size {
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--a-ink60);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.installed {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--a-ok);
+	font-size: 11px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.ok {
+	color: var(--a-ok);
+}
+
+.danger {
+	color: var(--a-danger);
+}
+
+.accent {
+	color: var(--a-ink);
+}
+
+.downloadButton {
+	display: inline-flex;
+	align-items: center;
+	padding: 5px 12px;
+	border-radius: 6px;
+	background: var(--a-div);
+	font-size: 12px;
+	font-weight: 500;
+	white-space: nowrap;
 }
 
 .chip {
@@ -65,10 +249,6 @@
 	white-space: nowrap;
 }
 
-.chipMuted {
-	color: var(--a-ink60);
-}
-
 .primaryButton {
 	display: inline-flex;
 	align-items: center;
@@ -82,106 +262,4 @@
 	font-size: 14px;
 	font-weight: 600;
 	width: 100%;
-}
-
-.smallButton {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	height: 26px;
-	padding: 0 12px;
-	border-radius: 6px;
-	background: var(--a-ink);
-	color: #fff;
-	font-size: 12px;
-	font-weight: 600;
-	white-space: nowrap;
-}
-
-.ghostButton {
-	composes: smallButton;
-	background: transparent;
-	color: var(--a-ink);
-	border: 1px solid var(--a-div);
-}
-
-.row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	padding: 10px 0;
-	border-top: 1px solid var(--a-div);
-}
-
-.rowFirst {
-	border-top: 0;
-	padding-top: 0;
-}
-
-.rowText {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	min-width: 0;
-}
-
-.rowTitle {
-	font-weight: 600;
-}
-
-.toggle {
-	flex-shrink: 0;
-	width: 34px;
-	height: 20px;
-	border-radius: 999px;
-	background: var(--a-div);
-	position: relative;
-}
-
-.toggle::after {
-	content: "";
-	position: absolute;
-	top: 2px;
-	left: 2px;
-	width: 16px;
-	height: 16px;
-	border-radius: 50%;
-	background: #fff;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-	transition: transform 0.2s var(--ease-out);
-}
-
-.toggleOn {
-	background: var(--a-ink);
-}
-
-.toggleOn::after {
-	transform: translateX(14px);
-}
-
-.dot {
-	display: inline-block;
-	width: 7px;
-	height: 7px;
-	border-radius: 50%;
-	background: var(--a-ok);
-	margin-right: 6px;
-}
-
-.divider {
-	height: 1px;
-	background: var(--a-div);
-	margin: 14px 0;
-}
-
-.kbd {
-	display: inline-block;
-	padding: 1px 7px 2px;
-	border-radius: 5px;
-	border: 1px solid var(--a-div);
-	border-bottom-width: 2px;
-	background: #fff;
-	font-size: 11px;
-	font-weight: 600;
 }

@@ -1,4 +1,5 @@
 import { CopyCommand } from "#/components/interactive/CopyCommand";
+import { MenuBarMock } from "#/components/replicas/MenuBarMock";
 import type { CSSVars } from "#/components/ui/cx";
 import { SectionHeading } from "#/components/ui/SectionHeading";
 import { setupIntro, setupSteps } from "#/content/setup";
@@ -35,6 +36,11 @@ export function Setup() {
 										) : null}
 									</h3>
 									<p>{step.body}</p>
+									{index === 1 ? (
+										<div className={styles.mock}>
+											<MenuBarMock />
+										</div>
+									) : null}
 									{step.command ? (
 										<CopyCommand
 											command={step.command}

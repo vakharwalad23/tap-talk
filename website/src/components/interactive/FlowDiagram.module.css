@@ -1,7 +1,7 @@
 .diagram {
 	display: flex;
 	flex-direction: column;
-	gap: 28px;
+	gap: 24px;
 }
 
 .track {
@@ -17,22 +17,21 @@
 	left: 3%;
 	right: 3%;
 	top: 50%;
-	height: 2px;
+	height: 1px;
 	background: var(--divider);
 }
 
+/* The voice, travelling the pipeline. Red like the recording pill. */
 .packet {
 	position: absolute;
 	top: 50%;
 	left: 3%;
-	width: 14px;
-	height: 14px;
-	margin: -7px;
+	width: 12px;
+	height: 12px;
+	margin: -6px;
 	border-radius: 50%;
 	background: var(--rec);
-	box-shadow:
-		0 0 0 4px rgba(255, 77, 66, 0.22),
-		0 0 18px var(--rec);
+	box-shadow: 0 0 0 4px color-mix(in srgb, var(--rec) 20%, transparent);
 	animation: travelX var(--cycle) linear infinite;
 	z-index: 2;
 }
@@ -47,7 +46,6 @@
 }
 
 .node {
-	--glow: var(--smart);
 	position: relative;
 	z-index: 1;
 	flex: 1 1 0;
@@ -56,7 +54,7 @@
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 4px;
-	padding: 14px 12px 12px;
+	padding: 12px 12px 12px;
 	border: 1px solid var(--divider);
 	border-radius: var(--radius);
 	background: var(--bg);
@@ -74,14 +72,6 @@
 	transform: translateY(-2px);
 }
 
-.rust {
-	--glow: var(--ok);
-}
-
-.swift {
-	--glow: var(--smart);
-}
-
 .selected {
 	border-color: var(--ink);
 }
@@ -97,12 +87,19 @@
 		box-shadow: 0 0 0 0 transparent;
 	}
 	5% {
-		box-shadow: 0 0 0 3px var(--glow);
+		box-shadow: 0 0 0 3px var(--ink-10);
 	}
 	16%,
 	100% {
 		box-shadow: 0 0 0 0 transparent;
 	}
+}
+
+.head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 6px;
 }
 
 .step {
@@ -111,11 +108,18 @@
 	display: grid;
 	place-items: center;
 	border-radius: 50%;
-	background: var(--glow);
-	color: #fff;
+	background: var(--ink);
+	color: var(--on-ink);
 	font-size: 0.72rem;
 	font-weight: 700;
-	margin-bottom: 4px;
+}
+
+.layer {
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-40);
 }
 
 .title {
@@ -132,11 +136,11 @@
 
 .optional {
 	margin-top: 4px;
-	font-size: 0.68rem;
-	font-weight: 600;
-	letter-spacing: 0.04em;
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 0.06em;
 	text-transform: uppercase;
-	color: var(--smart-text);
+	color: var(--ink-40);
 }
 
 .below {
@@ -180,35 +184,7 @@
 .toggle input {
 	width: 18px;
 	height: 18px;
-	accent-color: var(--smart);
-}
-
-.legend {
-	list-style: none;
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px 18px;
-	color: var(--ink-60);
-}
-
-.legend li {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.swatch {
-	width: 10px;
-	height: 10px;
-	border-radius: 50%;
-}
-
-.rustSwatch {
-	background: var(--ok);
-}
-
-.swiftSwatch {
-	background: var(--smart);
+	accent-color: var(--ink);
 }
 
 @media (max-width: 1000px) {
@@ -222,12 +198,12 @@
 		right: auto;
 		top: 3%;
 		bottom: 3%;
-		width: 2px;
+		width: 1px;
 		height: auto;
 	}
 
 	.packet {
-		left: 7px;
+		left: 6px;
 		top: 3%;
 		animation-name: travelY;
 	}

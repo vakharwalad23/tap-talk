@@ -95,7 +95,7 @@
 }
 
 .highlight .bar {
-	background: var(--ok);
+	background: var(--ink);
 }
 
 @media (max-width: 900px) {

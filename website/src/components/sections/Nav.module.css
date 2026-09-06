@@ -2,9 +2,9 @@
 	position: sticky;
 	top: 0;
 	z-index: 20;
-	background: color-mix(in srgb, var(--bg) 78%, transparent);
-	backdrop-filter: saturate(160%) blur(14px);
-	-webkit-backdrop-filter: saturate(160%) blur(14px);
+	background: color-mix(in srgb, var(--bg) 82%, transparent);
+	backdrop-filter: saturate(140%) blur(14px);
+	-webkit-backdrop-filter: saturate(140%) blur(14px);
 	border-bottom: 1px solid var(--divider);
 }
 
@@ -30,7 +30,10 @@
 }
 
 .links {
+	position: relative;
 	display: flex;
+	align-items: center;
+	align-self: stretch;
 	gap: 22px;
 	font-size: 0.9rem;
 	color: var(--ink-60);
@@ -38,10 +41,32 @@
 
 .links a {
 	text-decoration: none;
+	transition: color 0.2s var(--ease-out);
 }
 
-.links a:hover {
+.links a:hover,
+.active {
 	color: var(--ink);
+}
+
+/* Slides under the section you are reading. */
+.indicator {
+	position: absolute;
+	left: 0;
+	bottom: -1px;
+	height: 2px;
+	width: var(--w);
+	transform: translateX(var(--x));
+	background: var(--ink);
+	opacity: 0;
+	transition:
+		transform 0.4s var(--ease-out),
+		width 0.4s var(--ease-out),
+		opacity 0.2s var(--ease-out);
+}
+
+.indicatorOn {
+	opacity: 1;
 }
 
 .actions {

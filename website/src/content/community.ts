@@ -1,6 +1,6 @@
 export const speed = {
 	title: "Fast because it is native, and because it runs on the Neural Engine.",
-	body: "TapTalk is built for the only number that matters: the time from releasing the key to seeing your text. Models are prewarmed while you are still talking, audio capture is a zero-allocation Rust core, and recognition runs on the Apple Neural Engine, so plain dictation lands in well under a second once warm.",
+	body: "TapTalk is built for the only number that matters: the time from releasing the key to seeing your text. Models are prewarmed while you are still talking, audio capture is a zero-allocation Rust core, and recognition runs on the Apple Neural Engine, so plain dictation lands in well under a second once warm. Every Apple Silicon Mac is supported, and because the work runs on the Neural Engine, each new chip generation makes TapTalk faster: an M3 or M4 feels instant, an M1 or M2 takes a beat longer.",
 	stats: [
 		{ value: "Sub-second", label: "plain dictation once warm, on-device" },
 		{ value: "14.5%", label: "Hindi word error rate on 418 real FLEURS clips" },

@@ -1,3 +1,4 @@
+import { type CSSVars, cx } from "#/components/ui/cx";
 import { Logo } from "#/components/ui/Logo";
 import { models, siteBuiltWith } from "#/content/logos";
 import { site } from "#/content/site";
@@ -9,6 +10,17 @@ const links = [
 	{ href: site.issuesUrl, label: "Report an issue" },
 	{ href: site.licenseUrl, label: "MIT License" },
 	{ href: "#privacy", label: "Privacy" },
+] as const;
+
+// The waveform mark: seven bars, heights as a share of the box.
+const bars = [
+	{ id: "b1", h: 46 },
+	{ id: "b2", h: 72 },
+	{ id: "b3", h: 100 },
+	{ id: "b4", h: 60 },
+	{ id: "b5", h: 86 },
+	{ id: "b6", h: 52 },
+	{ id: "b7", h: 34 },
 ] as const;
 
 export function Footer() {
@@ -28,13 +40,6 @@ export function Footer() {
 					</div>
 					<p className="muted">
 						Free, open-source, on-device dictation for Mac.
-					</p>
-					<p className="faint">
-						Made by{" "}
-						<a href={site.authorUrl} target="_blank" rel="noopener noreferrer">
-							{site.authorName}
-						</a>
-						. Version {site.version}, updated {site.lastUpdated}.
 					</p>
 				</div>
 				<nav className={styles.col} aria-label="Footer">
@@ -92,6 +97,47 @@ export function Footer() {
 						))}
 					</ul>
 				</div>
+			</div>
+
+			<div className={`container ${styles.mark}`} data-reveal>
+				<svg
+					className={styles.wave}
+					viewBox="0 0 132 100"
+					aria-hidden="true"
+					focusable={false}
+				>
+					{bars.map((bar, index) => {
+						const vars: CSSVars = { "--i": index };
+						return (
+							<rect
+								key={bar.id}
+								className={styles.bar}
+								style={vars}
+								x={index * 20}
+								y={(100 - bar.h) / 2}
+								width={12}
+								height={bar.h}
+								rx={6}
+							/>
+						);
+					})}
+				</svg>
+				<span className={cx(styles.wordmark)} aria-hidden="true">
+					TapTalk
+				</span>
+			</div>
+
+			<div className={`container ${styles.bottom}`}>
+				<span className="faint">
+					Made by{" "}
+					<a href={site.authorUrl} target="_blank" rel="noopener noreferrer">
+						{site.authorName}
+					</a>
+					. MIT License.
+				</span>
+				<span className="faint">
+					Version {site.version}, updated {site.lastUpdated}.
+				</span>
 			</div>
 		</footer>
 	);

@@ -30,7 +30,7 @@
 	--radius-lg: 18px;
 	--max: 1080px;
 	--gutter: 24px;
-	--section-y: clamp(72px, 10vw, 128px);
+	--section-y: clamp(48px, 6vw, 84px);
 
 	--shadow-pill: 0 2px 6px rgba(0, 0, 0, 0.28);
 	--shadow-card:

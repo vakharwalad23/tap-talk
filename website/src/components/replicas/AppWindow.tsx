@@ -20,20 +20,21 @@ interface AppWindowProps {
 	readonly pill?: PillState;
 }
 
+// The window is laid out at its real size (580 x 480 points, hidden title bar) and scaled.
 export function AppWindow({ active, children, pill }: AppWindowProps) {
 	return (
 		<div className={styles.stage}>
-			<figure
-				className={cx(app.window, styles.window)}
-				aria-label={`TapTalk app window, ${active} page`}
-			>
-				<div className={styles.titlebar} aria-hidden="true">
-					<span className={cx(styles.light, styles.close)} />
-					<span className={cx(styles.light, styles.min)} />
-					<span className={cx(styles.light, styles.max)} />
-				</div>
-				<div className={styles.body}>
+			<div className={styles.frame}>
+				<figure
+					className={cx(app.window, styles.window)}
+					aria-label={`TapTalk app window, ${active} page`}
+				>
 					<nav className={styles.sidebar} aria-label="App sections">
+						<div className={styles.lights} aria-hidden="true">
+							<span className={styles.close} />
+							<span className={styles.min} />
+							<span className={styles.max} />
+						</div>
 						<div className={styles.brand}>TapTalk</div>
 						<ul className={styles.nav}>
 							{navItems.map((item) => (
@@ -49,10 +50,9 @@ export function AppWindow({ active, children, pill }: AppWindowProps) {
 							))}
 						</ul>
 					</nav>
-					<div className={styles.divider} />
 					<div className={styles.content}>{children}</div>
-				</div>
-			</figure>
+				</figure>
+			</div>
 			{pill ? (
 				<div className={styles.pill}>
 					<Pill state={pill} />

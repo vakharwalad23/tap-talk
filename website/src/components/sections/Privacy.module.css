@@ -31,8 +31,8 @@
 	width: 26px;
 	height: 26px;
 	border-radius: 50%;
-	background: var(--ok);
-	color: #fff;
+	background: var(--ink);
+	color: var(--on-ink);
 	margin-top: 1px;
 }
 

@@ -1,7 +1,7 @@
 .tabs {
 	display: flex;
 	flex-direction: column;
-	gap: 28px;
+	gap: 24px;
 }
 
 .input {
@@ -15,8 +15,9 @@
 
 .tablist {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: center;
-	gap: 6px;
+	gap: 4px;
 	padding: 4px;
 	margin: 0 auto;
 	min-width: 0;
@@ -27,9 +28,9 @@
 }
 
 .tab {
-	padding: 8px 16px;
+	padding: 7px 14px;
 	border-radius: 999px;
-	font-size: 0.9rem;
+	font-size: 0.88rem;
 	font-weight: 600;
 	color: var(--ink-60);
 	cursor: pointer;
@@ -40,10 +41,6 @@
 
 .tab:hover {
 	color: var(--ink);
-}
-
-.input:focus-visible ~ .tablist .tab {
-	outline: none;
 }
 
 .panels {
@@ -57,7 +54,9 @@
 .input:nth-of-type(1):checked ~ .tablist .tab:nth-of-type(1),
 .input:nth-of-type(2):checked ~ .tablist .tab:nth-of-type(2),
 .input:nth-of-type(3):checked ~ .tablist .tab:nth-of-type(3),
-.input:nth-of-type(4):checked ~ .tablist .tab:nth-of-type(4) {
+.input:nth-of-type(4):checked ~ .tablist .tab:nth-of-type(4),
+.input:nth-of-type(5):checked ~ .tablist .tab:nth-of-type(5),
+.input:nth-of-type(6):checked ~ .tablist .tab:nth-of-type(6) {
 	background: var(--ink);
 	color: var(--on-ink);
 }
@@ -65,7 +64,9 @@
 .input:nth-of-type(1):checked ~ .panels .panel:nth-of-type(1),
 .input:nth-of-type(2):checked ~ .panels .panel:nth-of-type(2),
 .input:nth-of-type(3):checked ~ .panels .panel:nth-of-type(3),
-.input:nth-of-type(4):checked ~ .panels .panel:nth-of-type(4) {
+.input:nth-of-type(4):checked ~ .panels .panel:nth-of-type(4),
+.input:nth-of-type(5):checked ~ .panels .panel:nth-of-type(5),
+.input:nth-of-type(6):checked ~ .panels .panel:nth-of-type(6) {
 	display: block;
 	animation: fade 0.35s var(--ease-out);
 }
@@ -83,7 +84,7 @@
 
 @media (max-width: 520px) {
 	.tab {
-		padding: 7px 10px;
-		font-size: 0.8rem;
+		padding: 6px 10px;
+		font-size: 0.78rem;
 	}
 }

@@ -1,8 +1,41 @@
-.page {
+.segment {
 	display: flex;
 	flex-direction: column;
+	gap: 10px;
 }
 
-.block {
-	margin-top: 18px;
+.segmentName {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.segmentActions {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.add {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding-top: 4px;
+	font-size: 12px;
+	color: var(--a-ink);
+}
+
+.remove {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex: none;
+	font-size: 12px;
+	color: var(--a-danger);
+}
+
+.ready {
+	font-size: 11px;
 }

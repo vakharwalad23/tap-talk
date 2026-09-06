@@ -49,12 +49,12 @@
 }
 
 .us {
-	background: rgba(51, 199, 89, 0.08);
+	background: var(--ink-10);
 	font-weight: 600;
 }
 
 thead .us {
-	background: rgba(51, 199, 89, 0.16);
+	background: color-mix(in srgb, var(--ink) 14%, transparent);
 }
 
 .text {
@@ -78,11 +78,11 @@ thead .us {
 }
 
 .yes {
-	color: var(--ok);
+	color: var(--ink);
 }
 
 .no {
-	color: var(--rec);
+	color: var(--ink-40);
 }
 
 .partial {

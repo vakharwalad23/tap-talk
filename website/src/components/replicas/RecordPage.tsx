@@ -4,50 +4,59 @@ import { hero } from "#/content/site";
 import app from "./app.module.css";
 import styles from "./RecordPage.module.css";
 
-const BAR_COUNT = 20;
-const bars = Array.from({ length: BAR_COUNT }, (_, index) => index);
+const bars = Array.from({ length: 20 }, (_, index) => `bar-${index}`);
 
 export function RecordPage() {
 	return (
 		<div className={styles.page}>
 			<div className={styles.chips}>
-				<span className={app.chip}>
+				<span className={cx(app.chip, styles.engineChip)}>
 					<Icon name="bolt" size={10} />
-					Parakeet
+					Parakeet TDT
 				</span>
-				<span className={cx(app.chip, app.chipMuted)}>
+				<span className={cx(app.chip, styles.langChip)}>
 					<Icon name="globe" size={10} />
-					Auto
+					Auto - EU
 				</span>
 			</div>
 
 			<div className={styles.waveform} aria-hidden="true">
-				{bars.map((index) => (
-					<span key={index} className={styles.bar} />
+				{bars.map((id) => (
+					<span key={id} className={styles.bar} />
 				))}
 			</div>
-			<p className={cx(styles.status, app.secondary)}>Ready</p>
+			<p className={styles.status}>Done</p>
 
 			<div className={styles.transcript}>
 				<p>{hero.demo.clean}</p>
 				<div className={styles.meta}>
 					<span>
-						<Icon name="globe" size={10} /> en
+						<Icon name="globe" size={10} />
+						AUTO
 					</span>
-					<span>172 ms</span>
-					<span>3.2 s</span>
-					<span className={styles.copy}>Copy</span>
+					<span>
+						<Icon name="timer" size={10} />
+						122ms
+					</span>
+					<span>
+						<Icon name="waveform" size={10} />
+						3.2s audio
+					</span>
+					<span className={styles.copy}>
+						<Icon name="copy" size={10} />
+						Copy
+					</span>
 				</div>
 			</div>
 
 			<div className={styles.bottom}>
 				<span className={app.primaryButton}>
-					<Icon name="mic" size={15} />
+					<Icon name="mic" size={15} strokeWidth={2.4} />
 					Record
 				</span>
 				<p className={styles.hotkey}>
 					<Icon name="keyboard" size={10} />
-					Hotkey active, Right Cmd
+					Hotkey active - Right Cmd
 				</p>
 			</div>
 		</div>

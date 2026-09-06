@@ -1,37 +1,39 @@
 .hero {
-	padding-block: clamp(56px, 9vw, 112px) clamp(48px, 7vw, 96px);
-	background:
-		radial-gradient(
-			60% 50% at 80% 10%,
-			rgba(158, 122, 255, 0.14),
-			transparent 70%
-		),
-		radial-gradient(40% 40% at 10% 90%, rgba(255, 77, 66, 0.1), transparent 70%);
-}
-
-.grid {
-	display: grid;
-	grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-	gap: clamp(32px, 6vw, 72px);
-	align-items: center;
+	padding-top: clamp(48px, 7vw, 88px);
+	border-bottom: 1px solid var(--divider);
 }
 
 .copy {
 	display: flex;
 	flex-direction: column;
+	align-items: center;
+	text-align: center;
 	gap: 22px;
-	min-width: 0;
+	margin-bottom: clamp(24px, 4vw, 48px);
 }
 
 .copy h1 {
-	max-width: 12ch;
+	max-width: 14ch;
+}
+
+.lede {
+	max-width: 58ch;
 }
 
 .ctas {
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: center;
 	gap: 12px;
-	margin-top: 6px;
+	margin-top: 4px;
+}
+
+.count {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--ink-10);
+	font-size: 0.8em;
+	font-variant-numeric: tabular-nums;
 }
 
 .requirements {
@@ -44,7 +46,8 @@
 	display: flex;
 	gap: 10px;
 	align-items: flex-start;
-	max-width: 56ch;
+	text-align: left;
+	max-width: 60ch;
 	padding: 12px 14px;
 	border-radius: var(--radius);
 	border: 1px dashed var(--divider);
@@ -56,27 +59,4 @@
 .note svg {
 	flex-shrink: 0;
 	margin-top: 3px;
-}
-
-.visual {
-	position: relative;
-	padding-bottom: 36px;
-	min-width: 0;
-}
-
-.pill {
-	position: absolute;
-	left: 50%;
-	bottom: 0;
-	transform: translateX(-50%);
-}
-
-@media (max-width: 900px) {
-	.grid {
-		grid-template-columns: 1fr;
-	}
-
-	.copy h1 {
-		max-width: none;
-	}
 }

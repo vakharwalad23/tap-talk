@@ -111,7 +111,7 @@ export function Pill({ state, levelRef, className }: PillProps) {
 				{state === "done" ? (
 					<>
 						<Icon name="check" size={13 * 1.6} className={styles.check} />
-						<span className={styles.done}>Pasted</span>
+						<span className={styles.doneLabel}>Pasted</span>
 					</>
 				) : null}
 			</div>

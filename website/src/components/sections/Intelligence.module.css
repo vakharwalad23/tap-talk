@@ -27,8 +27,9 @@
 	border-radius: 999px;
 	font-size: 0.75rem;
 	font-weight: 600;
-	color: var(--smart-text);
-	border: 1px solid rgba(158, 122, 255, 0.45);
+	color: var(--ink-60);
+	background: var(--bg);
+	border: 1px solid var(--divider);
 }
 
 .desc {
@@ -80,7 +81,7 @@
 }
 
 .arrow {
-	color: var(--smart);
+	color: var(--ink-40);
 	transform: rotate(90deg);
 	width: 16px;
 }
