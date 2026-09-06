@@ -18,8 +18,9 @@ export const site = {
 	version,
 	lastUpdated: "2026-09-06",
 	title: "TapTalk - Free On-Device Dictation for Mac",
+	// Under 160 characters so search snippets show the whole sentence.
 	description:
-		"Press a key, speak, paste. TapTalk is a free, open-source Mac dictation app that runs 100 percent on-device on the Neural Engine. No account, no subscription, no cloud.",
+		"Free, open-source Mac dictation that runs 100 percent on-device on the Neural Engine. Press a key, speak, paste. No account, no subscription, no cloud.",
 	shortDescription:
 		"Free, open-source, 100 percent on-device dictation app for Mac. Press a key, speak, and your words are transcribed on the Apple Neural Engine and pasted into any app, with no account, no subscription, and no cloud.",
 	brewCommand: "brew install --cask vakharwalad23/tap/taptalk",
