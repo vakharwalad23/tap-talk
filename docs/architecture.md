@@ -5,9 +5,9 @@ recognition, rewriting and the interface. They meet at a thin FFI boundary gener
 [UniFFI](https://mozilla.github.io/uniffi-rs/).
 
 ```
-SwiftUI views  →  Services  →  Rust core (via UniFFI)
-                     ↓              ↓
-              ASR / LLM engines   audio · downloads
+SwiftUI views  ->  Services  ->  Rust core (via UniFFI)
+                     v              v
+              ASR / LLM engines   audio, downloads
 ```
 
 Dependencies only point downward. Views call services, services call the core, the core knows
@@ -15,7 +15,7 @@ nothing about the app.
 
 ## Why the split is where it is
 
-The audio path is real-time work — a CoreAudio callback that must not allocate, block or miss a
+The audio path is real-time work - a CoreAudio callback that must not allocate, block or miss a
 deadline. Rust earns its place there.
 
 Recognition is *not* Rust work, which is less obvious. Parakeet and Nemotron are Core ML models
@@ -29,54 +29,54 @@ So: **Rust does what must be fast and deterministic. Swift does what talks to Ap
 
 One pass of the whole system, which is the fastest way to understand it.
 
-**1. Key down** — `HotkeyService` runs a `CGEvent` tap watching `.flagsChanged`, so hotkeys must be
+**1. Key down** - `HotkeyService` runs a `CGEvent` tap watching `.flagsChanged`, so hotkeys must be
 modifier keys. Two are registered independently: a plain one and a "smart" one that additionally
 triggers the rewrite. `AppController.startRecording` begins capture; on the smart hotkey it also
 prewarms the LLM server, because starting it later would land on the paste path.
 
-**2. Recording** — `Recorder.start()` crosses into Rust. `AudioRecorder` keeps a persistent
+**2. Recording** - `Recorder.start()` crosses into Rust. `AudioRecorder` keeps a persistent
 `cpal` input stream that is paused rather than destroyed between dictations, so macOS does not
 re-validate microphone permission every time. The audio callback downmixes to mono once, appends
 to a pre-reserved buffer, and emits a throttled RMS level (~30 Hz) that drives the floating pill.
 
 If live typing is on, the callback also forwards chunks to a streaming sink, and a separate
 Parakeet EOU model types words into the focused app as you speak. Live typing and Smart Mode are
-mutually exclusive — a rewrite needs the whole transcript.
+mutually exclusive - a rewrite needs the whole transcript.
 
-**3. Key up** — `Recorder.stop()` pauses the stream, resamples to 16 kHz, trims silence with
+**3. Key up** - `Recorder.stop()` pauses the stream, resamples to 16 kHz, trims silence with
 Silero VAD, and applies gain to quiet speech. It returns the samples to Swift.
 
-**4. Recognition** — `AppController` dispatches to the selected engine: `ParakeetEngine` for
+**4. Recognition** - `AppController` dispatches to the selected engine: `ParakeetEngine` for
 English and European, `NemotronEngine` for Hindi and other languages, or the OpenAI cloud path in
 the Rust core.
 
-**5. Post-processing** — `PostProcessingService.applyDictionary` runs the user's word replacements.
+**5. Post-processing** - `PostProcessingService.applyDictionary` runs the user's word replacements.
 Then, only on the smart hotkey and only if a rewrite mode is enabled, `AppContextService` builds an
 instruction and `LLMService` sends transcript plus instruction to a local `llama-server`.
 
-**6. Paste** — `PasteService` writes to the pasteboard, marks the entry transient and concealed so
+**6. Paste** - `PasteService` writes to the pasteboard, marks the entry transient and concealed so
 clipboard managers skip it, posts Cmd-V, and restores the previous clipboard.
 
 `LatencyTrace` records each stage and emits one line per dictation:
 
 ```bash
 log stream --predicate 'subsystem == "talk.tap.app" && category == "latency"'
-# keyup→paste total=1102ms audio=88 asr=170 llm=841 paste=3
+# keyup->paste total=1102ms audio=88 asr=170 llm=841 paste=3
 ```
 
 ## Where state lives
 
-- **`SettingsStore`** — every persisted preference, `@Published` with a `UserDefaults` write in
+- **`SettingsStore`** - every persisted preference, `@Published` with a `UserDefaults` write in
   `didSet`. Secrets go to the Keychain instead.
-- **`AppController`** — the single orchestrator. Owns the engines, the recording state machine,
+- **`AppController`** - the single orchestrator. Owns the engines, the recording state machine,
   hotkey registration and the transcribe task. It is the only object that coordinates across
   services.
-- **`RecordingState`** — observable UI state, separate from `AppController` so views can watch it
+- **`RecordingState`** - observable UI state, separate from `AppController` so views can watch it
   without re-rendering on unrelated changes.
 
 ## Two patterns worth knowing before changing anything
 
-**Generation guards.** Engine loads are asynchronous and can be superseded — switch engines twice
+**Generation guards.** Engine loads are asynchronous and can be superseded - switch engines twice
 quickly and the first load must not overwrite the second. `AppController` bumps
 `engineLoadGeneration` on every load and every continuation re-checks it before committing.
 Reuse that pattern rather than inventing another.
@@ -87,6 +87,6 @@ alone releases when RAM is free and holds when it is scarce, which is backwards.
 
 ## Further reading
 
-- [`rust-core.md`](rust-core.md) — the audio path and the FFI surface
-- [`swift-app.md`](swift-app.md) — services, engines and views
-- [`models.md`](models.md) — which models run, why, and what they cost
+- [`rust-core.md`](rust-core.md) - the audio path and the FFI surface
+- [`swift-app.md`](swift-app.md) - services, engines and views
+- [`models.md`](models.md) - which models run, why, and what they cost

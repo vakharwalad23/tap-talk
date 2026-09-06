@@ -1,11 +1,11 @@
-// Software AGC + short-clip padding. Operates on already-captured 16 kHz mono f32 —
+// Software AGC + short-clip padding. Operates on already-captured 16 kHz mono f32 -
 // never touches the capture device, mic permission, or the Core ML encoder.
 
 const SAMPLE_RATE: usize = 16_000;
 
 // dBFS thresholds expressed as linear RMS.
-const TARGET_RMS: f32 = 0.0708; // -23 dBFS — broadcast speech loudness
-const BYPASS_RMS: f32 = 0.0501; // -26 dBFS — at/above this, leave audio untouched
+const TARGET_RMS: f32 = 0.0708; // -23 dBFS - broadcast speech loudness
+const BYPASS_RMS: f32 = 0.0501; // -26 dBFS - at/above this, leave audio untouched
 const PEAK_LIMIT: f32 = 0.95;
 const MAX_GAIN: f32 = 10.0; // ~+20 dB cap so near-silence isn't blown into noise
 

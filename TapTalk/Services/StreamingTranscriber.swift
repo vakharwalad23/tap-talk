@@ -12,7 +12,7 @@ struct StreamingUpdate: Sendable {
 }
 
 /// Common surface for any live-transcription engine. Implementations are actors. Audio is
-/// fed via a Sendable FIFO continuation exposed by the engine, not through this protocol —
+/// fed via a Sendable FIFO continuation exposed by the engine, not through this protocol -
 /// keeps the audio thread off the actor.
 protocol StreamingTranscriber: Actor {
     /// Load models (if needed) and prepare to receive audio at the given sample rate.

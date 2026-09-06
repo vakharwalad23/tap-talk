@@ -9,7 +9,7 @@
 !.claude/rules/*.md
 !website/README.md
 
-# Local working notes — plans, measurements, eval data. Never shipped.
+# Local working notes - plans, measurements, eval data. Never shipped.
 docs/plan/
 
 # Rust
@@ -38,7 +38,7 @@ DerivedData/
 *.swo
 *~
 
-# Models (downloaded at runtime — only the app support dir, not source)
+# Models (downloaded at runtime - only the app support dir, not source)
 /models/
 
 # Secrets & environment
@@ -50,7 +50,7 @@ DerivedData/
 *.mobileprovision
 *.provisionprofile
 
-# Claude (only rules committed — plans, memory, settings are local)
+# Claude (only rules committed - plans, memory, settings are local)
 .claude/settings.local.json
 .claude/plans/
 .claude/memory/

@@ -91,7 +91,7 @@ struct ModelsPage: View {
                     Text("Models")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(AppTheme.primary)
-                    Text("Run entirely on your device — no internet required.")
+                    Text("Run entirely on your device - no internet required.")
                         .font(.system(size: 12))
                         .foregroundStyle(AppTheme.tertiary)
                 }

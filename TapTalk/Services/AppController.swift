@@ -4,7 +4,7 @@ import AVFoundation
 import Combine
 
 /// App-level singleton. Owns recorder, engines, state, and hotkey registration.
-/// Lives for the full app lifetime — independent of any window.
+/// Lives for the full app lifetime - independent of any window.
 final class AppController: ObservableObject {
     static let shared = AppController()
 
@@ -26,7 +26,7 @@ final class AppController: ObservableObject {
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var hasRequestedAccessibilityPermission = false
     private var recordingWatchdog: DispatchWorkItem?
-    // Stable owner for the Rust level callback — its lifetime must outlast the audio thread.
+    // Stable owner for the Rust level callback - its lifetime must outlast the audio thread.
     private let levelHandler = PillLevelHandler()
 
     // Bumped on every engine (re)load so a superseded async load/unload can no-op instead
@@ -35,8 +35,8 @@ final class AppController: ObservableObject {
     private var engineTask: Task<Void, Never>?
     // Releases the loaded model after a period of inactivity so an idle app holds no model.
     //
-    // 30 minutes rather than 5. Reloading costs a measurable cold start — roughly double the
-    // key-up→paste time on the next dictation — and holding the model is cheaper than it looks,
+    // 30 minutes rather than 5. Reloading costs a measurable cold start - roughly double the
+    // key-up->paste time on the next dictation - and holding the model is cheaper than it looks,
     // because Core ML weights are memory-mapped (164 MB resident with Parakeet loaded, against
     // ~490 MB on disk). A dictation tool is used in bursts across a day, so a 5 minute timer made
     // most dictations pay cold start.
@@ -57,7 +57,7 @@ final class AppController: ObservableObject {
 
     private init() {
         guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
-            preconditionFailure("ModelManager init failed — TapTalk cannot run without a writable models directory")
+            preconditionFailure("ModelManager init failed - TapTalk cannot run without a writable models directory")
         }
         manager = m
     }
@@ -111,7 +111,7 @@ final class AppController: ObservableObject {
     }
 
     // Warms Core ML JIT caches for the EOU model so the first streaming session starts in
-    // hundreds of ms instead of seconds — cuts the cold-start audio backlog window.
+    // hundreds of ms instead of seconds - cuts the cold-start audio backlog window.
     private func warmUpStreamingEngineIfNeeded() {
         guard settings.streamingEnabled, EouStreamingEngine.isInstalled() else { return }
         Task.detached { await EouStreamingEngine.warmUp() }
@@ -150,7 +150,7 @@ final class AppController: ObservableObject {
     }
 
     // App Nap throttles unfocused apps; the throttling stalls the CGEvent tap callback,
-    // and macOS then disables the tap by timeout — silently breaking the global hotkey.
+    // and macOS then disables the tap by timeout - silently breaking the global hotkey.
     private func suppressAppNap() {
         guard appNapToken == nil else { return }
         appNapToken = ProcessInfo.processInfo.beginActivity(
@@ -159,7 +159,7 @@ final class AppController: ObservableObject {
         )
     }
 
-    // dropFirst skips @Published replay on subscribe — avoids stop() at launch when nothing is running
+    // dropFirst skips @Published replay on subscribe - avoids stop() at launch when nothing is running
     private func observeBackendChanges() {
         settings.$llmBackend
             .combineLatest(settings.$llmEnabled)
@@ -186,7 +186,7 @@ final class AppController: ObservableObject {
 
     // Starts the local LLM while the user is still speaking, so a cold server does not land on
     // the key-up path. Measured cold start roughly doubles a dictation, and this window is dead
-    // time — recording has already begun and nothing else competes for it.
+    // time - recording has already begun and nothing else competes for it.
     //
     // Fire-and-forget and detached on purpose: this must never delay the recording it follows.
     // ensureRunning is a no-op when the server is already up and reachable.
@@ -244,7 +244,7 @@ final class AppController: ObservableObject {
     }
 
     // Pre-creates the CoreAudio AudioUnit so TCC validation happens at
-    // launch — not inside the hotkey callback where it blocks the main thread.
+    // launch - not inside the hotkey callback where it blocks the main thread.
     // Touches `recorder` on main thread first (safe lazy init) then warms
     // up the CPAL stream in background.
     private func warmUpAudioStream() {
@@ -297,11 +297,11 @@ final class AppController: ObservableObject {
         case .parakeet:
             return ParakeetEngine.isInstalled()
                 ? .parakeet
-                : .unavailable(status: "\(LocalEngine.parakeet.displayName) not installed — download it in Models")
+                : .unavailable(status: "\(LocalEngine.parakeet.displayName) not installed - download it in Models")
         case .nemotron:
             return NemotronEngine.isInstalled()
                 ? .nemotron
-                : .unavailable(status: "\(LocalEngine.nemotron.displayName) not installed — download it in Models")
+                : .unavailable(status: "\(LocalEngine.nemotron.displayName) not installed - download it in Models")
         }
     }
 
@@ -363,7 +363,7 @@ final class AppController: ObservableObject {
     }
 
     // Frees the resident model after inactivity. modelStatus stays .ready so recording still
-    // works — the transcribe path reloads on demand (ensureLoaded / is_loaded).
+    // works - the transcribe path reloads on demand (ensureLoaded / is_loaded).
     private func releaseIdleEngines() {
         guard state.phase == .idle else { return }
         guard streamingEngine == nil else { return }
@@ -403,8 +403,8 @@ final class AppController: ObservableObject {
         }
     }
 
-    // Whether the current recording should stream live text. Smart Mode opts out — the LLM
-    // rewrite needs the full transcript — and the cloud engine does not support streaming.
+    // Whether the current recording should stream live text. Smart Mode opts out - the LLM
+    // rewrite needs the full transcript - and the cloud engine does not support streaming.
     // Also requires the EOU 120M realtime model to be installed; without the EOU realtime
     // model, fall back to whole-clip transcription.
     private func shouldStream(smart: Bool) -> Bool {
@@ -417,7 +417,7 @@ final class AppController: ObservableObject {
 
     // Boots the streaming engine and wires the recorder's chunk callback to feed it.
     // Chunk callback is set IMMEDIATELY (before engine.start finishes loading), so audio
-    // buffers in the engine's FIFO from the first sample — no audio is dropped while the
+    // buffers in the engine's FIFO from the first sample - no audio is dropped while the
     // model loads on a cold start. Updates land on the main actor and drive both the
     // LiveInserter (live typing) and the UI preview.
     private func beginStreamingSession() {
@@ -445,7 +445,7 @@ final class AppController: ObservableObject {
         }
 
         // Wire chunks to the engine's Sendable FIFO right away. Yielding into AsyncStream
-        // is sync and order-preserving — no Task scheduling race per audio chunk.
+        // is sync and order-preserving - no Task scheduling race per audio chunk.
         let handler = StreamingChunkHandler(format: format, continuation: engine.inputContinuation)
         streamingChunkHandler = handler
         recorder.setAudioChunkCallback(callback: handler)
@@ -490,7 +490,7 @@ final class AppController: ObservableObject {
         state.streamingVolatile = ""
     }
 
-    // Force-stops a recording that outlives the max duration — a final safety net
+    // Force-stops a recording that outlives the max duration - a final safety net
     // against a missed key-release leaving the app stuck in recording.
     private func startRecordingWatchdog() {
         recordingWatchdog?.cancel()
@@ -576,7 +576,7 @@ final class AppController: ObservableObject {
                         self.tearDownStreamingSession()
                         if processed.isEmpty {
                             self.state.finish()
-                            self.state.status = "Too short — hold longer"
+                            self.state.status = "Too short - hold longer"
                             FloatingPillController.shared.hide()
                         } else {
                             self.state.transcriptText = processed
@@ -585,7 +585,7 @@ final class AppController: ObservableObject {
                             self.state.audioDuration = 0
                             self.state.finish()
                             self.state.status = "Done"
-                            // Fallback: live typing was dropped (secure input / focus moved) —
+                            // Fallback: live typing was dropped (secure input / focus moved) -
                             // paste the final utterance so it isn't silently lost. Fires
                             // regardless of how recording was triggered.
                             if !typed {
@@ -625,7 +625,7 @@ final class AppController: ObservableObject {
         let llmBackend = settings.llmBackend
         let llmClient  = makeLLMClient(settings: settings)
 
-        // The rewrite runs only when the smart hotkey asked for it and there is something to do —
+        // The rewrite runs only when the smart hotkey asked for it and there is something to do -
         // an enabled mode, or a script conversion the transcript actually needs. Both are opt-in,
         // so the smart hotkey is a no-op until the user asks for one.
         let rewriteOptions = smartMode ? settings.rewriteOptions : []
@@ -670,7 +670,7 @@ final class AppController: ObservableObject {
 
                 var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
 
-                // Script conversion is its own reason to call the model — a user who picked Roman
+                // Script conversion is its own reason to call the model - a user who picked Roman
                 // should get Roman without also having to enable a rewrite mode.
                 let appContext = await MainActor.run { AppContextService.currentContext() }
                 let romanize = smartMode && AppContextService.shouldRomanize(
@@ -700,7 +700,7 @@ final class AppController: ObservableObject {
                     trace.mark("llm")
                 }
 
-                // Snapshot before crossing to the main actor — the closure must not capture
+                // Snapshot before crossing to the main actor - the closure must not capture
                 // the mutable locals it was still writing to a moment ago.
                 let finalTrace = trace
                 let finalText = processed
@@ -713,7 +713,7 @@ final class AppController: ObservableObject {
                     // never gets pasted as a blank transcript.
                     if finalText.isEmpty {
                         self.state.finish()
-                        self.state.status = "Too short — hold longer"
+                        self.state.status = "Too short - hold longer"
                         FloatingPillController.shared.hide()
                     } else {
                         self.state.transcriptText = finalText
@@ -724,7 +724,7 @@ final class AppController: ObservableObject {
                         if let err = finalError {
                             self.state.status = "Smart rewrite failed: \(err)"
                         } else if llmMissingForSmart {
-                            self.state.status = "Local model not installed — pasted transcript only"
+                            self.state.status = "Local model not installed - pasted transcript only"
                         } else {
                             self.state.status = "Done"
                         }
@@ -751,7 +751,7 @@ final class AppController: ObservableObject {
     }
 
     /// Registers (or re-registers) the global hotkey with the current key code.
-    /// Safe to call multiple times — unregisters first.
+    /// Safe to call multiple times - unregisters first.
     /// Only blocked during active recording (user holding key); transcribing/rewriting
     /// must not block because the tap may need re-creation after invalidation.
     func setupHotkey() {
@@ -810,7 +810,7 @@ final class AppController: ObservableObject {
                 self?.hasRequestedAccessibilityPermission = false
                 self?.setupHotkey()
                 // tapCreate fails for unsigned apps until the process restarts after
-                // the first-ever accessibility grant — prompt restart if tap is still dead
+                // the first-ever accessibility grant - prompt restart if tap is still dead
                 if self?.state.hotkeyActive == false {
                     self?.promptRestartForAccessibility()
                 }
@@ -847,7 +847,7 @@ private final class PillLevelHandler: AudioLevelCallback {
 }
 
 // Forwards live mono audio chunks from the Rust recorder to the streaming engine via a
-// Sendable FIFO continuation. Yielding is sync and thread-safe, preserving arrival order —
+// Sendable FIFO continuation. Yielding is sync and thread-safe, preserving arrival order -
 // critical for streaming ASR (out-of-order chunks corrupt the recognizer state).
 final class StreamingChunkHandler: AudioChunkCallback {
     let format: AVAudioFormat

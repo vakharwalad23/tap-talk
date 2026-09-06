@@ -24,7 +24,7 @@ pub fn test_cloud_connection(api_key: &str) -> Result<String, String> {
 
     let has_whisper = body.contains("whisper-1");
     if has_whisper {
-        Ok("Connected · whisper-1 available".to_string())
+        Ok("Connected - whisper-1 available".to_string())
     } else {
         Ok("Connected".to_string())
     }
@@ -144,7 +144,7 @@ fn append_str(body: &mut Vec<u8>, s: &str) {
     body.extend_from_slice(s.as_bytes());
 }
 
-/// Minimal JSON string extractor — avoids adding serde_json dependency.
+/// Minimal JSON string extractor - avoids adding serde_json dependency.
 fn extract_json_str(json: &str, key: &str) -> Option<String> {
     let needle = format!("\"{}\"", key);
     let pos = json.find(&needle)?;

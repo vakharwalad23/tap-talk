@@ -3,7 +3,7 @@ import SwiftUI
 struct RecordView: View {
     // ctrl for actions and published state (AppController @Published properties)
     @ObservedObject private var ctrl     = AppController.shared
-    // state observed directly — nested ObservableObject changes don't bubble up through ctrl
+    // state observed directly - nested ObservableObject changes don't bubble up through ctrl
     @ObservedObject private var state    = AppController.shared.state
     @ObservedObject private var settings = SettingsStore.shared
 
@@ -71,7 +71,7 @@ struct RecordView: View {
                 Image(systemName: state.hotkeyActive ? "keyboard.fill" : "keyboard")
                     .font(.system(size: 10))
                 Text(state.hotkeyActive
-                     ? "Hotkey active · \(keyLabel)"
+                     ? "Hotkey active - \(keyLabel)"
                      : "\(keyLabel) push-to-talk")
                     .font(.system(size: 11))
             }
@@ -97,7 +97,7 @@ struct RecordView: View {
                 engineChip(LocalEngine.nemotron.displayName, icon: "globe")
             }
         } else {
-            engineChip("Cloud · \(settings.cloudModel)", icon: "cloud")
+            engineChip("Cloud - \(settings.cloudModel)", icon: "cloud")
         }
     }
 

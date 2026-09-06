@@ -20,14 +20,14 @@ enum AppTheme {
 
     static func keyLabel(for code: UInt16) -> String {
         switch Int(code) {
-        case kVK_RightCommand: return "Right ⌘"
-        case kVK_RightOption:  return "Right ⌥"
-        case kVK_RightControl: return "Right ⌃"
-        case kVK_RightShift:   return "Right ⇧"
-        case kVK_Command:      return "Left ⌘"
-        case kVK_Option:       return "Left ⌥"
-        case kVK_Control:      return "Left ⌃"
-        case kVK_Shift:        return "Left ⇧"
+        case kVK_RightCommand: return "Right Cmd"
+        case kVK_RightOption:  return "Right Option"
+        case kVK_RightControl: return "Right Control"
+        case kVK_RightShift:   return "Right Shift"
+        case kVK_Command:      return "Left Cmd"
+        case kVK_Option:       return "Left Option"
+        case kVK_Control:      return "Left Control"
+        case kVK_Shift:        return "Left Shift"
         default:               return "Key \(code)"
         }
     }

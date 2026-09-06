@@ -29,7 +29,7 @@ impl ModelManager {
     }
 
     // Removes macOS resource-fork junk and orphaned mid-download files left by a run that
-    // crashed between streaming and the final rename. Best-effort — failures are non-fatal.
+    // crashed between streaming and the final rename. Best-effort - failures are non-fatal.
     fn clean_residue(&self) {
         let macosx = self.models_dir.join("__MACOSX");
         if macosx.is_dir() {

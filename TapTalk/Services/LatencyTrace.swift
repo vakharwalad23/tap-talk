@@ -4,7 +4,7 @@ import os
 /// Measures the app-controlled portion of dictation latency: from the hotkey release
 /// TapTalk observes, to the paste event it posts.
 ///
-/// Deliberately excludes what the app cannot see — HID delivery before the event tap fires,
+/// Deliberately excludes what the app cannot see - HID delivery before the event tap fires,
 /// and the target application's own handling after Cmd-V is posted. Those are real but not
 /// ours to optimize, and including them would need a second process to observe.
 ///
@@ -12,7 +12,7 @@ import os
 ///   log stream --predicate 'subsystem == "talk.tap.app" && category == "latency"'
 ///
 /// Logged at `notice` so it appears without `--level info`, and marked `.public` because
-/// os_log redacts interpolated values by default. Timings only — never transcript text.
+/// os_log redacts interpolated values by default. Timings only - never transcript text.
 struct LatencyTrace {
     private static let logger = Logger(subsystem: "talk.tap.app", category: "latency")
 
@@ -42,7 +42,7 @@ struct LatencyTrace {
             .map { "\($0.name)=\(String(format: "%.0f", $0.ms))" }
             .joined(separator: " ")
         let totalMs = String(format: "%.0f", total)
-        Self.logger.notice("keyup→paste total=\(totalMs, privacy: .public)ms \(breakdown, privacy: .public)")
+        Self.logger.notice("keyup->paste total=\(totalMs, privacy: .public)ms \(breakdown, privacy: .public)")
     }
 
     private static func milliseconds(

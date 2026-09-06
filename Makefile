@@ -41,7 +41,7 @@ install:
 	rm -rf /Applications/TapTalk.app
 	cp -R build/Build/Products/Release/TapTalk.app /Applications/TapTalk.app
 	@echo ""
-	@echo "Installed /Applications/TapTalk.app — launch from Spotlight and grant"
+	@echo "Installed /Applications/TapTalk.app - launch from Spotlight and grant"
 	@echo "Microphone + Accessibility once. Grants persist until the next 'make install'."
 
 kill:

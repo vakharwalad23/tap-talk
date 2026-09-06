@@ -123,5 +123,5 @@ func testLLMConnection(settings: SettingsStore) async throws -> String {
         systemPrompt: "You are a test assistant.",
         userMessage: "Reply with exactly: ok"
     )
-    return result.isEmpty ? "Connected" : "Connected · \(result.prefix(30))"
+    return result.isEmpty ? "Connected" : "Connected - \(result.prefix(30))"
 }

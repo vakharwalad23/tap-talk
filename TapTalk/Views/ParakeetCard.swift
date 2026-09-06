@@ -17,7 +17,7 @@ final class ParakeetDownloadManager: ObservableObject {
     }
 
     func download() {
-        guard !downloading else { return }   // already in flight — don't start a second
+        guard !downloading else { return }   // already in flight - don't start a second
         downloading = true
         progress = 0
         Task {
@@ -39,10 +39,10 @@ final class ParakeetDownloadManager: ObservableObject {
         guard !downloading else { return }
         try? ParakeetEngine.delete()
         installed = false
-        // Live typing requires Parakeet + EOU together — remove the add-on with the engine
+        // Live typing requires Parakeet + EOU together - remove the add-on with the engine
         // so the user isn't left with an orphan model and a stale streaming toggle.
         if EouDownloadManager.shared.installed {
-            // EouDownloadManager.remove() already calls AppController.refresh() — let it
+            // EouDownloadManager.remove() already calls AppController.refresh() - let it
             // cover both removals so the controller isn't refreshed twice.
             EouDownloadManager.shared.remove()
         } else {
@@ -199,7 +199,7 @@ struct ParakeetCard: View {
             Button("Remove", role: .destructive) { model.remove() }
         } message: {
             if eou.installed {
-                Text("Frees ~930 MB. The Live typing add-on (~440 MB) is removed with it — live streaming will be disabled.")
+                Text("Frees ~930 MB. The Live typing add-on (~440 MB) is removed with it - live streaming will be disabled.")
             } else {
                 Text("Frees ~490 MB. You can re-download it anytime.")
             }

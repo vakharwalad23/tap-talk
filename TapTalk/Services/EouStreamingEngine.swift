@@ -4,7 +4,7 @@ import FluidAudio
 
 /// True low-latency streaming via the NVIDIA Parakeet EOU 120M model (FluidAudio).
 /// Chunk size = 320ms (best balance: ~5.7% WER, 14x RTFx). Token-level partial transcripts
-/// arrive at ~320ms cadence — fast enough that text appears live as the user speaks.
+/// arrive at ~320ms cadence - fast enough that text appears live as the user speaks.
 ///
 /// EOU is a separate model from Parakeet v3; the user must explicitly download it.
 actor EouStreamingEngine: StreamingTranscriber {
@@ -21,7 +21,7 @@ actor EouStreamingEngine: StreamingTranscriber {
         case notInstalled
         var errorDescription: String? {
             switch self {
-            case .notInstalled: return "Parakeet Realtime (EOU) model not installed — download it in Models"
+            case .notInstalled: return "Parakeet Realtime (EOU) model not installed - download it in Models"
             }
         }
     }
@@ -118,7 +118,7 @@ actor EouStreamingEngine: StreamingTranscriber {
             Task { await self?.emitPartial(partial) }
         }
 
-        // Drain FIFO input → manager.appendAudio + processBufferedAudio in arrival order.
+        // Drain FIFO input -> manager.appendAudio + processBufferedAudio in arrival order.
         consumerTask = Task { [inputStream = self.inputStream, mgr] in
             for await buffer in inputStream {
                 try? await mgr.appendAudio(buffer)
