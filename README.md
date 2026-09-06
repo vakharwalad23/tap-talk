@@ -85,7 +85,7 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 ## Requirements
 
 - macOS 14 or later
-- Apple Silicon (M1, M2, M3, M4, or newer)
+- Any Apple Silicon Mac (newer Neural Engines are faster)
 - Xcode 16 or later
 - Rust 1.77 or later
 - [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
