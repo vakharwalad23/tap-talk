@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Pill, type PillState } from "#/components/interactive/Pill";
-import { useMicLevel } from "#/components/interactive/useMicLevel";
+import {
+	type MicStatus,
+	useMicLevel,
+} from "#/components/interactive/useMicLevel";
 import { Button } from "#/components/ui/Button";
 import { SectionHeading } from "#/components/ui/SectionHeading";
 import styles from "./PillShowcase.module.css";
@@ -30,27 +33,41 @@ const legend: ReadonlyArray<{ state: PillState; label: string; hint: string }> =
 		{ state: "idle", label: "Idle", hint: "a thin resting line" },
 	];
 
+const micLabel: Record<MicStatus, string> = {
+	off: "Try with my mic",
+	asking: "Waiting for permission",
+	listening: "Stop my mic",
+	hearing: "Stop my mic",
+};
+
+const micHint: Record<MicStatus, string> = {
+	off: "Your audio stays in this tab. Nothing is sent or recorded.",
+	asking: "Allow the microphone when your browser asks.",
+	listening: "Listening. Say something and watch the helix move.",
+	hearing:
+		"That is your voice moving the helix. Still nothing leaves this tab.",
+};
+
 export function PillShowcase() {
 	const [index, setIndex] = useState(0);
 	const [auto, setAuto] = useState(true);
 	const mic = useMicLevel();
+	const live = mic.status === "listening" || mic.status === "hearing";
 	const current = cycle[index] ?? cycle[0];
-	const state: PillState = mic.active
-		? "recording"
-		: (current?.state ?? "idle");
+	const state: PillState = live ? "recording" : (current?.state ?? "idle");
 
 	useEffect(() => {
-		if (!auto || mic.active) return;
+		if (!auto || live) return;
 		const timer = window.setTimeout(
 			() => setIndex((i) => (i + 1) % cycle.length),
 			current?.ms ?? 1000,
 		);
 		return () => window.clearTimeout(timer);
-	}, [auto, current, mic.active]);
+	}, [auto, current, live]);
 
 	const pick = (target: PillState) => {
 		setAuto(false);
-		if (mic.active) mic.stop();
+		if (mic.status !== "off") mic.stop();
 		setIndex(
 			Math.max(
 				0,
@@ -60,7 +77,7 @@ export function PillShowcase() {
 	};
 
 	const toggleMic = () => {
-		if (mic.active) {
+		if (mic.status !== "off") {
 			mic.stop();
 			return;
 		}
@@ -80,10 +97,7 @@ export function PillShowcase() {
 				<div className={styles.stage} data-reveal>
 					<div className={styles.desk} aria-hidden="true" />
 					<div className={styles.pill}>
-						<Pill
-							state={state}
-							levelRef={mic.active ? mic.levelRef : undefined}
-						/>
+						<Pill state={state} levelRef={live ? mic.levelRef : undefined} />
 					</div>
 				</div>
 				<div className={styles.controls} data-reveal>
@@ -100,20 +114,19 @@ export function PillShowcase() {
 						))}
 						<Button
 							onClick={() => setAuto(true)}
-							pressed={auto && !mic.active}
+							pressed={auto && !live}
 							variant="ghost"
 						>
 							Auto play
 						</Button>
 					</fieldset>
 					<div className={styles.mic}>
-						<Button onClick={toggleMic} pressed={mic.active}>
-							{mic.active ? "Stop my mic" : "Try with my mic"}
+						<Button onClick={toggleMic} pressed={live}>
+							{micLabel[mic.status]}
 						</Button>
-						<span className="faint">
-							{mic.error ??
-								"Your audio stays in this tab. Nothing is sent or recorded."}
-						</span>
+						<output className="faint">
+							{mic.error ?? micHint[mic.status]}
+						</output>
 					</div>
 				</div>
 				<ul className={styles.legend} data-reveal>
