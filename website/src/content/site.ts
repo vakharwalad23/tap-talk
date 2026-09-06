@@ -14,7 +14,7 @@ export const site = {
 	issuesUrl: "https://github.com/vakharwalad23/tap-talk/issues",
 	licenseUrl: "https://github.com/vakharwalad23/tap-talk/blob/main/LICENSE",
 	authorName: "Dhruv Vakharwala",
-	authorUrl: "https://github.com/vakharwalad23",
+	authorUrl: "https://www.dhruvvakharwala.dev",
 	version,
 	lastUpdated: "2026-09-06",
 	title: "TapTalk - Free On-Device Dictation for Mac",
