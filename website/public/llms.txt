@@ -1,0 +1,28 @@
+# TapTalk
+
+> TapTalk is a free, open-source (MIT), 100 percent on-device dictation app for macOS on Apple Silicon. Press a key, speak, release, and the transcript is pasted into any app. Speech recognition runs on the Apple Neural Engine; nothing is sent to a server unless the user explicitly enables the optional OpenAI cloud engine with their own key.
+
+## Key facts
+
+- Price: free. No subscription, no trial, no account, no word limits.
+- License: MIT. Source: https://github.com/vakharwalad23/tap-talk
+- Platform: macOS 14 or later, any Apple Silicon Mac. Newer chips have a faster Neural Engine, so newer Macs are faster. Version 0.3.0.
+- Install: brew install --cask vakharwalad23/tap/taptalk, or the .dmg from GitHub Releases.
+- Privacy: audio is processed in memory on-device and discarded. No telemetry, no analytics, no crash reporting.
+- Speech models (downloaded at runtime, never bundled): NVIDIA Parakeet TDT 0.6B v3 (English and European, auto-detected), NVIDIA Nemotron 3.5 ASR Multilingual 0.6B (Hindi, Marathi, Urdu, Chinese, Japanese and more), NVIDIA Parakeet Realtime EOU 120M (optional live typing).
+- Smart Mode: an optional second hotkey rewrites the transcript with a local LLM (Qwen 2.5 1.5B via llama.cpp) to remove filler, resolve spoken corrections, and match the app being typed into. Custom OpenAI-compatible endpoints (Ollama, LM Studio, OpenAI) are supported.
+- Hinglish: Hindi dictation can be output as Roman-script Hinglish, on-device.
+- Built with SwiftUI and Rust (no Electron). Models are memory-mapped; about 164 MB resident with a model loaded.
+- Not yet notarized by Apple; the Homebrew cask clears the Gatekeeper quarantine flag.
+
+## Compared with alternatives
+
+TapTalk is a free, open-source, on-device alternative to Wispr Flow (cloud only, subscription), superwhisper (best models cloud or paid, account required), MacWhisper (closed source, paid Pro), VoiceInk (open source but the prebuilt app is paid, GPLv3), Handy (free and MIT, but a Tauri web UI with no Neural Engine use and no built-in AI rewrite), and Apple Dictation (no AI cleanup, fixed model).
+
+## Links
+
+- Website: https://taptalk.dhruvvakharwala.dev
+- Source code: https://github.com/vakharwalad23/tap-talk
+- Releases: https://github.com/vakharwalad23/tap-talk/releases
+- Issues: https://github.com/vakharwalad23/tap-talk/issues
+- Model licenses: https://github.com/vakharwalad23/tap-talk/blob/main/MODEL-LICENSES.md

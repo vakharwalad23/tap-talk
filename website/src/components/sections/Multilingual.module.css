@@ -1,0 +1,63 @@
+.grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: clamp(28px, 5vw, 64px);
+	align-items: center;
+}
+
+.card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 28px;
+	border-radius: var(--radius-lg);
+	background: var(--ink);
+	color: var(--on-ink);
+}
+
+.label {
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	opacity: 0.55;
+}
+
+.spoken {
+	font-size: 1.5rem;
+	line-height: 1.45;
+}
+
+.arrow {
+	color: rgba(244, 243, 241, 0.5);
+	transform: rotate(90deg);
+	width: 18px;
+	margin: 6px 0;
+}
+
+.result {
+	font-size: 1.35rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.caption {
+	margin-top: 8px;
+	font-size: 0.9rem;
+	opacity: 0.7;
+}
+
+.honesty {
+	margin-top: 14px;
+	padding-top: 14px;
+	border-top: 1px solid rgba(255, 255, 255, 0.12);
+	color: inherit;
+	opacity: 0.55;
+	font-size: 0.85rem;
+}
+
+@media (max-width: 860px) {
+	.grid {
+		grid-template-columns: 1fr;
+	}
+}

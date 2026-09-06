@@ -1,0 +1,50 @@
+.band {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 18px;
+	padding: clamp(40px, 7vw, 72px) 24px;
+	border-radius: var(--radius-lg);
+	background: var(--pill-bg);
+	color: #f4f3f1;
+}
+
+.band p {
+	color: rgba(244, 243, 241, 0.7);
+	max-width: 48ch;
+}
+
+.buttons {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 12px;
+	margin-top: 8px;
+}
+
+.primary {
+	background: #f4f3f1;
+	color: #1a1917;
+}
+
+.secondary {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: rgba(255, 255, 255, 0.2);
+	color: #f4f3f1;
+}
+
+.secondary:hover {
+	background: rgba(255, 255, 255, 0.14);
+}
+
+.command {
+	background: rgba(255, 255, 255, 0.06);
+	border-color: rgba(255, 255, 255, 0.16);
+	color: #f4f3f1;
+}
+
+.band .requirements {
+	font-size: 0.85rem;
+	color: rgba(244, 243, 241, 0.5);
+}

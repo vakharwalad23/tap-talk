@@ -1,0 +1,155 @@
+.footer {
+	padding: 48px 0 32px;
+	border-top: 1px solid var(--divider);
+	font-size: 0.9rem;
+	overflow: hidden;
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: 1.4fr 1fr 1.4fr 1fr;
+	gap: 32px;
+}
+
+.brand {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	max-width: 32ch;
+}
+
+.logoRow {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 1.05rem;
+}
+
+.icon {
+	border-radius: 8px;
+}
+
+.col h3 {
+	font-size: 0.78rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-40);
+	margin-bottom: 12px;
+}
+
+.col ul {
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.col a {
+	text-decoration: none;
+	color: var(--ink-60);
+}
+
+.col a:hover {
+	color: var(--ink);
+	text-decoration: underline;
+}
+
+.col .siteLogos {
+	flex-direction: row;
+	gap: 14px;
+	margin-top: 12px;
+}
+
+.siteLogos a {
+	display: block;
+	color: var(--ink-40);
+}
+
+.siteLogos a:hover {
+	color: var(--ink);
+}
+
+/* The big sign-off: the waveform mark bounces, then tips its hat. */
+.mark {
+	display: flex;
+	align-items: flex-end;
+	gap: clamp(20px, 3vw, 44px);
+	margin-top: clamp(48px, 8vw, 96px);
+	line-height: 0.85;
+}
+
+.wave {
+	flex: none;
+	width: clamp(88px, 13vw, 190px);
+	height: auto;
+	color: var(--ink);
+	transform-origin: 50% 100%;
+}
+
+.bar {
+	fill: currentColor;
+	transform-box: fill-box;
+	transform-origin: center;
+}
+
+.wordmark {
+	display: block;
+	font-size: clamp(88px, 17vw, 236px);
+	font-weight: 800;
+	letter-spacing: -0.055em;
+	color: var(--ink);
+	white-space: nowrap;
+	transform: translateY(0.04em);
+}
+
+.js .mark[data-shown] .bar {
+	animation: bounce 0.9s ease-in-out both;
+	animation-delay: calc(var(--i) * 55ms);
+}
+
+.js .mark[data-shown] .wave {
+	animation: tilt 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 1.15s both;
+}
+
+@keyframes bounce {
+	0%,
+	100% {
+		transform: scaleY(1);
+	}
+	30% {
+		transform: scaleY(1.35);
+	}
+	65% {
+		transform: scaleY(0.72);
+	}
+}
+
+@keyframes tilt {
+	to {
+		transform: rotate(-8deg);
+	}
+}
+
+.bottom {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 8px 24px;
+	margin-top: 28px;
+	padding-top: 18px;
+	border-top: 1px solid var(--divider);
+	font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+	.grid {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	.grid {
+		grid-template-columns: 1fr;
+	}
+}

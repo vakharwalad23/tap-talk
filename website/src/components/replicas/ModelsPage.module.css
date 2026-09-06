@@ -1,0 +1,36 @@
+.cards {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.nameRow {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.name {
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.sizeSmall {
+	font-size: 10px;
+}
+
+.descRow {
+	align-items: center;
+}
+
+.desc {
+	max-width: 260px;
+	line-height: 1.4;
+}
+
+.actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	flex: none;
+}

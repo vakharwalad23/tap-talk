@@ -1,0 +1,10 @@
+.sections {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	margin-top: 20px;
+}
+
+.section p {
+	line-height: 1.6;
+}

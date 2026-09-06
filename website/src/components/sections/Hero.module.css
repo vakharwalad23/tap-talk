@@ -1,0 +1,62 @@
+.hero {
+	padding-top: clamp(48px, 7vw, 88px);
+	border-bottom: 1px solid var(--divider);
+}
+
+.copy {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 22px;
+	margin-bottom: clamp(24px, 4vw, 48px);
+}
+
+.copy h1 {
+	max-width: 14ch;
+}
+
+.lede {
+	max-width: 58ch;
+}
+
+.ctas {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 12px;
+	margin-top: 4px;
+}
+
+.count {
+	padding: 1px 8px;
+	border-radius: 999px;
+	background: var(--ink-10);
+	font-size: 0.8em;
+	font-variant-numeric: tabular-nums;
+}
+
+.requirements {
+	font-size: 0.85rem;
+	color: var(--ink-40);
+	margin-top: -8px;
+}
+
+.note {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	text-align: left;
+	max-width: 60ch;
+	padding: 12px 14px;
+	border-radius: var(--radius);
+	border: 1px dashed var(--divider);
+	font-size: 0.85rem;
+	line-height: 1.5;
+	color: var(--ink-60);
+}
+
+.note svg {
+	flex-shrink: 0;
+	margin-top: 3px;
+}

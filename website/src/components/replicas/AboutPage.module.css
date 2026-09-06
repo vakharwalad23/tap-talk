@@ -1,0 +1,45 @@
+.page {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.name {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.blurb {
+	font-size: 12px;
+	line-height: 1.6;
+	color: var(--a-ink60);
+}
+
+.rows {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+}
+
+.row {
+	display: flex;
+	gap: 8px;
+	font-size: 12px;
+}
+
+.row dt {
+	width: 80px;
+	flex: none;
+}
+
+.row dd {
+	margin: 0;
+}
+
+.link {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+}
