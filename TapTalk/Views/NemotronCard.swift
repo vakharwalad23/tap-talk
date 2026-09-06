@@ -17,7 +17,7 @@ final class NemotronDownloadManager: ObservableObject {
     }
 
     func download() {
-        guard !downloading else { return }   // already in flight — don't start a second
+        guard !downloading else { return }   // already in flight - don't start a second
         downloading = true
         progress = 0
         Task {
@@ -67,7 +67,7 @@ struct NemotronCard: View {
             }
 
             HStack(alignment: .center) {
-                Text("NVIDIA Nemotron 3.5 ASR. Covers Hindi and the languages Parakeet doesn't — pick yours in the Record tab.")
+                Text("NVIDIA Nemotron 3.5 ASR. Covers Hindi and the languages Parakeet doesn't - pick yours in the Record tab.")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.tertiary)
                     .fixedSize(horizontal: false, vertical: true)

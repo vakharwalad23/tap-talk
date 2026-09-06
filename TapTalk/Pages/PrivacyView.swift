@@ -8,7 +8,7 @@ struct PrivacyView: View {
                     Text("Privacy")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(AppTheme.primary)
-                    Text("What TapTalk does — and doesn't — do with your data")
+                    Text("What TapTalk does - and doesn't - do with your data")
                         .font(.caption)
                         .foregroundStyle(AppTheme.tertiary)
                 }
@@ -20,7 +20,7 @@ struct PrivacyView: View {
 
                 privacySection("Local transcription", body: "When using the Local engine, transcription runs entirely on your device using models stored in Application Support. Your audio never leaves your Mac.")
 
-                privacySection("Cloud transcription", body: "When using the Cloud engine, audio is sent to OpenAI's Whisper API over HTTPS using your API key. OpenAI's data retention and usage policies apply. Your API key is stored in the macOS Keychain — never in plain text or UserDefaults.")
+                privacySection("Cloud transcription", body: "When using the Cloud engine, audio is sent to OpenAI's Whisper API over HTTPS using your API key. OpenAI's data retention and usage policies apply. Your API key is stored in the macOS Keychain - never in plain text or UserDefaults.")
 
                 privacySection("Clipboard", body: "TapTalk briefly writes transcribed text to the clipboard to paste it into the focused app, then restores the previous clipboard contents. No clipboard data is retained beyond this operation.")
 

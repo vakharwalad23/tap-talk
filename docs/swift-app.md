@@ -31,7 +31,7 @@ paths that can be superseded should reuse this, not invent a variant.
 from a superseded plan cannot run after the next load has finished.
 
 The transcribe path is a detached task. Settings are snapshotted **by value** on the main actor
-before crossing into it — never read `settings` from inside the task.
+before crossing into it - never read `settings` from inside the task.
 
 ## Recognition engines
 
@@ -49,9 +49,9 @@ actor SomeEngine {
 }
 ```
 
-`ParakeetEngine` — English and 24 European languages, auto-detect only.
-`NemotronEngine` — Hindi and 100+ languages, with an explicit language prompt.
-`EouStreamingEngine` — the live-typing model, conforming to `StreamingTranscriber`.
+`ParakeetEngine` - English and 24 European languages, auto-detect only.
+`NemotronEngine` - Hindi and 100+ languages, with an explicit language prompt.
+`EouStreamingEngine` - the live-typing model, conforming to `StreamingTranscriber`.
 
 Adding an engine means touching nine places: the `LocalEngine` enum and its exhaustive switches,
 `ActiveEngine`, `EnginePlan`, `resolveEnginePlan`, both halves of `applyEnginePlan`,
@@ -69,7 +69,7 @@ local `llama-server` subprocess.
 **Instruction clauses do not stack.** The 1.5B model reliably does *one* job and none when given
 two. Measured 3/3 across every combination tried: adding a cleanup clause beside the
 destination clause made the destination clause be ignored entirely. So there is a precedence
-order — romanization outranks match-the-app, which outranks polish and restructure — rather than
+order - romanization outranks match-the-app, which outranks polish and restructure - rather than
 concatenation. Read the comments in `AppContextService.systemPrompt` before adding a clause.
 
 Prompts are assembled in a **fixed order** with all variable content last, so the stable prefix is
@@ -80,18 +80,18 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
 
 ## Input and output
 
-- `HotkeyService` — one `CGEvent` tap, two independently registered modifier hotkeys. Only
+- `HotkeyService` - one `CGEvent` tap, two independently registered modifier hotkeys. Only
   `.flagsChanged` is observed, so hotkeys must be modifiers. A health check re-enables a tap macOS
   has silently disabled.
-- `PasteService` — pasteboard write marked `transient`/`concealed` so clipboard managers skip the
+- `PasteService` - pasteboard write marked `transient`/`concealed` so clipboard managers skip the
   entry, then Cmd-V, then restore.
-- `LiveInserter` — live typing. Prefers an Accessibility range-replace, falls back to pasteboard,
+- `LiveInserter` - live typing. Prefers an Accessibility range-replace, falls back to pasteboard,
   and permanently disables the AX path after a first failure rather than retrying per keystroke.
-- `AppContextService` — reads the frontmost app and its window title for rewrite context. The
+- `AppContextService` - reads the frontmost app and its window title for rewrite context. The
   Accessibility read carries a 250 ms timeout because an AX request to a hung app otherwise blocks
   forever, on the paste path.
 
-Browsers are detected by asking Launch Services which apps handle `https`, never a hardcoded list —
+Browsers are detected by asking Launch Services which apps handle `https`, never a hardcoded list -
 a list already missed a browser installed on the development machine.
 
 ## Conventions
@@ -99,13 +99,13 @@ a list already missed a browser installed on the development machine.
 - `@Published` + `didSet` writing to `UserDefaults` for every setting; Keychain for secrets.
 - Actors for engines, `@MainActor` for UI state. No `@unchecked Sendable`.
 - No force-unwrapping outside previews.
-- Warnings are treated as errors in review even though the build does not enforce it — the Swift 6
+- Warnings are treated as errors in review even though the build does not enforce it - the Swift 6
   concurrency warnings in particular have twice indicated real races.
 
 ## Working on it
 
 ```bash
-make run      # rust → bindings → xcodegen → xcodebuild → launch
+make run      # rust -> bindings -> xcodegen -> xcodebuild -> launch
 make kill     # stop a running instance first; two instances fight over the event tap
 ```
 

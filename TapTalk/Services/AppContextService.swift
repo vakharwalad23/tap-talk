@@ -22,11 +22,11 @@ struct AppContextService {
 
     // MARK: Window title
 
-    /// Reads the focused window's title over the Accessibility API — already granted for the
+    /// Reads the focused window's title over the Accessibility API - already granted for the
     /// hotkey and paste, so this needs no additional permission.
     ///
     /// The messaging timeout is the important part: an AX request to a hung application blocks
-    /// the caller indefinitely by default, and this runs on the key-up→paste path. A quarter
+    /// the caller indefinitely by default, and this runs on the key-up->paste path. A quarter
     /// second is far above a healthy app's response and far below anything a user would notice.
     private static func focusedWindowTitle(pid: pid_t) -> String? {
         let axApp = AXUIElementCreateApplication(pid)
@@ -56,7 +56,7 @@ struct AppContextService {
 
     /// Builds the rewrite instruction from the enabled options.
     ///
-    /// Clause order is fixed — base, polish, restructure, app context, closing — so the prompt is
+    /// Clause order is fixed - base, polish, restructure, app context, closing - so the prompt is
     /// byte-identical for a given (options, app, title) triple. Order is deliberate beyond
     /// readability: everything variable lives in the app-context clause, which sits last, so the
     /// stable prefix a server-side cache can reuse is as long as possible. Moving the app context
@@ -65,7 +65,7 @@ struct AppContextService {
         context: AppContext?, options: RewriteOptions, romanize: Bool = false
     ) -> String {
         // Romanization outranks everything, for the same reason match-the-app outranks the
-        // cleanup modes: this model does one job well and none when given two. Measured — folding
+        // cleanup modes: this model does one job well and none when given two. Measured - folding
         // the transliteration into the destination clause returned Devanagari 3/3, and appending
         // it as a rival clause did the same.
         //
@@ -78,7 +78,7 @@ struct AppContextService {
         // Match-the-app supersedes the cleanup modes rather than stacking with them.
         //
         // Measured against the shipped 1.5B model, any cleanup clause placed alongside the
-        // destination clause caused it to be ignored entirely — the model anchored on "tidy this
+        // destination clause caused it to be ignored entirely - the model anchored on "tidy this
         // text" and echoed the dictation instead of acting on it. Reproduced 3/3 with Polish, 3/3
         // with Restructure, and 3/3 with the destination clause moved first, so it is a capability
         // limit of a small model following a multi-part instruction, not a wording problem.
@@ -101,8 +101,8 @@ struct AppContextService {
     /// The examples are the whole reason this works. Described in prose the model translated to
     /// English, dropped words and changed the verb person; shown five worked pairs it became
     /// stable and correct across runs. They also teach the two things a rule-based transform
-    /// cannot do: drop the inherent schwa (कल → "kal", not "kala") and leave English loanwords
-    /// as English (मीटिंग → "meeting", not "mitinga").
+    /// cannot do: drop the inherent schwa (कल -> "kal", not "kala") and leave English loanwords
+    /// as English (मीटिंग -> "meeting", not "mitinga").
     private static let romanizeClause = """
         Transliterate Hindi (Devanagari) into Roman script exactly as Hindi speakers type in chat. \
         Never translate. Keep English words in English. No diacritics.
@@ -113,7 +113,7 @@ struct AppContextService {
         कैफे में मिलते हैं -> cafe mein milte hain
         अगले हफ्ते तक finish हो जाएगा -> agle hafte tak finish ho jayega
 
-        Output only the transliteration — no preamble, no quotation marks.
+        Output only the transliteration - no preamble, no quotation marks.
         """
 
     private static let base =
@@ -122,7 +122,7 @@ struct AppContextService {
 
     private static let polishClause =
         "Remove filler words and disfluencies (um, uh, er, like, you know, I mean). Fix grammar, "
-        + "capitalization and punctuation. Otherwise keep the user's own wording and tone — do "
+        + "capitalization and punctuation. Otherwise keep the user's own wording and tone - do "
         + "not paraphrase, do not make it more formal, do not add anything they did not say."
 
     // The failure mode this guards against is subtle: a half-corrected sentence that keeps both
@@ -134,7 +134,7 @@ struct AppContextService {
         + "If they state something and then revise it, the revised version is the only one that "
         + "may appear in the output. "
         + "Example: \"tomorrow I have a meeting at 10am, no wait, the meeting is at 11am\" "
-        + "becomes \"Tomorrow I have a meeting at 11am.\" — note that 10am appears nowhere. "
+        + "becomes \"Tomorrow I have a meeting at 11am.\" - note that 10am appears nowhere. "
         + "Example: \"can you send me the, actually can you send me the invoice\" "
         + "becomes \"Can you send me the invoice?\""
 
@@ -154,7 +154,7 @@ struct AppContextService {
         clause += ". "
         clause += guidance(for: context)
         clause += " Match the register and format that destination expects. If the window title "
-            + "names a specific site or document, weigh that over the application itself — a "
+            + "names a specific site or document, weigh that over the application itself - a "
             + "browser showing a mail client should be written like email, not like a web page. "
             + "Infer intent from the dictation content as well as the destination; when the two "
             + "disagree, follow the dictation."
@@ -185,7 +185,7 @@ struct AppContextService {
             return "This is a document editor: write well-formed prose in complete sentences."
         case .browser:
             return "This is a web browser, so the window title is the best clue to the real "
-                + "destination — a search box, a mail client, a social post, a code review, or a "
+                + "destination - a search box, a mail client, a social post, a code review, or a "
                 + "long-form document all want different registers."
         case .unknown:
             return "Judge from the destination and the dictation what format fits best; when "
@@ -238,7 +238,7 @@ struct AppContextService {
         ]) { return .documents }
 
         // Browsers are not matched against a list. macOS already knows which applications are
-        // browsers — they are the ones registered to open https — so ask it instead of trying
+        // browsers - they are the ones registered to open https - so ask it instead of trying
         // to keep pace with Arc, Dia, Comet, Zen, Orion and whatever ships next month.
         // Checked last so a specific category always wins over the generic browser answer.
         if isBrowser(id) { return .browser }
@@ -288,7 +288,7 @@ struct AppContextService {
     /// transliteration examples cover.
     static let hindiLanguageCode = "hi"
 
-    /// Devanagari block. One pass, no allocation — this runs on the paste path.
+    /// Devanagari block. One pass, no allocation - this runs on the paste path.
     static func containsDevanagari(_ text: String) -> Bool {
         text.unicodeScalars.contains { (0x0900...0x097F).contains($0.value) }
     }
@@ -296,7 +296,7 @@ struct AppContextService {
     /// Records what the rewrite actually resolved, so a wrong result can be traced to the
     /// destination, the category or the enabled modes without guessing.
     ///
-    /// The window title's *content* is deliberately not logged — it can hold document names and
+    /// The window title's *content* is deliberately not logged - it can hold document names and
     /// email subjects, and unlike the model call this would persist in the system log. Its
     /// presence and length are enough to tell a failed Accessibility read from a bad category.
     nonisolated static func logResolvedContext(_ context: AppContext?, options: RewriteOptions) {
@@ -326,6 +326,6 @@ struct AppContextService {
     }
 
     private static let closing =
-        "Output ONLY the raw text that should be pasted — never wrap output in backticks, code "
+        "Output ONLY the raw text that should be pasted - never wrap output in backticks, code "
         + "fences, markdown formatting, or quotation marks. No preamble, no explanation."
 }

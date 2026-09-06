@@ -25,14 +25,14 @@ struct PillView: View {
 
     private var pillState: PillState { holder.state }
 
-    // Maps raw mic RMS (~0.0–0.3) into a 0–1 animation range.
+    // Maps raw mic RMS (~0.0-0.3) into a 0-1 animation range.
     private let levelGain: Float = 12
 
     private let recColor   = Color(red: 1.0,  green: 0.30, blue: 0.26)
     private let workColor  = Color.white.opacity(0.85)
     private let smartColor = Color(red: 0.62, green: 0.48, blue: 1.0)
 
-    // Active capsule is fixed height — the helix swells, never the box.
+    // Active capsule is fixed height - the helix swells, never the box.
     private let capsuleHeight: CGFloat = 30
 
     private var capsuleWidth: CGFloat {
@@ -51,7 +51,7 @@ struct PillView: View {
                 EmptyView()
 
             case .idle:
-                // resting line — a thick, long bar under nothing, Wispr-style
+                // resting line - a thick, long bar under nothing, Wispr-style
                 Capsule()
                     .fill(Color.white.opacity(0.85))
                     .frame(width: 54, height: 4)
@@ -156,8 +156,8 @@ struct PillView: View {
     }
 }
 
-// Two dot strands weaving in sine, π out of phase so they cross like a DNA helix.
-// `amplitude` (0–1) scales the vertical swing; the container size is fixed.
+// Two dot strands weaving in sine, pi out of phase so they cross like a DNA helix.
+// `amplitude` (0-1) scales the vertical swing; the container size is fixed.
 private struct DNAHelixView: View {
     let phase: Double
     let amplitude: CGFloat

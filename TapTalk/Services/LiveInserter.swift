@@ -8,10 +8,10 @@ import ApplicationServices       // AXUIElement, AXValue
 /// engine revises the volatile tail.
 ///
 /// Two insertion paths, chosen per session:
-/// 1. Accessibility range-replace (preferred) — selects the volatile tail via
+/// 1. Accessibility range-replace (preferred) - selects the volatile tail via
 ///    `kAXSelectedTextRange` and overwrites via `kAXSelectedText`. Flicker-free, single
 ///    undo. Works on most native AppKit/SwiftUI text views.
-/// 2. Pasteboard + Cmd-V (fallback) — writes the new tail to the system pasteboard and
+/// 2. Pasteboard + Cmd-V (fallback) - writes the new tail to the system pasteboard and
 ///    synthesizes Cmd-V. The only universally accepted insertion method on macOS; CGEvent
 ///    Unicode keystrokes are silently dropped by Chromium-based apps (VS Code, Mail
 ///    compose, browser body fields, Slack, Discord) because virtualKey=0 is ignored.
@@ -43,14 +43,14 @@ final class LiveInserter {
 
     // Starts a fresh session and snapshots the frontmost app for focus-loss detection.
     // Tracks the FRONTMOST APP's PID (via NSWorkspace), not the focused element's PID,
-    // because Electron apps (VS Code, Slack, Discord, …) run each window in a separate
+    // because Electron apps (VS Code, Slack, Discord, ...) run each window in a separate
     // helper process. The focused element's PID points at the helper and can jitter between
     // updates, which would falsely trip focusChanged() and bail out of typing entirely.
     // The frontmost-app PID is stable per app.
     func begin() {
         pendingWork?.cancel(); pendingWork = nil
         // Drain any pending clipboard restore from a prior session synchronously, so the
-        // snapshot below captures the user's actual clipboard — not the transient text the
+        // snapshot below captures the user's actual clipboard - not the transient text the
         // previous session pasted.
         if let restore = pendingRestore {
             restore.cancel()
@@ -136,7 +136,7 @@ final class LiveInserter {
                 inserted = target
                 return
             }
-            // First failure → permanently disable AX path this session; pasteboard works everywhere.
+            // First failure -> permanently disable AX path this session; pasteboard works everywhere.
             useAX = false
         }
 
@@ -177,7 +177,7 @@ final class LiveInserter {
     }
 
     // Returns the current focused element only if the frontmost app hasn't switched.
-    // Intentionally does not compare the element's PID to sessionPID — the focused element
+    // Intentionally does not compare the element's PID to sessionPID - the focused element
     // lives in an Electron helper process whose PID does not match the app's PID.
     private func focusedElementIfStill() -> AXUIElement? {
         guard !focusChanged() else { return nil }
@@ -237,8 +237,8 @@ final class LiveInserter {
     // everywhere that paste works (which is essentially everywhere).
     //
     // Every paste is stamped with the community-standard "transient" and "concealed"
-    // pasteboard types so well-behaved clipboard managers — including macOS 26's built-in
-    // Clipboard History and third-party tools (Maccy / Paste / Pastebot) — skip the entry
+    // pasteboard types so well-behaved clipboard managers - including macOS 26's built-in
+    // Clipboard History and third-party tools (Maccy / Paste / Pastebot) - skip the entry
     // and don't pollute the user's clipboard history with each volatile tail.
     //
     // virtualKey: kVK_ANSI_V = 0x09 with .maskCommand for Cmd-V.

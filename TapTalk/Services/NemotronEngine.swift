@@ -3,7 +3,7 @@ import FluidAudio
 
 // NVIDIA Nemotron 3.5 ASR Streaming Multilingual (0.6B) via FluidAudio (Core ML / Apple
 // Neural Engine). Covers the languages Parakeet does not, including Devanagari. The model
-// is downloaded only on explicit user action from the model catalog — never auto-downloaded.
+// is downloaded only on explicit user action from the model catalog - never auto-downloaded.
 actor NemotronEngine {
     // 2240 ms is FluidAudio's default tier and measured best here: accuracy is flat above
     // 1120 ms while throughput peaks at 2240 ms.
@@ -19,7 +19,7 @@ actor NemotronEngine {
     //
     // Both halves are verified against the shipped model, not assumed. Script coverage comes
     // from counting Unicode blocks in its 13,087-token vocabulary: Devanagari 196 tokens,
-    // Arabic 252, CJK 6,907, Kana 217, Latin 2,567 — while Bengali, Gurmukhi, Gujarati,
+    // Arabic 252, CJK 6,907, Kana 217, Latin 2,567 - while Bengali, Gurmukhi, Gujarati,
     // Tamil, Telugu, Kannada and Malayalam have *zero*, so those are omitted rather than
     // offered and silently emitted as garbage. Keys come from the model's own
     // prompt_dictionary; bare codes that are not keys (e.g. "ja") resolve to auto-detect,
@@ -44,7 +44,7 @@ actor NemotronEngine {
         case notInstalled
         var errorDescription: String? {
             switch self {
-            case .notInstalled: return "Nemotron 3.5 not installed — download it in Models"
+            case .notInstalled: return "Nemotron 3.5 not installed - download it in Models"
             }
         }
     }
@@ -105,7 +105,7 @@ actor NemotronEngine {
         }
     }
 
-    // Loads the already-downloaded model. Throws .notInstalled if absent — never downloads.
+    // Loads the already-downloaded model. Throws .notInstalled if absent - never downloads.
     func ensureLoaded() async throws {
         guard manager == nil else { return }
         guard Self.isInstalled() else { throw EngineError.notInstalled }

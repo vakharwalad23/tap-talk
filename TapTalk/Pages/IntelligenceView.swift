@@ -280,7 +280,7 @@ struct IntelligenceView: View {
         }
     }
 
-    // Independent toggles — any combination runs as a single rewrite pass. All start off, so
+    // Independent toggles - any combination runs as a single rewrite pass. All start off, so
     // the section states plainly when the smart hotkey would do nothing.
     private var rewriteModes: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -296,7 +296,7 @@ struct IntelligenceView: View {
             modeToggle(
                 .restructure,
                 label: "Restructure",
-                sub: "You said 10am then corrected to 11am — only 11am is pasted."
+                sub: "You said 10am then corrected to 11am - only 11am is pasted."
             )
             modeToggle(
                 .smart,
@@ -305,7 +305,7 @@ struct IntelligenceView: View {
             )
 
             if settings.rewriteOptions.isEmpty {
-                Text("Nothing enabled — the smart hotkey pastes the plain transcript.")
+                Text("Nothing enabled - the smart hotkey pastes the plain transcript.")
                     .font(.system(size: 10))
                     .foregroundStyle(AppTheme.tertiary)
                     .padding(.top, 2)
@@ -320,7 +320,7 @@ struct IntelligenceView: View {
     }
 
     private func modeToggle(_ option: RewriteOptions, label: String, sub: String) -> some View {
-        // Superseded toggles stay operable — turning Match-the-app off restores them — but read
+        // Superseded toggles stay operable - turning Match-the-app off restores them - but read
         // as inactive so the UI never claims an effect the prompt does not have.
         let superseded = option != .smart && settings.rewriteOptions.contains(.smart)
         return HStack(alignment: .top, spacing: 10) {
@@ -404,7 +404,7 @@ struct IntelligenceView: View {
                     .foregroundStyle(AppTheme.secondary)
 
                 HStack(spacing: 8) {
-                    SecureField("sk-… or leave empty for local", text: $llmApiKeyInput)
+                    SecureField("sk-... or leave empty for local", text: $llmApiKeyInput)
                         .textFieldStyle(.plain)
                         .font(.system(size: 12, design: .monospaced))
                         .padding(8)
@@ -412,7 +412,7 @@ struct IntelligenceView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .overlay(RoundedRectangle(cornerRadius: 6).stroke(AppTheme.divider, lineWidth: 1))
 
-                    Button(llmApiKeySaved ? "Saved ✓" : "Save") {
+                    Button(llmApiKeySaved ? "Saved" : "Save") {
                         settings.llmApiKey = llmApiKeyInput
                         llmApiKeySaved = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { llmApiKeySaved = false }
@@ -432,7 +432,7 @@ struct IntelligenceView: View {
                         } else {
                             Image(systemName: "network").font(.system(size: 11))
                         }
-                        Text(llmTestStatus == .testing ? "Testing…" : "Test connection")
+                        Text(llmTestStatus == .testing ? "Testing..." : "Test connection")
                             .font(.system(size: 12))
                     }
                 }
@@ -450,7 +450,7 @@ struct IntelligenceView: View {
             combinedLocalRow
 
             if case .ready = installer.status {
-                Label("Ready · using Metal GPU", systemImage: "checkmark.circle.fill")
+                Label("Ready - using Metal GPU", systemImage: "checkmark.circle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.success)
             }
@@ -492,15 +492,15 @@ struct IntelligenceView: View {
     private var localRowSubtitle: String {
         switch installer.status {
         case .ready:
-            return "On-device · running locally with Metal GPU"
+            return "On-device - running locally with Metal GPU"
         case .preparing, .downloading:
-            return "Setting up local intelligence…"
+            return "Setting up local intelligence..."
         default:
             let pending = installer.pendingDownloadBytes()
             if pending == 0 {
-                return "On-device · runs offline"
+                return "On-device - runs offline"
             }
-            return "On-device · ~\(formatBytes(pending)) download, runs offline"
+            return "On-device - ~\(formatBytes(pending)) download, runs offline"
         }
     }
 
@@ -515,7 +515,7 @@ struct IntelligenceView: View {
         case .preparing:
             HStack(spacing: 6) {
                 ProgressView().scaleEffect(0.6).frame(width: 12, height: 12)
-                Text("Preparing…")
+                Text("Preparing...")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.tertiary)
             }
@@ -545,7 +545,7 @@ struct IntelligenceView: View {
     private var progressLabel: String {
         guard case .downloading(let frac, let done, let total) = installer.status else { return "" }
         let pct = Int((frac * 100).rounded())
-        return "Setting up local intelligence…  \(pct)%  ·  \(formatBytes(done)) / \(formatBytes(total))"
+        return "Setting up local intelligence...  \(pct)% - \(formatBytes(done)) / \(formatBytes(total))"
     }
 
     private func formatBytes(_ bytes: UInt64) -> String {
@@ -602,18 +602,18 @@ struct IntelligenceView: View {
             if settings.smartHotkeyEnabled {
                 Divider().background(AppTheme.divider)
                 SettingRow("Smart key") {
-                    Button(listeningSmartKey ? "Press a key…" : keyName(settings.smartHotkeyCode)) {
+                    Button(listeningSmartKey ? "Press a key..." : keyName(settings.smartHotkeyCode)) {
                         startListeningSmartKey()
                     }
                     .buttonStyle(.bordered)
                     .foregroundStyle(listeningSmartKey ? .orange : AppTheme.primary)
                 }
                 Divider().background(AppTheme.divider)
-                Button("Reset to Left ⌥") { applySmartKey(UInt16(kVK_Option)) }
+                Button("Reset to Left Option") { applySmartKey(UInt16(kVK_Option)) }
                     .foregroundStyle(AppTheme.secondary)
                     .font(.callout)
 
-                Text("Hold smart key → transcribe + AI rewrite based on active app")
+                Text("Hold smart key -> transcribe + AI rewrite based on active app")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.tertiary)
                     .padding(.top, 2)

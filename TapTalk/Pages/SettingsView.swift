@@ -66,14 +66,14 @@ struct SettingsView: View {
 
                 SettingsSection("Hotkey") {
                     SettingRow("Push-to-talk key") {
-                        Button(listening ? "Press a key…" : keyName(settings.hotkeyCode)) {
+                        Button(listening ? "Press a key..." : keyName(settings.hotkeyCode)) {
                             startListening()
                         }
                         .buttonStyle(.bordered)
                         .foregroundStyle(listening ? .orange : AppTheme.primary)
                     }
                     Divider().background(AppTheme.divider)
-                    Button("Reset to Right ⌘") { applyKey(UInt16(kVK_RightCommand)) }
+                    Button("Reset to Right Cmd") { applyKey(UInt16(kVK_RightCommand)) }
                         .foregroundStyle(AppTheme.secondary)
                         .font(.callout)
                 }
@@ -190,7 +190,7 @@ struct SettingsView: View {
             return "Devanagari is what the model produces. Roman writes it the way people type in chat."
         }
         if settings.selectedLanguage != AppContextService.hindiLanguageCode {
-            return "Roman applies to Hindi only — pick Hindi in the Record tab. Other languages are pasted as the model produces them."
+            return "Roman applies to Hindi only - pick Hindi in the Record tab. Other languages are pasted as the model produces them."
         }
         return "Roman writes Hindi the way people type it in chat: main kal aaunga. Produced by the rewrite model, so it needs the smart hotkey."
     }
@@ -305,7 +305,7 @@ struct SettingsView: View {
                 .foregroundStyle(AppTheme.secondary)
 
             HStack(spacing: 8) {
-                SecureField("sk-…", text: $apiKeyInput)
+                SecureField("sk-...", text: $apiKeyInput)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12, design: .monospaced))
                     .padding(8)
@@ -316,7 +316,7 @@ struct SettingsView: View {
                             .stroke(AppTheme.divider, lineWidth: 1)
                     )
 
-                Button(apiKeySaved ? "Saved ✓" : "Save") {
+                Button(apiKeySaved ? "Saved" : "Save") {
                     do {
                         try KeychainService.save(key: apiKeyInput, account: "openai-api-key")
                         settings.apiKey = apiKeyInput
@@ -351,7 +351,7 @@ struct SettingsView: View {
                             Image(systemName: "network")
                                 .font(.system(size: 11))
                         }
-                        Text(testStatus == .testing ? "Testing…" : "Test connection")
+                        Text(testStatus == .testing ? "Testing..." : "Test connection")
                             .font(.system(size: 12))
                     }
                 }

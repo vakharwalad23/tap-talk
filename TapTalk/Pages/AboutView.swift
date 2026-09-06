@@ -30,7 +30,7 @@ struct AboutView: View {
                         .foregroundStyle(AppTheme.secondary)
                 }
 
-                Text("Local speech-to-text for macOS. Hold a hotkey, speak, release — your words appear wherever the cursor is. Speak English, Hindi, or a hundred other languages, and let a local model clean up the transcript before it lands. Runs entirely on-device on the Neural Engine. No account, no cloud by default.")
+                Text("Local speech-to-text for macOS. Hold a hotkey, speak, release - your words appear wherever the cursor is. Speak English, Hindi, or a hundred other languages, and let a local model clean up the transcript before it lands. Runs entirely on-device on the Neural Engine. No account, no cloud by default.")
                     .font(.system(size: 12))
                     .foregroundStyle(AppTheme.secondary)
                     .lineSpacing(3)
@@ -39,11 +39,11 @@ struct AboutView: View {
                 Divider().background(AppTheme.divider)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    infoRow("Engines", value: "NVIDIA Parakeet TDT · Nemotron 3.5 ASR")
+                    infoRow("Engines", value: "NVIDIA Parakeet TDT, Nemotron 3.5 ASR")
                     infoRow("Runtime", value: "Core ML / Neural Engine via FluidAudio")
-                    infoRow("Rewrite", value: "Qwen 2.5 1.5B · llama.cpp")
-                    infoRow("Audio", value: "cpal · Silero VAD silence trimming")
-                    infoRow("Platform", value: "macOS 14+ · Apple Silicon")
+                    infoRow("Rewrite", value: "Qwen 2.5 1.5B, llama.cpp")
+                    infoRow("Audio", value: "cpal, Silero VAD silence trimming")
+                    infoRow("Platform", value: "macOS 14+, Apple Silicon")
                 }
 
                 Divider().background(AppTheme.divider)

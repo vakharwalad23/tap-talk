@@ -7,7 +7,7 @@ struct PasteService {
         let previousContents = pasteboard.string(forType: .string)
 
         // Marked transient and concealed so clipboard managers skip the entry. Without this every
-        // dictation is archived by Clipboard History, Maccy, Paste and the rest — the transcript
+        // dictation is archived by Clipboard History, Maccy, Paste and the rest - the transcript
         // outlives the paste, which is the opposite of what a local dictation tool should do. The
         // streaming path already did this; the batch path did not.
         //
@@ -46,7 +46,7 @@ struct PasteService {
 
     private static func restorePasteboard(previous: String?, ourChangeCount: Int) {
         let pasteboard = NSPasteboard.general
-        // Anything that wrote to the pasteboard in the meantime owns it now — leave it alone.
+        // Anything that wrote to the pasteboard in the meantime owns it now - leave it alone.
         guard pasteboard.changeCount == ourChangeCount else { return }
         pasteboard.clearContents()
         if let previous {
@@ -56,8 +56,8 @@ struct PasteService {
 }
 
 extension NSPasteboard.PasteboardType {
-    // Community conventions honored by clipboard managers (Maccy, Paste, Pastebot, …) and
-    // macOS 26's built-in Clipboard History — they tell the manager to skip this item. Password
+    // Community conventions honored by clipboard managers (Maccy, Paste, Pastebot, ...) and
+    // macOS 26's built-in Clipboard History - they tell the manager to skip this item. Password
     // managers use the same markers. Every paste this app performs carries them, so a dictation
     // never outlives the paste it was written for.
     static let transient = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")

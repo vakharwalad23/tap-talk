@@ -11,8 +11,8 @@ enum LocalEngine: String, CaseIterable {
     case parakeet     // FluidAudio / NVIDIA Parakeet (English/EU, punctuation)
     case nemotron     // FluidAudio / NVIDIA Nemotron 3.5 multilingual (Hindi and beyond)
 
-    /// Model name, credited rather than described. Both engines are multilingual — they simply
-    /// cover different language sets — so "Multilingual" was never a distinguishing label.
+    /// Model name, credited rather than described. Both engines are multilingual - they simply
+    /// cover different language sets - so "Multilingual" was never a distinguishing label.
     var displayName: String {
         switch self {
         case .parakeet: return "Parakeet TDT"
@@ -40,7 +40,7 @@ enum LocalEngine: String, CaseIterable {
     // Label shown in place of the picker for auto-only engines.
     var autoLanguageLabel: String {
         switch self {
-        case .parakeet: return "Auto · EU"
+        case .parakeet: return "Auto - EU"
         case .nemotron: return "Auto"
         }
     }
@@ -84,7 +84,7 @@ enum LLMBackend: String {
 }
 
 /// What the rewrite pass should do. Independent toggles, composed into a single prompt and a
-/// single LLM call. Empty means no rewrite runs at all, which is the default — every mode is
+/// single LLM call. Empty means no rewrite runs at all, which is the default - every mode is
 /// opt-in, so the smart hotkey does nothing until the user asks for something.
 struct RewriteOptions: OptionSet, Sendable {
     let rawValue: Int
@@ -131,7 +131,7 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(cloudModel, forKey: "cloudModel") }
     }
 
-    // In-memory only — loaded from Keychain on init
+    // In-memory only - loaded from Keychain on init
     @Published var apiKey: String = "" {
         didSet { persistApiKey(apiKey) }
     }
@@ -160,7 +160,7 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(llmModel, forKey: "llmModel") }
     }
 
-    // In-memory only — loaded from Keychain on init
+    // In-memory only - loaded from Keychain on init
     @Published var llmApiKey: String = "" {
         didSet { persistLLMApiKey(llmApiKey) }
     }

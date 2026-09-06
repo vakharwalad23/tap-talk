@@ -133,7 +133,7 @@ final class LocalIntelligenceInstaller: ObservableObject {
 
             if Task.isCancelled { status = .idle; return }
 
-            // Verify any time the file is on disk — Rust's existence check can't detect a truncated GGUF from a cancelled prior run
+            // Verify any time the file is on disk - Rust's existence check can't detect a truncated GGUF from a cancelled prior run
             if AppController.shared.manager.isLlmInstalled(modelId: Self.modelId) {
                 try verifyModelIntegrity()
             }
@@ -210,7 +210,7 @@ enum LocalInstallerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .modelMissing: return "Model file missing after download"
-        case .corruptModel: return "Downloaded model is corrupt — please retry"
+        case .corruptModel: return "Downloaded model is corrupt - please retry"
         }
     }
 }

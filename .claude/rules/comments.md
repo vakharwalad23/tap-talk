@@ -21,8 +21,8 @@ globs: "**/*.{rs,swift}"
 ## When NOT to Comment
 - Obvious code: `let count = items.count` needs no comment.
 - Restating the code: `// increment counter` above `counter += 1`.
-- TODO/FIXME without context — include what and when.
-- Changelog-style: "added in v0.2" — that belongs in git history.
+- TODO/FIXME without context - include what and when.
+- Changelog-style: "added in v0.2" - that belongs in git history.
 
 ## No Planning Artifacts
 Source reads as a finished product. It carries no trace of how the work was scheduled.
@@ -34,7 +34,7 @@ Source reads as a finished product. It carries no trace of how the work was sche
 
 ## Style
 ```rust
-// Resample to 16kHz — whisper.cpp requires fixed sample rate
+// Resample to 16kHz - whisper.cpp requires fixed sample rate
 let resampled = resample(&buffer, source_rate, 16000);
 ```
 

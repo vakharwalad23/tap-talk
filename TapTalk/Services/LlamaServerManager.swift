@@ -24,12 +24,12 @@ final class LlamaServerManager {
 
     private var idleTask: Task<Void, Never>?
     // Matches the engine idle release. Respawning costs a process start plus a model load on the
-    // next rewrite, and the resident cost of staying up is ~279 MB footprint — the GGUF is
+    // next rewrite, and the resident cost of staying up is ~279 MB footprint - the GGUF is
     // memory-mapped, not resident in full. AppController stops the server outright on memory
     // pressure, so this only bounds a genuinely idle app.
     private static let idleTimeout: TimeInterval = 1800
 
-    // Activity counters guarded by activityLock — read by the idle task on a
+    // Activity counters guarded by activityLock - read by the idle task on a
     // separate cooperative thread, written by LLM client calls on transcribe tasks.
     private let activityLock = NSLock()
     private var inFlightRequests: Int = 0
@@ -48,7 +48,7 @@ final class LlamaServerManager {
         try await start(modelPath: modelPath)
     }
 
-    // TCP probe — proc.isRunning lies briefly after external SIGKILL/OOM, so
+    // TCP probe - proc.isRunning lies briefly after external SIGKILL/OOM, so
     // a fast connect attempt avoids hanging the next /health call for ~60s.
     private func isServerReachable() async -> Bool {
         await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
@@ -58,7 +58,7 @@ final class LlamaServerManager {
                 using: .tcp
             )
             // The state handler and the timeout run on a concurrent queue, so the guard has
-            // to be atomic — resuming a CheckedContinuation twice traps.
+            // to be atomic - resuming a CheckedContinuation twice traps.
             let settled = OSAllocatedUnfairLock(initialState: false)
             @Sendable func claim() -> Bool {
                 settled.withLock { done in
@@ -436,7 +436,7 @@ final class LlamaServerManager {
         var attempts = 0
         while attempts < 180 {
             try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
-            // llama-server returns 503 while loading the model — only treat 200 as ready.
+            // llama-server returns 503 while loading the model - only treat 200 as ready.
             if let (_, response) = try? await URLSession.shared.data(from: url),
                let http = response as? HTTPURLResponse,
                http.statusCode == 200 {

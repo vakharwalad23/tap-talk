@@ -139,7 +139,7 @@ private func hotkeyCallback(
     event: CGEvent,
     userInfo: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
-    // .listenOnly taps ignore the return value — passUnretained avoids leaking every event
+    // .listenOnly taps ignore the return value - passUnretained avoids leaking every event
     guard let userInfo else { return Unmanaged.passUnretained(event) }
     let service = Unmanaged<HotkeyService>.fromOpaque(userInfo).takeUnretainedValue()
 

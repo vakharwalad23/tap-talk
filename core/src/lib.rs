@@ -92,8 +92,8 @@ impl Recorder {
         // Real speech duration (before any padding) for the UI.
         let duration_secs = trimmed.len() as f32 / 16_000.0;
 
-        // Too short to be a real utterance — return empty so the UI shows
-        // "Too short — hold longer" instead of a hallucinated transcript.
+        // Too short to be a real utterance - return empty so the UI shows
+        // "Too short - hold longer" instead of a hallucinated transcript.
         if trimmed.len() < audio::MIN_SPEECH_SAMPLES {
             return Ok(RecordingResult {
                 samples: Vec::new(),
@@ -102,7 +102,7 @@ impl Recorder {
             });
         }
 
-        // Lift quiet/murmured speech toward conversational loudness — helps every engine.
+        // Lift quiet/murmured speech toward conversational loudness - helps every engine.
         let mut processed = trimmed;
         let _gain = audio::apply_agc(&mut processed);
 

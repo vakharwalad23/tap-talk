@@ -3,7 +3,7 @@ import FluidAudio
 
 // Local NVIDIA Parakeet (TDT 0.6B v3) engine via FluidAudio (Core ML / Apple Neural
 // Engine). The model is downloaded
-// only on explicit user action from the model catalog — never auto-downloaded.
+// only on explicit user action from the model catalog - never auto-downloaded.
 actor ParakeetEngine {
     private static let version: AsrModelVersion = .v3
 
@@ -13,7 +13,7 @@ actor ParakeetEngine {
         case notInstalled
         var errorDescription: String? {
             switch self {
-            case .notInstalled: return "Parakeet model not installed — download it in Models"
+            case .notInstalled: return "Parakeet model not installed - download it in Models"
             }
         }
     }
@@ -52,7 +52,7 @@ actor ParakeetEngine {
         }
     }
 
-    // Loads the already-downloaded model. Throws .notInstalled if absent — never downloads.
+    // Loads the already-downloaded model. Throws .notInstalled if absent - never downloads.
     func ensureLoaded() async throws {
         guard manager == nil else { return }
         guard Self.isInstalled() else { throw EngineError.notInstalled }
