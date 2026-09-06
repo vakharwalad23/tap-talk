@@ -78,15 +78,15 @@ thead .us {
 }
 
 .yes {
-	color: var(--ink);
+	color: var(--ok-text);
 }
 
 .no {
-	color: var(--ink-40);
+	color: var(--rec-text);
 }
 
 .partial {
-	color: var(--ink-40);
+	color: var(--ink);
 }
 
 .callouts {

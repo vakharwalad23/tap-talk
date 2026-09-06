@@ -16,6 +16,9 @@
 	--smart: #9e7aff;
 	--smart-text: #6a45e0;
 	--ok: #33c759;
+	/* Icon-sized marks need 3:1 on paper; the pill colors themselves only pass on dark. */
+	--ok-text: #1d8f3f;
+	--rec-text: #d63b31;
 	--pill-bg: #17171a;
 	--pill-fg: rgba(255, 255, 255, 0.85);
 
@@ -51,6 +54,8 @@
 		--ink-10: rgba(244, 243, 241, 0.08);
 		--on-ink: #17171a;
 		--smart-text: #b9a6ff;
+		--ok-text: #33c759;
+		--rec-text: #ff4d42;
 		--shadow-card:
 			0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
 	}
