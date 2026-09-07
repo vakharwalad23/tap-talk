@@ -178,8 +178,8 @@ export function HeroRibbons() {
 				<text x="40" y="214" className={styles.label}>
 					{hero.demo.speakLabel}
 				</text>
-				{/* Captions sit between the two output ribbons: the slice crop on wide screens eats the
-				    outer rows, so anything near y=50 or y=380 gets cut by the stage edge. */}
+				{/* Captions sit between the two output ribbons, next to the crossing, so the side crop on
+				    narrow screens keeps them in view for as long as possible. */}
 				<text x="1160" y="148" textAnchor="end" className={styles.label}>
 					{hero.demo.plainLabel}
 				</text>

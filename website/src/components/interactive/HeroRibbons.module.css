@@ -2,11 +2,14 @@
 	position: relative;
 	display: flex;
 	justify-content: center;
+	align-items: center;
 	height: 420px;
 	overflow: hidden;
+	container-type: inline-size;
 }
 
-/* The drawing is 1200 wide; narrower screens see its center, the pill. */
+/* The drawing is 1200 wide. Narrower screens see its center, the pill; wider screens scale the
+   whole drawing up in proportion, so no ribbon is ever cropped. */
 .svg {
 	flex: none;
 	width: max(1200px, 100%);
@@ -54,6 +57,26 @@
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
+	transform-origin: 0 0;
+}
+
+@media (min-width: 1200px) {
+	.stage {
+		height: auto;
+		max-height: 80vh;
+	}
+
+	.svg {
+		width: 100%;
+		height: auto;
+		aspect-ratio: 1200 / 420;
+	}
+
+	/* The pill is HTML, not SVG, so it grows with the drawing by the same factor (width / 1200).
+	   tan(atan2()) divides two lengths into a plain number; browsers without it keep scale 1. */
+	.pill {
+		scale: calc(tan(atan2(100cqw, 1200px)));
+	}
 }
 
 @media (max-width: 640px) {
