@@ -8,6 +8,7 @@
 !docs/*.md
 !.claude/rules/*.md
 !website/README.md
+!orukeet-coreml/**/*.md
 
 # Local working notes - plans, measurements, eval data. Never shipped.
 docs/plan/

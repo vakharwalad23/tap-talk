@@ -1,0 +1,14 @@
+.venv/
+vendor/
+models/
+reference/
+out/
+setup.log
+__pycache__/
+*.pyc
+.DS_Store
+.build/
+fleurs/
+fleurs-multi/
+results/
+work-int8/
