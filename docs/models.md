@@ -73,6 +73,23 @@ not speed.
 and `mitinga` for meeting. It destroys exactly the English loanwords that make code-switched text
 readable.
 
+## Orukeet, evaluated
+
+Orukeet is Parakeet TDT 0.6B v3 with frozen Gabor kernels replacing half the encoder filters - same
+architecture, TDT decoder, and tokenizer (vocabulary byte-identical), the same 25 European languages,
+no Hindi. It was converted to the FluidAudio Core ML layout and benchmarked head to head against
+Parakeet on FLEURS. Tooling and the four reports live in [`../orukeet-coreml/`](../orukeet-coreml/)
+(`bench/reports/`); model artifacts are gitignored.
+
+- English: Orukeet lowers WER by ~0.5 to 0.6 points (5.10% to about 4.5%), holding across float32 and
+  int8 encoders.
+- Multilingual (6 languages, 60 clips each): roughly tied - Orukeet wins English, Parakeet wins
+  German, French, and Russian. Does not reproduce the paper's 23-of-25 win at this sample size.
+- Latency runs ~10 to 12 ms slower per clip, a conversion artifact (our int8 encoder is less
+  compressed than FluidInference's), not an architecture difference.
+
+License is CC-BY-SA-4.0 (ShareAlike) - a new class here; a shipped Core ML conversion would inherit it.
+
 ## Adding or changing a model
 
 1. **Measure first.** WER on real audio for ASR; for a rewrite model, output quality including

@@ -1,0 +1,1402 @@
+[
+  {
+    "hyp" : "Unfortunately, studying traffic flow is difficult because driver behavior cannot be predicted with one hundred percent certainty.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 116.89603328704834,
+    "ref" : "Unfortunately, studying traffic flow is difficult because driver behavior cannot be predicted with one-hundred percent certainty."
+  },
+  {
+    "hyp" : "Unfortunately, studying traffic flow is difficult because driver behavior cannot be predicted with 100 percent certainty.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 79.35702800750732,
+    "ref" : "Unfortunately, studying traffic flow is difficult because driver behavior cannot be predicted with one-hundred percent certainty."
+  },
+  {
+    "hyp" : "Twentieth-century research has shown that there are two pools of genetic variation: hidden and expressed.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 80.3459882736206,
+    "ref" : "Twentieth century research has shown that there are two pools of genetic variation: hidden and expressed."
+  },
+  {
+    "hyp" : "Twentieth century research has shown that there are two pools of genetic variation hidden and expressed.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 77.02398300170898,
+    "ref" : "Twentieth century research has shown that there are two pools of genetic variation: hidden and expressed."
+  },
+  {
+    "hyp" : "Remember that even though music on the main stages may have finished, there may be sections of the festival that will keep playing music until late into the night.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 85.67702770233154,
+    "ref" : "Remember that even though music on the main stages may have finished, there may be sections of the festival that will keep playing music until late into the night."
+  },
+  {
+    "hyp" : "Remember that even though music on the main stages may have finished, there may be sections of the festival that will keep playing music until late into the night.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 85.18493175506592,
+    "ref" : "Remember that even though music on the main stages may have finished, there may be sections of the festival that will keep playing music until late into the night."
+  },
+  {
+    "hyp" : "Police Superintendent Shanra Shankhar Solansky said the accused appeared in court with covered faces.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 82.3899507522583,
+    "ref" : "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces."
+  },
+  {
+    "hyp" : "Police Superintendent Chandra Shikar Sonakhi said the accused appeared in court with covered faces.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 76.53796672821045,
+    "ref" : "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces."
+  },
+  {
+    "hyp" : "The term bug is used by entomologists in a formal sense for this group of insects.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 73.6839771270752,
+    "ref" : "The term bug is used by entomologists in a formal sense for this group of insects."
+  },
+  {
+    "hyp" : "The term bug is used by entomologists in a formal sense for this group of insects.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 73.97496700286865,
+    "ref" : "The term bug is used by entomologists in a formal sense for this group of insects."
+  },
+  {
+    "hyp" : "Popular sports include football, basketball, volleyball, water polo, fencing, rugby, cycling, ice hockey, roller hockey and F1 motor racing.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 95.9700345993042,
+    "ref" : "Popular sports include football, basketball, volleyball, water-polo, fencing, rugby, cycling, ice hockey, roller hockey and F1 motor racing."
+  },
+  {
+    "hyp" : "Popular sports include football, basketball, volleyball, waterbolo, fencing, rugby, cycling, ice hockey, roller hockey, and F1 motor racing.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 96.2209701538086,
+    "ref" : "Popular sports include football, basketball, volleyball, water-polo, fencing, rugby, cycling, ice hockey, roller hockey and F1 motor racing."
+  },
+  {
+    "hyp" : "You can use Boda Boda, Morris Cycle Taxi, to get around Goma. The normal local price is 500 Congolese francs for the short ride.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 87.47899532318115,
+    "ref" : "You can use boda-boda (motorcycle taxi) to get around Goma. The normal (local) price is ~500 Congolese Francs for the short ride."
+  },
+  {
+    "hyp" : "You can use Boda Boda motorcycle taxi to get around Goma, the normal local price is 500 kantalys francs for the short ride.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 82.92591571807861,
+    "ref" : "You can use boda-boda (motorcycle taxi) to get around Goma. The normal (local) price is ~500 Congolese Francs for the short ride."
+  },
+  {
+    "hyp" : "Bishkek was described as sinking into a state of anarchy by one observer as gangs of people roamed the streets and plundered stores of consumer goods.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 84.23101902008057,
+    "ref" : "Bishkek was described as sinking into a state of \"anarchy\" by one observer, as gangs of people roamed the streets and plundered stores of consumer goods."
+  },
+  {
+    "hyp" : "Bishkek was described as sinking into a state of anarchy by one observer, as gangs of people roamed the streets and plundered stores of consumer goods.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 89.13099765777588,
+    "ref" : "Bishkek was described as sinking into a state of \"anarchy\" by one observer, as gangs of people roamed the streets and plundered stores of consumer goods."
+  },
+  {
+    "hyp" : "During the Revolutionary War, the 13 states first formed a weak central government with the Congress being its only component under the articles of confederation.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 88.68002891540527,
+    "ref" : "During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation."
+  },
+  {
+    "hyp" : "During the Revolutionary War, the 13 states first formed a weak central government with the Congress being its only component under the articles of confederation.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 81.74502849578857,
+    "ref" : "During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation."
+  },
+  {
+    "hyp" : "Current Senator and Argentine First Lady Cristina Fernandez de Kirchner announced her presidential candidacy yesterday evening in La Plata, a city fifty kilometers away from Buenos Aires.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 123.38900566101074,
+    "ref" : "Current senator and Argentine First Lady Cristina Fernandez de Kirchner announced her presidential candidacy yesterday evening in La Plata, a city 50 kilometers (31 miles) away from Buenos Aires."
+  },
+  {
+    "hyp" : "Current Senator and Argentina First Lady Christina Fernandez de Kirchner announced her presidential candidacy yesterday evening in La Plata, a city 50 km 31 miles away from Buenos Aires.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 96.9020128250122,
+    "ref" : "Current senator and Argentine First Lady Cristina Fernandez de Kirchner announced her presidential candidacy yesterday evening in La Plata, a city 50 kilometers (31 miles) away from Buenos Aires."
+  },
+  {
+    "hyp" : "The governor's office and nineteen of the injured were police officers.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 70.01399993896484,
+    "ref" : "The governor's office said nineteen of the injured were police officers."
+  },
+  {
+    "hyp" : "The governor's office said 19 of the injured were police officers.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 67.40200519561768,
+    "ref" : "The governor's office said nineteen of the injured were police officers."
+  },
+  {
+    "hyp" : "However, that is not true. Although there is something written on the back of the document, it is not a treasure map.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 75.12795925140381,
+    "ref" : "However, that is not true. Although there is something written on the back of the document, it is not a treasure map."
+  },
+  {
+    "hyp" : "However, that is not true. Although there is something written on the back of the document, it is not a treasure map.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 75.06310939788818,
+    "ref" : "However, that is not true. Although there is something written on the back of the document, it is not a treasure map."
+  },
+  {
+    "hyp" : "In some areas, boiling water for a minute is enough in others several minutes are needed.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 71.00200653076172,
+    "ref" : "In some areas boiling water for a minute is enough, in others several minutes are needed."
+  },
+  {
+    "hyp" : "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 71.14100456237793,
+    "ref" : "In some areas boiling water for a minute is enough, in others several minutes are needed."
+  },
+  {
+    "hyp" : "All nouns alongside the word c for u always begin with a capital letter even in the middle of a sentence.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 73.57203960418701,
+    "ref" : "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence."
+  },
+  {
+    "hyp" : "All nouns alongside the word say for you always begin with a capital letter even in the middle of a sentence.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 72.78501987457275,
+    "ref" : "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence."
+  },
+  {
+    "hyp" : "The cabbage juice changes color depending on how acidic, basic alkaline the chemical is.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 71.79498672485352,
+    "ref" : "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is."
+  },
+  {
+    "hyp" : "The cabbage juice changes colors depending on how acidic or basic alkylate the chemical is.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 71.52605056762695,
+    "ref" : "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is."
+  },
+  {
+    "hyp" : "In its early days, the show was featured solely at the long-running internet radio site, TokyNet Radio, a site focused on talk radio.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 82.34703540802002,
+    "ref" : "In its early days, the show was featured solely at the long-running internet radio site TogiNet Radio, a site focused on talk radio."
+  },
+  {
+    "hyp" : "In its early days, the show was featured solely at the long-running internet radio site ToggiNet Radio, a site focused on talk radio.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 83.45496654510498,
+    "ref" : "In its early days, the show was featured solely at the long-running internet radio site TogiNet Radio, a site focused on talk radio."
+  },
+  {
+    "hyp" : "Four skiers in the women's sitting group failed to finish their runs and 45 of the 117 total skiers in the giant silent failed to rank in the race.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 87.61107921600342,
+    "ref" : "Four skiers in the women's sitting group failed to finish their runs, and 45 of the 117 total skiers in the Giant Slalom failed to rank in the race."
+  },
+  {
+    "hyp" : "Four skiers in the women's sitting group failed to finish their runs and 45 of the 117 total skiers in the Giant Salamen failed to rank in the race.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 87.18502521514893,
+    "ref" : "Four skiers in the women's sitting group failed to finish their runs, and 45 of the 117 total skiers in the Giant Slalom failed to rank in the race."
+  },
+  {
+    "hyp" : "Apia is the capital of Samoa, the town is on the island of Upolu and has a population of just under 40,000.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 76.08997821807861,
+    "ref" : "Apia is the capital of Samoa. The town is on the island of Upolu and has a population of just under 40,000."
+  },
+  {
+    "hyp" : "Apia is the capital of Samoa, the town is on the island of Fulu, and has a population of just under 40,000.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 78.6440372467041,
+    "ref" : "Apia is the capital of Samoa. The town is on the island of Upolu and has a population of just under 40,000."
+  },
+  {
+    "hyp" : "Perry stated that he would return to Texas to assess the results of tonight's caucus, determine whether it is a path forward for myself in this race, but later said that he would remain in the race and compete in the January 21 South-Colina primary.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 105.31198978424072,
+    "ref" : "Perry stated that he would \"return to Texas to assess the results of tonight's caucus, determine whether there is a path forward for myself in this race\", but later said that he would remain in the race and compete in the January 21 South Carolina primary."
+  },
+  {
+    "hyp" : "Perry stated that he would return to Texas to assess the results of tonight's caucus, determine whether there is a path forward for himself in this race, but Letter said that he would remain in the race and compete in the January 21, South Carolina Primary.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 104.6370267868042,
+    "ref" : "Perry stated that he would \"return to Texas to assess the results of tonight's caucus, determine whether there is a path forward for myself in this race\", but later said that he would remain in the race and compete in the January 21 South Carolina primary."
+  },
+  {
+    "hyp" : "He did not set a figure for the cuts saying they will be made based on China's economic output.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 70.61588764190674,
+    "ref" : "He did not set a figure for the cuts, saying they will be made based on China's economic output."
+  },
+  {
+    "hyp" : "He did not set a figure for the cuts saying they will be made based on China's economic output.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 69.64302062988281,
+    "ref" : "He did not set a figure for the cuts, saying they will be made based on China's economic output."
+  },
+  {
+    "hyp" : "After the dam was built in 1963, the seasonal floods that would spread sediment throughout the river were halted.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 77.1709680557251,
+    "ref" : "After the dam was built in 1963, the seasonal floods that would spread sediment throughout the river were halted."
+  },
+  {
+    "hyp" : "After the dam was built in 1963, the seasonal floods that would spread sediment throughout the river were halted.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 77.13007926940918,
+    "ref" : "After the dam was built in 1963, the seasonal floods that would spread sediment throughout the river were halted."
+  },
+  {
+    "hyp" : "Its long jaws were studded with more than 70 razor sharp teeth, along with an extra set in the roof of its mouth, meaning that it was no escape for anything that crossed its path.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 88.75107765197754,
+    "ref" : "Its long jaws were studded with more than 70 razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape for anything that crossed its path."
+  },
+  {
+    "hyp" : "His long jaws were studded with more than seventy razor sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape or anything that crossed its path",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 114.69602584838867,
+    "ref" : "Its long jaws were studded with more than 70 razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape for anything that crossed its path."
+  },
+  {
+    "hyp" : "The Sundarbans are the largest littoral mangrove belt in the world stretching 80 km 50 miles into the Bangladeshi and Indian hinterland from the coast.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 88.15503120422363,
+    "ref" : "The Sundarbans are the largest littoral mangrove belt in the world, stretching 80 km (50 mi) into the Bangladeshi and Indian hinterland from the coast."
+  },
+  {
+    "hyp" : "The Sundarbans are the largest littoral mangrove belt in the world stretching 80 km 50 miles into the Bangladeshi and Indian hinterland from the coast.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 89.30504322052002,
+    "ref" : "The Sundarbans are the largest littoral mangrove belt in the world, stretching 80 km (50 mi) into the Bangladeshi and Indian hinterland from the coast."
+  },
+  {
+    "hyp" : "Researchers from Princeton University in the United States and Uppsala University in Sweden reported the new species evolved in just two generations, though this process has been to take much longer due to the breeding between an endemic Darwin finch, Giospisa fortis and the immigrant cactus finch, Geospisa conirostis.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 135.50794124603271,
+    "ref" : "Researchers from Princeton University in the United States and Uppsala University in Sweden reported the new species evolved in just two generations, though this process had been believed to take much longer, due to breeding between an endemic Darwin finch, Geospiza fortes, and the immigrant cactus finch, Geospiza conirostris."
+  },
+  {
+    "hyp" : "Australia's Michael Gorley finished 11th in the men's standing super G Czech competitor Udrich Duellek finished sixteenth in the men's sitting super G.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 90.13700485229492,
+    "ref" : "Australia's Mitchell Gourley finished eleventh in the men's standing Super-G. Czech competitor Oldrich Jelinek finished sixteenth in the men's sitting Super-G."
+  },
+  {
+    "hyp" : "Australia's Mitchell Gowry finished 11th in the men's Standing Super G Chets competitor Ulrich Joklin finished sixteenth in the men's sitting Super G",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 119.6829080581665,
+    "ref" : "Australia's Mitchell Gourley finished eleventh in the men's standing Super-G. Czech competitor Oldrich Jelinek finished sixteenth in the men's sitting Super-G."
+  },
+  {
+    "hyp" : "First, most riders wearing riding boots with a heel and a smooth, quite narrow sole.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 73.03202152252197,
+    "ref" : "First, most riders wear riding boots with a heel and a smooth, quite narrow, sole."
+  },
+  {
+    "hyp" : "First, most riders were riding boots with a heel on a smooth, quite narrow sole.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 70.01698017120361,
+    "ref" : "First, most riders wear riding boots with a heel and a smooth, quite narrow, sole."
+  },
+  {
+    "hyp" : "Hong Kong Island gives the territory of Hong Kong its name and is a place that many tourists regard as the main focus.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 78.64499092102051,
+    "ref" : "Hong Kong Island gives the territory of Hong Kong its name and is the place that many tourists regard as the main focus."
+  },
+  {
+    "hyp" : "Hong Kong Island gives the territory of Hong Kong its name and is the place that many tourists regard as the main focus.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 75.77800750732422,
+    "ref" : "Hong Kong Island gives the territory of Hong Kong its name and is the place that many tourists regard as the main focus."
+  },
+  {
+    "hyp" : "Hrides are made up of one to three related adult males, along with as many as dirty females and cuds.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 73.86410236358643,
+    "ref" : "Prides are made up of one to three related adult males, along with as many as thirty females and cubs."
+  },
+  {
+    "hyp" : "Crides are made up of 1-3 related adult males, along with as many as 30 females and cubs.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.13697242736816,
+    "ref" : "Prides are made up of one to three related adult males, along with as many as thirty females and cubs."
+  },
+  {
+    "hyp" : "Leighton had asked for changes to the Conservatives' environmental bill during the meeting with the PM asking for a thorough and complete rewriting of the Conservatives' Party environmental bill.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 96.0090160369873,
+    "ref" : "Layton had asked for changes to the conservatives' environmental bill during the meeting with the PM, asking for a \"thorough and complete rewriting\" of the Conservative party's environmental bill."
+  },
+  {
+    "hyp" : "Layton had asked for changes to the conservative environmental bill during the meeting with the PM asking for a thorough and complete rewriting of the conservative party's environmental bill.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 95.85297107696533,
+    "ref" : "Layton had asked for changes to the conservatives' environmental bill during the meeting with the PM, asking for a \"thorough and complete rewriting\" of the Conservative party's environmental bill."
+  },
+  {
+    "hyp" : "Vatican City population is around 800. It is the smallest independent country in the world, and the country with the lowest population.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 84.1209888458252,
+    "ref" : "Vatican City's population is around 800. It is the smallest independent country in the world and the country with the lowest population."
+  },
+  {
+    "hyp" : "The Vatican City population is around 800. It is the smallest independent country in the world and the population.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 79.21004295349121,
+    "ref" : "Vatican City's population is around 800. It is the smallest independent country in the world and the country with the lowest population."
+  },
+  {
+    "hyp" : "In the warm climate of the Middle East, the house was not so important.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 68.73202323913574,
+    "ref" : "In the warm climate of the Middle East, the house was not so important."
+  },
+  {
+    "hyp" : "In the warm climate of the Middle East, the house was not so important.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 68.51494312286377,
+    "ref" : "In the warm climate of the Middle East, the house was not so important."
+  },
+  {
+    "hyp" : "This seems sensible, because the earth doesn't feel as if it's moving, does it?",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 70.97303867340088,
+    "ref" : "This seems sensible, because the Earth doesn't feel as if it's moving, does it?"
+  },
+  {
+    "hyp" : "This seems sensible, because the earth doesn't feel as if it's moving, does it?",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 96.22693061828613,
+    "ref" : "This seems sensible, because the Earth doesn't feel as if it's moving, does it?"
+  },
+  {
+    "hyp" : "Ancient China had a unique way of showing different time periods. Each stage of china or each family that was in power was a distinctive dynasty.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 83.34004878997803,
+    "ref" : "Ancient China had a unique way of showing different time periods; each stage of China or each family that was in power was a distinctive dynasty."
+  },
+  {
+    "hyp" : "Ancient China had a unique way of showing different periods. Each stage of China or each family that was in power was a distinctive dynasty.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 89.80894088745117,
+    "ref" : "Ancient China had a unique way of showing different time periods; each stage of China or each family that was in power was a distinctive dynasty."
+  },
+  {
+    "hyp" : "In the north, the region is bounded by the Sahel and in the south and west by the Atlantic Ocean.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 75.42610168457031,
+    "ref" : "In the north the region is bounded by the Sahel, and in the south and west by the Atlantic Ocean."
+  },
+  {
+    "hyp" : "In the north, the region is bounded by the Sahel, and in the south and west by the Atlantic Ocean.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.31399822235107,
+    "ref" : "In the north the region is bounded by the Sahel, and in the south and west by the Atlantic Ocean."
+  },
+  {
+    "hyp" : "Duval, who was married to two adult children, did not leave a big impression on Miller, to whom the story was related.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 78.88901233673096,
+    "ref" : "Duvall, who is married with two adult children, did not leave a big impression on Miller, to whom the story was related."
+  },
+  {
+    "hyp" : "Duvall, who was married with two adult children, did not leave a big impression on Miller, to whom the story was related.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 77.03089714050293,
+    "ref" : "Duvall, who is married with two adult children, did not leave a big impression on Miller, to whom the story was related."
+  },
+  {
+    "hyp" : "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science dealing with behavior learning and intelligent adaptation in the machine.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 87.75889873504639,
+    "ref" : "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science, dealing with behavior, learning and intelligent adaptation in a machine."
+  },
+  {
+    "hyp" : "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science dealing with behavior, learning and intelligent adaptation in a machine",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 113.40796947479248,
+    "ref" : "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science, dealing with behavior, learning and intelligent adaptation in a machine."
+  },
+  {
+    "hyp" : "After the accident occurred, Gibson was transported to a hospital but died shortly afterwards.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.81503486633301,
+    "ref" : "After the accident occurred, Gibson was transported to a hospital but died shortly afterwards."
+  },
+  {
+    "hyp" : "People now write messages on computer screens never having to come close to a sharpener.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 70.30904293060303,
+    "ref" : "People now write messages on computer screens, never having to come close to a sharpener."
+  },
+  {
+    "hyp" : "People now write messages on computer screens never having to come close to a sharpener.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 72.62992858886719,
+    "ref" : "People now write messages on computer screens, never having to come close to a sharpener."
+  },
+  {
+    "hyp" : "Muhammad was deeply interested in matters beyond this mundane life. He used to frequent a cave that became known as hera on the mountain of Nor for contemplation.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 93.47498416900635,
+    "ref" : "Muhammad was deeply interested in matters beyond this mundane life. He used to frequent a cave that became known as “Hira‘” on the Mountain of “Noor” (light) for contemplation."
+  },
+  {
+    "hyp" : "Muhammad was deeply interested in matters beyond his mundane life. He used to frequent a cave that became known as hera on the mountain of Noor light for contemplation.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 90.39604663848877,
+    "ref" : "Muhammad was deeply interested in matters beyond this mundane life. He used to frequent a cave that became known as “Hira‘” on the Mountain of “Noor” (light) for contemplation."
+  },
+  {
+    "hyp" : "Some people thought he was right, but many people believed the opposite, that the solar system moved around the Earth, including the Sun, and even the other stars.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 83.36901664733887,
+    "ref" : "Some people thought he was right but many people believed the opposite; that the Solar System moved around the Earth, including the Sun (and even the other stars)."
+  },
+  {
+    "hyp" : "Some people thought he was right, but many people believed the opposite, that the soul is just moved around the earth, including the Sun and even other stars.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 82.01193809509277,
+    "ref" : "Some people thought he was right but many people believed the opposite; that the Solar System moved around the Earth, including the Sun (and even the other stars)."
+  },
+  {
+    "hyp" : "Swirl the two dry powders together and then with clean wet hands squeeze them into a ball.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.9359130859375,
+    "ref" : "Swirl the two dry powders together and then, with clean wet hands, squeeze them into a ball."
+  },
+  {
+    "hyp" : "Swirl the two dry powers together and then with clean wet hands squeeze them into a ball.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.5840072631836,
+    "ref" : "Swirl the two dry powders together and then, with clean wet hands, squeeze them into a ball."
+  },
+  {
+    "hyp" : "When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 78.45699787139893,
+    "ref" : "When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire."
+  },
+  {
+    "hyp" : "The moisture on your hands will react with the outer layers, which will feel funny, and form a sort of shell.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.6220350265503,
+    "ref" : "The moisture on your hands will react with the outer layers, which will feel funny and form a sort of shell."
+  },
+  {
+    "hyp" : "The moisture on your hands will react with the outer layers, which will feel funny and form a sort of shell.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 71.27499580383301,
+    "ref" : "The moisture on your hands will react with the outer layers, which will feel funny and form a sort of shell."
+  },
+  {
+    "hyp" : "During this period of European history the Catholic Church, which had become rich and powerful, came under scrutiny.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.70893859863281,
+    "ref" : "During this period of European history, the Catholic Church, which had become rich and powerful, came under scrutiny."
+  },
+  {
+    "hyp" : "During this period of European history the Catholic Church which had become rich and powerful, came under scrutiny.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 76.9120454788208,
+    "ref" : "During this period of European history, the Catholic Church, which had become rich and powerful, came under scrutiny."
+  },
+  {
+    "hyp" : "In the archipelago and lakes you do not necessarily need a yacht.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 68.66395473480225,
+    "ref" : "In the archipelagos and lakes you do not necessarily need a yacht."
+  },
+  {
+    "hyp" : "In the archipelagos and lakes, you do not necessarily need a yacht.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 67.64698028564453,
+    "ref" : "In the archipelagos and lakes you do not necessarily need a yacht."
+  },
+  {
+    "hyp" : "In particular, it is claimed that one can detect whether a person is lying by interpreting microexpressions correctly.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 76.55704021453857,
+    "ref" : "In particular, it is claimed that one can detect whether a person is lying by interpreting micro-expressions correctly."
+  },
+  {
+    "hyp" : "In particular, it is claimed that one can detect whether a person is lying by interpreting microexpressions correctly.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.62310791015625,
+    "ref" : "In particular, it is claimed that one can detect whether a person is lying by interpreting micro-expressions correctly."
+  },
+  {
+    "hyp" : "During the struggle for independence organized by the Mao movement, a peaceful gathering in the town resulted in the killing of Peraman Chief Tutamas III.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 87.02802658081055,
+    "ref" : "During the struggle for independence organised by the Mau movement, a peaceful gathering in the town resulted in the killing of the paramount chief Tupua Tamasese Lealofi III."
+  },
+  {
+    "hyp" : "During the struggle for independence, organized by the Mao movement, a peaceful gathering in the town resulted in the killing of the Paramount Chief Chukua Tamasese Beolophi III.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 91.8419361114502,
+    "ref" : "During the struggle for independence organised by the Mau movement, a peaceful gathering in the town resulted in the killing of the paramount chief Tupua Tamasese Lealofi III."
+  },
+  {
+    "hyp" : "The Northern Mariana's Emergency Management office said that there were no damages reported in the nation.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 75.99508762359619,
+    "ref" : "The Northern Marianas emergency management office said that there were no damages reported in the nation."
+  },
+  {
+    "hyp" : "The Northern Marianas Emergency Management office said that there were no damages reported in the nation.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.74398612976074,
+    "ref" : "The Northern Marianas emergency management office said that there were no damages reported in the nation."
+  },
+  {
+    "hyp" : "Segregation and recombination. Shuffle variation back and forth between the two pools with each generation.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 74.45406913757324,
+    "ref" : "Segregation and recombination shuffle variation back and forth between the two pools with each generation."
+  },
+  {
+    "hyp" : "Segregation and recombination shuffle variation back and forth between the two pools with each generation.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 75.62708854675293,
+    "ref" : "Segregation and recombination shuffle variation back and forth between the two pools with each generation."
+  },
+  {
+    "hyp" : "He added that they should not however be asked to take on obligations that go beyond their development stage, responsibility and capabilities.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 80.88397979736328,
+    "ref" : "He added that \"they should not, however, be asked to take on obligations that go beyond their development stage, responsibility and capabilities.\""
+  },
+  {
+    "hyp" : "He added The Should however be asked to take on obligations that go beyond their development stage, responsibility and capabilities.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 79.88405227661133,
+    "ref" : "He added that \"they should not, however, be asked to take on obligations that go beyond their development stage, responsibility and capabilities.\""
+  },
+  {
+    "hyp" : "Regional and seasonal severe weather phenomena include blizzards, storms, ice storms, and dust storms.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 76.33697986602783,
+    "ref" : "Regional and seasonal severe weather phenomena include blizzards, snowstorms, ice storms, and dust storms."
+  },
+  {
+    "hyp" : "Regional and seasonal severe weather phenomena include blizzards, snowstorms, ice storms, and dust storms.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 87.82398700714111,
+    "ref" : "Regional and seasonal severe weather phenomena include blizzards, snowstorms, ice storms, and dust storms."
+  },
+  {
+    "hyp" : "Dr. Malar Balasubraman-29 was found in Blue Ash, Ohio, a suburb, approximately 15 miles north of Cincinnati, lying on the ground beside the road in a t-shirt and underwear in an apparently heavily medicated state.",
+    "lang" : "en_us",
+    "model" : "parakeet",
+    "ms" : 107.02502727508545,
+    "ref" : "Dr. Malar Balasubramanian, 29, was found in Blue Ash, Ohio, a suburb approximately 15 miles north of Cincinnati lying on the ground beside the road in a T-shirt and underwear in an apparently heavily medicated state."
+  },
+  {
+    "hyp" : "Unfortunately, studying traffic flow is difficult because driver behavior cannot be predicted with one hundred percent certainty.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 111.45901679992676,
+    "ref" : "Unfortunately, studying traffic flow is difficult because driver behavior cannot be predicted with one-hundred percent certainty."
+  },
+  {
+    "hyp" : "Unfortunately, studying traffic flow is difficult because driver behavior cannot be predicted with one hundred percent certainty.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 95.36004066467285,
+    "ref" : "Unfortunately, studying traffic flow is difficult because driver behavior cannot be predicted with one-hundred percent certainty."
+  },
+  {
+    "hyp" : "Twentieth century research has shown that there are two pools of genetic variation, hidden and expressed.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 85.00993251800537,
+    "ref" : "Twentieth century research has shown that there are two pools of genetic variation: hidden and expressed."
+  },
+  {
+    "hyp" : "Twentieth century research has shown that there are two pools of genetic variation hidden and expressed.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 83.63902568817139,
+    "ref" : "Twentieth century research has shown that there are two pools of genetic variation: hidden and expressed."
+  },
+  {
+    "hyp" : "Remember that even though music on the main stages may have finished, there may be sections of the festival that will keep playing music until late into the night.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 94.5349931716919,
+    "ref" : "Remember that even though music on the main stages may have finished, there may be sections of the festival that will keep playing music until late into the night."
+  },
+  {
+    "hyp" : "Remember that even though music on the main stages may have finished, there may be sections of the festival that will keep playing music until late into the night.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 93.04201602935791,
+    "ref" : "Remember that even though music on the main stages may have finished, there may be sections of the festival that will keep playing music until late into the night."
+  },
+  {
+    "hyp" : "Police Superintendent Shanra Shankhar Solansky said the accused appeared in court with covered faces.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 86.49396896362305,
+    "ref" : "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces."
+  },
+  {
+    "hyp" : "Police Superintendent Chandra Shikhar Salawke said the accused appeared in court with covered faces.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 83.47904682159424,
+    "ref" : "Police superintendent Chandra Shekhar Solanki said the accused appeared in court with covered faces."
+  },
+  {
+    "hyp" : "The term bug is used by entomologists in a formal sense for this group of insects.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 80.780029296875,
+    "ref" : "The term bug is used by entomologists in a formal sense for this group of insects."
+  },
+  {
+    "hyp" : "The term bug is used by entomologists in a formal sense for this group of insects.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 80.31702041625977,
+    "ref" : "The term bug is used by entomologists in a formal sense for this group of insects."
+  },
+  {
+    "hyp" : "Popular sports include football, basketball, volleyball, water polo, fencing, rugby, cycling, ice hockey, roller hockey, and F1 motor racing.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 102.11503505706787,
+    "ref" : "Popular sports include football, basketball, volleyball, water-polo, fencing, rugby, cycling, ice hockey, roller hockey and F1 motor racing."
+  },
+  {
+    "hyp" : "Popular sports include football, basketball, volleyball, water polo, fencing, rugby, cycling, ice hockey, roller hockey, and F1 motor racing.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 101.16899013519287,
+    "ref" : "Popular sports include football, basketball, volleyball, water-polo, fencing, rugby, cycling, ice hockey, roller hockey and F1 motor racing."
+  },
+  {
+    "hyp" : "You can use Boda Boda, more a cycle taxi, to get around Goma. The normal local price is five hundred Congolese francs for the short ride.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 97.56195545196533,
+    "ref" : "You can use boda-boda (motorcycle taxi) to get around Goma. The normal (local) price is ~500 Congolese Francs for the short ride."
+  },
+  {
+    "hyp" : "You can use Boda Boda motorcycle taxi to get around Goma. The normal local price is five hundred condolis francs for the short ride.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 93.34802627563477,
+    "ref" : "You can use boda-boda (motorcycle taxi) to get around Goma. The normal (local) price is ~500 Congolese Francs for the short ride."
+  },
+  {
+    "hyp" : "Bishkek was described as sinking into a state of anarchy by one observer as gangs of people roamed the streets and plundered stores of consumer goods.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 92.01395511627197,
+    "ref" : "Bishkek was described as sinking into a state of \"anarchy\" by one observer, as gangs of people roamed the streets and plundered stores of consumer goods."
+  },
+  {
+    "hyp" : "Bishkek was described as sinking into a state of anarchy by one observer as gangs of people roamed the street and plundered stores of consumer goods.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 93.36400032043457,
+    "ref" : "Bishkek was described as sinking into a state of \"anarchy\" by one observer, as gangs of people roamed the streets and plundered stores of consumer goods."
+  },
+  {
+    "hyp" : "During the Revolutionary War, the thirteen states first formed a weak central government, with the Congress being its only component under the Articles of Confederation.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 94.3760871887207,
+    "ref" : "During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation."
+  },
+  {
+    "hyp" : "During the Revolutionary War, the thirteen states first formed a weak central government, with the Congress being its only component under the Articles of Confederation.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 93.93000602722168,
+    "ref" : "During the Revolutionary War, the thirteen states first formed a weak central government—with the Congress being its only component—under the Articles of Confederation."
+  },
+  {
+    "hyp" : "Current Senator and Argentine First Lady Christina Fernandez de Kirshner announced her presidential candidacy yesterday evening in La Plata, a city fifty kilometers, thir miltyes-one away from Buenos Aires.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 139.96505737304688,
+    "ref" : "Current senator and Argentine First Lady Cristina Fernandez de Kirchner announced her presidential candidacy yesterday evening in La Plata, a city 50 kilometers (31 miles) away from Buenos Aires."
+  },
+  {
+    "hyp" : "Current Senator and Argentine First Lady Christina Fernandez de Kirchner announced her presidential candidacy yesterday evening in La Plata, a city fifty kilometers thirty-one miles away from Buenos Aires.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 111.53995990753174,
+    "ref" : "Current senator and Argentine First Lady Cristina Fernandez de Kirchner announced her presidential candidacy yesterday evening in La Plata, a city 50 kilometers (31 miles) away from Buenos Aires."
+  },
+  {
+    "hyp" : "The governor's office and nineteen of the injured were police officers.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 78.15098762512207,
+    "ref" : "The governor's office said nineteen of the injured were police officers."
+  },
+  {
+    "hyp" : "The governor's office said nineteen of the injured were police officers.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 77.96204090118408,
+    "ref" : "The governor's office said nineteen of the injured were police officers."
+  },
+  {
+    "hyp" : "However, that is not true. Although there is something written on the back of the document, it is not a treasure map.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 85.6410264968872,
+    "ref" : "However, that is not true. Although there is something written on the back of the document, it is not a treasure map."
+  },
+  {
+    "hyp" : "However, that is not true. Although there is something written on the back of the document, it is not a treasure map.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 86.75897121429443,
+    "ref" : "However, that is not true. Although there is something written on the back of the document, it is not a treasure map."
+  },
+  {
+    "hyp" : "In some areas, boiling water for a minute is enough in others several minutes are needed.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 79.50007915496826,
+    "ref" : "In some areas boiling water for a minute is enough, in others several minutes are needed."
+  },
+  {
+    "hyp" : "In some areas boiling water for a minute is enough, in others several minutes are needed.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 80.56795597076416,
+    "ref" : "In some areas boiling water for a minute is enough, in others several minutes are needed."
+  },
+  {
+    "hyp" : "All nouns alongside the word c for u always begin with a capital letter even in the middle of a sentence.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.31710910797119,
+    "ref" : "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence."
+  },
+  {
+    "hyp" : "All nouns alongside the word say for you always begin with a capital letter, even in the middle of a sentence.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 85.42501926422119,
+    "ref" : "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence."
+  },
+  {
+    "hyp" : "The cabbage juice changes color depending on how acidic, basic, alkaline the chemical is.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 83.25004577636719,
+    "ref" : "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is."
+  },
+  {
+    "hyp" : "The cabbage juice changes colors depending on how acidic or basic alkaline the chemical is.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 83.22000503540039,
+    "ref" : "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is."
+  },
+  {
+    "hyp" : "In its early days, the show was featured solely at the long-running internet radio site, TokyNet Radio, a site focused on talk radio.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 95.53802013397217,
+    "ref" : "In its early days, the show was featured solely at the long-running internet radio site TogiNet Radio, a site focused on talk radio."
+  },
+  {
+    "hyp" : "In its early days, the show was featured solely at the long-running internet radio site ToggyNet Radio, a site focused on talk radio.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 94.97296810150146,
+    "ref" : "In its early days, the show was featured solely at the long-running internet radio site TogiNet Radio, a site focused on talk radio."
+  },
+  {
+    "hyp" : "Four skiers in the women's sitting group failed to finish their runs and forty-five of the 117 total skiers in the Giants Lylon failed to rank in the race.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 99.53701496124268,
+    "ref" : "Four skiers in the women's sitting group failed to finish their runs, and 45 of the 117 total skiers in the Giant Slalom failed to rank in the race."
+  },
+  {
+    "hyp" : "Four skiers in the women's sitting group failed to finish their runs, and forty-five of the a hundred and seventeen total skiers in the Giant Salmon failed to rank in the race.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 102.3399829864502,
+    "ref" : "Four skiers in the women's sitting group failed to finish their runs, and 45 of the 117 total skiers in the Giant Slalom failed to rank in the race."
+  },
+  {
+    "hyp" : "Apia is the capital of Samoa. The town is on the island of Upolut and has a population of just under forty thousand.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.78297901153564,
+    "ref" : "Apia is the capital of Samoa. The town is on the island of Upolu and has a population of just under 40,000."
+  },
+  {
+    "hyp" : "Apia is the capital of Samoa. The town is on the island of Opulu and has a population of just under forty thousand.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 89.44296836853027,
+    "ref" : "Apia is the capital of Samoa. The town is on the island of Upolu and has a population of just under 40,000."
+  },
+  {
+    "hyp" : "Harry stated that he would return to Texas to assess the results of tonight's caucus, determine whether it is a path forward for myself in this race, but later said that he would remain in the race and compete in the January twenty-one South Carolina primary.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 115.45896530151367,
+    "ref" : "Perry stated that he would \"return to Texas to assess the results of tonight's caucus, determine whether there is a path forward for myself in this race\", but later said that he would remain in the race and compete in the January 21 South Carolina primary."
+  },
+  {
+    "hyp" : "Perry stated that he would return to Texas to assess the results of tonight's caucus, determine whether there is a path forward for myself in this race, but Letter said that he would remain in the race and compete in the January twenty-one South Carolina primary.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 117.09904670715332,
+    "ref" : "Perry stated that he would \"return to Texas to assess the results of tonight's caucus, determine whether there is a path forward for myself in this race\", but later said that he would remain in the race and compete in the January 21 South Carolina primary."
+  },
+  {
+    "hyp" : "He did not set a figure for the cuts, saying they will be made based on China's economic output.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 80.48605918884277,
+    "ref" : "He did not set a figure for the cuts, saying they will be made based on China's economic output."
+  },
+  {
+    "hyp" : "He did not set a figure for the cuts, saying they will be made based on China's economic output.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 81.94994926452637,
+    "ref" : "He did not set a figure for the cuts, saying they will be made based on China's economic output."
+  },
+  {
+    "hyp" : "After the dam was built in 1963, the seasonal floods that would spread sediment throughout the river were halted.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.46600151062012,
+    "ref" : "After the dam was built in 1963, the seasonal floods that would spread sediment throughout the river were halted."
+  },
+  {
+    "hyp" : "After the dam was built in 1963, the seasonal floods that would spread sediment throughout the river were halted.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 89.36595916748047,
+    "ref" : "After the dam was built in 1963, the seasonal floods that would spread sediment throughout the river were halted."
+  },
+  {
+    "hyp" : "Its long jaws were studded with more than seventy razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that it was no escape for anything that crossed its path.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 100.37100315093994,
+    "ref" : "Its long jaws were studded with more than 70 razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape for anything that crossed its path."
+  },
+  {
+    "hyp" : "His long jaws were studded with more than seventy razor sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape or anything that crossed its path.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 127.77602672576904,
+    "ref" : "Its long jaws were studded with more than 70 razor-sharp teeth, along with an extra set in the roof of its mouth, meaning that there was no escape for anything that crossed its path."
+  },
+  {
+    "hyp" : "The Sundarbans are the largest littoral mangrove belt in the world, stretching 80 kilometers 50 miles into the Bangladeshi and Indian hinterland from the coast.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 99.56598281860352,
+    "ref" : "The Sundarbans are the largest littoral mangrove belt in the world, stretching 80 km (50 mi) into the Bangladeshi and Indian hinterland from the coast."
+  },
+  {
+    "hyp" : "The Sundarbans are the largest littoral mangrove belt in the world, stretching eighty kilometers fifty miles into the Bangladeshi and Indian hinterland from the coast.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 101.20606422424316,
+    "ref" : "The Sundarbans are the largest littoral mangrove belt in the world, stretching 80 km (50 mi) into the Bangladeshi and Indian hinterland from the coast."
+  },
+  {
+    "hyp" : "Researchers from Princeton University in the United States and Uppsala University in Sweden reported the new species evolved in just two generations, though this process has ability to take much longer due to the breeding between an endemic Darwin finch, Geospisa fortis and the immigrant cactus finch Geospiza conirostris.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 151.15594863891602,
+    "ref" : "Researchers from Princeton University in the United States and Uppsala University in Sweden reported the new species evolved in just two generations, though this process had been believed to take much longer, due to breeding between an endemic Darwin finch, Geospiza fortes, and the immigrant cactus finch, Geospiza conirostris."
+  },
+  {
+    "hyp" : "Australia's Mitchell Gorley finished eleventh in the men's standing super G. Czech competitor Uldrich Delenik finished sixteenth in the men's sitting super G.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 105.01599311828613,
+    "ref" : "Australia's Mitchell Gourley finished eleventh in the men's standing Super-G. Czech competitor Oldrich Jelinek finished sixteenth in the men's sitting Super-G."
+  },
+  {
+    "hyp" : "Australia's Mitchell Gowery finished eleventh in the men's standing super G. Chet's competitor Ulrich Joclin finished sixteenth in the men's sitting super G.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 130.84101676940918,
+    "ref" : "Australia's Mitchell Gourley finished eleventh in the men's standing Super-G. Czech competitor Oldrich Jelinek finished sixteenth in the men's sitting Super-G."
+  },
+  {
+    "hyp" : "First, most riders wearing riding boots with a heel and a smooth, quite narrow sole.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 84.61308479309082,
+    "ref" : "First, most riders wear riding boots with a heel and a smooth, quite narrow, sole."
+  },
+  {
+    "hyp" : "First, most riders were riding boots with a heel on a smooth, quite, narrow sole.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 80.53791522979736,
+    "ref" : "First, most riders wear riding boots with a heel and a smooth, quite narrow, sole."
+  },
+  {
+    "hyp" : "Hong Kong Island gives the territory of Hong Kong its name and is a place that many tourists regard as the main focus.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 86.84909343719482,
+    "ref" : "Hong Kong Island gives the territory of Hong Kong its name and is the place that many tourists regard as the main focus."
+  },
+  {
+    "hyp" : "Hong Kong Island gives the territory of Hong Kong its name and is the place that many tourists regard as the main focus.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 89.0660285949707,
+    "ref" : "Hong Kong Island gives the territory of Hong Kong its name and is the place that many tourists regard as the main focus."
+  },
+  {
+    "hyp" : "Prides are made up of one to three related adult males, along with as many as thirty females and cubs.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 86.10701560974121,
+    "ref" : "Prides are made up of one to three related adult males, along with as many as thirty females and cubs."
+  },
+  {
+    "hyp" : "Prides are made up of one to three related adult males, along with as many as thirty females and cubs.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 83.03999900817871,
+    "ref" : "Prides are made up of one to three related adult males, along with as many as thirty females and cubs."
+  },
+  {
+    "hyp" : "Leighton had asked for changes to the Conservatives' environmental bill during the meeting with the PM, asking for a thorough and complete rewriting of the Conservative Party environmental bill.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 105.13794422149658,
+    "ref" : "Layton had asked for changes to the conservatives' environmental bill during the meeting with the PM, asking for a \"thorough and complete rewriting\" of the Conservative party's environmental bill."
+  },
+  {
+    "hyp" : "Leighton had asked for changes to the Conservative environmental bill during the meeting with the PM, asking for a thorough and complete rewriting of the Conservative Party's environmental bill.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 107.3610782623291,
+    "ref" : "Layton had asked for changes to the conservatives' environmental bill during the meeting with the PM, asking for a \"thorough and complete rewriting\" of the Conservative party's environmental bill."
+  },
+  {
+    "hyp" : "Vatican City population is around 800. It is the smallest independent country in the world, and the country with the lowest population.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 92.6140546798706,
+    "ref" : "Vatican City's population is around 800. It is the smallest independent country in the world and the country with the lowest population."
+  },
+  {
+    "hyp" : "Vatican City population is around eight hundred. It is the smallest independent country in the world, and the population",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 89.49100971221924,
+    "ref" : "Vatican City's population is around 800. It is the smallest independent country in the world and the country with the lowest population."
+  },
+  {
+    "hyp" : "In the warm climate of the Middle East, the house was not so important.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 79.41091060638428,
+    "ref" : "In the warm climate of the Middle East, the house was not so important."
+  },
+  {
+    "hyp" : "In the warm climate of the Middle East, the house was not so important.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 78.5379409790039,
+    "ref" : "In the warm climate of the Middle East, the house was not so important."
+  },
+  {
+    "hyp" : "This seems sensible, because the earth doesn't feel as if it's moving, does it?",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 80.08599281311035,
+    "ref" : "This seems sensible, because the Earth doesn't feel as if it's moving, does it?"
+  },
+  {
+    "hyp" : "This seems sensible, because the earth doesn't feel as if it's moving, does it?",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 82.77702331542969,
+    "ref" : "This seems sensible, because the Earth doesn't feel as if it's moving, does it?"
+  },
+  {
+    "hyp" : "Ancient China had a unique way of showing different time periods. Each stage of China or each family that was in power was a distinctive dynasty.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 95.0850248336792,
+    "ref" : "Ancient China had a unique way of showing different time periods; each stage of China or each family that was in power was a distinctive dynasty."
+  },
+  {
+    "hyp" : "Ancient China had a unique way of showing different periods. Each stage of China, or each family that was in power, was a distinctive dynasty.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 94.48301792144775,
+    "ref" : "Ancient China had a unique way of showing different time periods; each stage of China or each family that was in power was a distinctive dynasty."
+  },
+  {
+    "hyp" : "In the north, the region is bounded by the Sahel, and in the south and west by the Atlantic Ocean.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 84.69295501708984,
+    "ref" : "In the north the region is bounded by the Sahel, and in the south and west by the Atlantic Ocean."
+  },
+  {
+    "hyp" : "In the north, the region is bounded by the Sahel, and in the south and west by the Atlantic Ocean.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 83.88006687164307,
+    "ref" : "In the north the region is bounded by the Sahel, and in the south and west by the Atlantic Ocean."
+  },
+  {
+    "hyp" : "DeVaul, who was married to two adult children, did not leave a big impression on Miller, to whom the story was related.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 90.03901481628418,
+    "ref" : "Duvall, who is married with two adult children, did not leave a big impression on Miller, to whom the story was related."
+  },
+  {
+    "hyp" : "Duvall, who was married with two adult children, did not leave a big impression on Miller, to whom the story was related.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.6929759979248,
+    "ref" : "Duvall, who is married with two adult children, did not leave a big impression on Miller, to whom the story was related."
+  },
+  {
+    "hyp" : "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science dealing with behavior learning and intelligent adaptation in the machine.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 102.77903079986572,
+    "ref" : "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science, dealing with behavior, learning and intelligent adaptation in a machine."
+  },
+  {
+    "hyp" : "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science dealing with behavior, learning, and intelligent adaptation in a machine.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 126.89399719238281,
+    "ref" : "Although AI has a strong connotation of science fiction, AI forms a very important branch of computer science, dealing with behavior, learning and intelligent adaptation in a machine."
+  },
+  {
+    "hyp" : "After the accident occurred, Gibson was transported to a hospital but died shortly afterwards.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 81.51602745056152,
+    "ref" : "After the accident occurred, Gibson was transported to a hospital but died shortly afterwards."
+  },
+  {
+    "hyp" : "People now write messages on computer screens never having to come close to a sharpener.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 81.74002170562744,
+    "ref" : "People now write messages on computer screens, never having to come close to a sharpener."
+  },
+  {
+    "hyp" : "People now write messages on computer screens, never having to come close to a sharpener.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 83.12404155731201,
+    "ref" : "People now write messages on computer screens, never having to come close to a sharpener."
+  },
+  {
+    "hyp" : "Muhammad was deeply interested in matters beyond this mundane life. He used to frequent a cave that became known as Hira on the mountain of Noor, Light, for contemplation.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 102.46109962463379,
+    "ref" : "Muhammad was deeply interested in matters beyond this mundane life. He used to frequent a cave that became known as “Hira‘” on the Mountain of “Noor” (light) for contemplation."
+  },
+  {
+    "hyp" : "Muhammad was deeply interested in matters beyond his mundane life. He used to frequent a cave that became known as Hira on the mountain of Noor Light for contemplation.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 102.23996639251709,
+    "ref" : "Muhammad was deeply interested in matters beyond this mundane life. He used to frequent a cave that became known as “Hira‘” on the Mountain of “Noor” (light) for contemplation."
+  },
+  {
+    "hyp" : "Some people thought he was right, but many people believed the opposite: that the solar system moved around the Earth, including the Sun, and even the other stars.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 93.89901161193848,
+    "ref" : "Some people thought he was right but many people believed the opposite; that the Solar System moved around the Earth, including the Sun (and even the other stars)."
+  },
+  {
+    "hyp" : "Some people thought he was right, but many people believed the opposite, that the solar system moved around the Earth, including the Sun and even other stars.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 90.80100059509277,
+    "ref" : "Some people thought he was right but many people believed the opposite; that the Solar System moved around the Earth, including the Sun (and even the other stars)."
+  },
+  {
+    "hyp" : "Swirl the two dry powders together and then with clean wet hands squeeze them into a ball.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 85.27803421020508,
+    "ref" : "Swirl the two dry powders together and then, with clean wet hands, squeeze them into a ball."
+  },
+  {
+    "hyp" : "Swirl the two dry powers together and then with clean wet hands squeeze them into a ball.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 85.71600914001465,
+    "ref" : "Swirl the two dry powders together and then, with clean wet hands, squeeze them into a ball."
+  },
+  {
+    "hyp" : "When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 89.22195434570312,
+    "ref" : "When all available resources are effectively used across the functional departments of an organization, creativity and ingenuity can transpire."
+  },
+  {
+    "hyp" : "The moisture on your hands will react with the outer layers, which will feel funny, and form a sort of shell.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 85.99400520324707,
+    "ref" : "The moisture on your hands will react with the outer layers, which will feel funny and form a sort of shell."
+  },
+  {
+    "hyp" : "The moisture on your hands will react with the outer layers, which will feel funny, and form a sort of shell.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 84.1599702835083,
+    "ref" : "The moisture on your hands will react with the outer layers, which will feel funny and form a sort of shell."
+  },
+  {
+    "hyp" : "During this period of European history, the Catholic Church, which had become rich and powerful, came under scrutiny.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.45908737182617,
+    "ref" : "During this period of European history, the Catholic Church, which had become rich and powerful, came under scrutiny."
+  },
+  {
+    "hyp" : "During this period of European history, the Catholic Church, which had become rich and powerful, came under scrutiny.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.21399307250977,
+    "ref" : "During this period of European history, the Catholic Church, which had become rich and powerful, came under scrutiny."
+  },
+  {
+    "hyp" : "In the archipelago and lakes, you do not necessarily need a yacht.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 80.33907413482666,
+    "ref" : "In the archipelagos and lakes you do not necessarily need a yacht."
+  },
+  {
+    "hyp" : "In the archipelagos and lakes, you do not necessarily need a yacht.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 79.60307598114014,
+    "ref" : "In the archipelagos and lakes you do not necessarily need a yacht."
+  },
+  {
+    "hyp" : "In particular, it is claimed that one can detect whether a person is lying by interpreting microexpressions correctly.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.46099472045898,
+    "ref" : "In particular, it is claimed that one can detect whether a person is lying by interpreting micro-expressions correctly."
+  },
+  {
+    "hyp" : "In particular, it is claimed that one can detect whether a person is lying by interpreting microexpressions correctly.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 86.14194393157959,
+    "ref" : "In particular, it is claimed that one can detect whether a person is lying by interpreting micro-expressions correctly."
+  },
+  {
+    "hyp" : "During the struggle for independence organized by the Mao movement, a peaceful gathering in the town resulted in the killing of Paramount chief Tupa Tupacya the Third.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 97.3820686340332,
+    "ref" : "During the struggle for independence organised by the Mau movement, a peaceful gathering in the town resulted in the killing of the paramount chief Tupua Tamasese Lealofi III."
+  },
+  {
+    "hyp" : "During the struggle for independence organized by the Mao movement, a peaceful gathering in the town resulted in the killing of the Paramount chief Tupua Tomasese Leolofi III.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 102.7679443359375,
+    "ref" : "During the struggle for independence organised by the Mau movement, a peaceful gathering in the town resulted in the killing of the paramount chief Tupua Tamasese Lealofi III."
+  },
+  {
+    "hyp" : "The Northern Marianas Emergency Management Office said that there were no damages reported in the nation.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 89.13600444793701,
+    "ref" : "The Northern Marianas emergency management office said that there were no damages reported in the nation."
+  },
+  {
+    "hyp" : "The Northern Marianas Emergency Management Office said that there were no damages reported in the nation.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 88.66298198699951,
+    "ref" : "The Northern Marianas emergency management office said that there were no damages reported in the nation."
+  },
+  {
+    "hyp" : "Segregation and recombination shuffle variation back and forth between the two pools with each generation.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 85.48104763031006,
+    "ref" : "Segregation and recombination shuffle variation back and forth between the two pools with each generation."
+  },
+  {
+    "hyp" : "Segregation and recombination shuffle variation back and forth between the two pools with each generation.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 84.75399017333984,
+    "ref" : "Segregation and recombination shuffle variation back and forth between the two pools with each generation."
+  },
+  {
+    "hyp" : "He added that they should not, however, be asked to take on obligations that go beyond their development stage, responsibility, and capabilities.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 90.93606472015381,
+    "ref" : "He added that \"they should not, however, be asked to take on obligations that go beyond their development stage, responsibility and capabilities.\""
+  },
+  {
+    "hyp" : "He added they should not, however, be asked to take on obligations that go beyond their development stage, responsibility, and capabilities.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 94.22898292541504,
+    "ref" : "He added that \"they should not, however, be asked to take on obligations that go beyond their development stage, responsibility and capabilities.\""
+  },
+  {
+    "hyp" : "Regional and seasonal severe weather phenomena include blizzards, storms, ice storms, and dust storms.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.32199668884277,
+    "ref" : "Regional and seasonal severe weather phenomena include blizzards, snowstorms, ice storms, and dust storms."
+  },
+  {
+    "hyp" : "Regional and seasonal severe weather phenomena include blizzards, snowstorms, ice storms, and dust storms.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 87.63396739959717,
+    "ref" : "Regional and seasonal severe weather phenomena include blizzards, snowstorms, ice storms, and dust storms."
+  },
+  {
+    "hyp" : "Dr. Malar Balasubramyan twenty-nine was found in Blue Ash, Ohio, a suburb approximately fifteen miles north of Cincinnati, lying on the ground beside the road in a t-shirt and underwear, in an apparently heavily medicated state.",
+    "lang" : "en_us",
+    "model" : "orukeet",
+    "ms" : 119.7580099105835,
+    "ref" : "Dr. Malar Balasubramanian, 29, was found in Blue Ash, Ohio, a suburb approximately 15 miles north of Cincinnati lying on the ground beside the road in a T-shirt and underwear in an apparently heavily medicated state."
+  }
+]
