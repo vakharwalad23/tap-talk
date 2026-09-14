@@ -17,6 +17,7 @@ LANG_NAMES = [
     ("pl_pl", "Polish"), ("pt_br", "Portuguese"), ("ro_ro", "Romanian"), ("ru_ru", "Russian"),
     ("sk_sk", "Slovak"), ("sl_si", "Slovenian"), ("es_419", "Spanish"), ("sv_se", "Swedish"),
     ("uk_ua", "Ukrainian"),
+    ("ls-test-clean", "LibriSpeech test-clean"), ("ls-test-other", "LibriSpeech test-other"),
 ]
 NAME = dict(LANG_NAMES)
 LANG_INDEX = {code: i for i, (code, _) in enumerate(LANG_NAMES)}

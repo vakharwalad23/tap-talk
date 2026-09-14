@@ -7,7 +7,7 @@ LIMIT ?= 0
 FP32 := out/orukeet-tdt-0.6b-v3-coreml
 INT8 := out/orukeet-tdt-0.6b-v3-coreml-int8
 
-.PHONY: help preflight setup convert quantize models probe data build bench-run reports bench bench-quick publish clean distclean
+.PHONY: help preflight setup convert quantize models probe data build bench-run reports bench bench-quick data-ls bench-ls compare publish clean distclean
 
 help:
 	@echo "Orukeet Core ML: conversion and benchmark suite (Apple Silicon)"
@@ -22,6 +22,9 @@ help:
 	@echo "  make build         build the Swift benchmark harness"
 	@echo "  make bench         build + models + run all passes + score reports"
 	@echo "  make bench-quick   small smoke benchmark (en_us, 100 clips)"
+	@echo "  make data-ls       download LibriSpeech test-clean and test-other"
+	@echo "  make bench-ls      run and score the LibriSpeech benchmark"
+	@echo "  make compare       compare FLEURS and LibriSpeech results to the paper"
 	@echo "  make publish REPO=owner/name [PUSH=1]   push bundles to Hugging Face"
 	@echo "  make clean         remove build output and staged models"
 	@echo "  make distclean     also remove vendor env, downloads, and raw results"
@@ -63,12 +66,25 @@ bench-quick: build models
 	MANIFEST=$(CURDIR)/data/fleurs-quick/manifest.jsonl RAW=$(CURDIR)/reports/_raw-quick bash $(S)/bench/run_passes.sh
 	RAW=$(CURDIR)/reports/_raw-quick REPORT_DEST=$(CURDIR)/reports/quick bash $(S)/bench/make_reports.sh
 
+data-ls:
+	uv run --project $(CONV) python $(S)/bench/librispeech_prep.py --out data/librispeech
+
+bench-ls: build models
+	MANIFEST=$(CURDIR)/data/librispeech/manifest.jsonl RAW=$(CURDIR)/reports/_raw-ls bash $(S)/bench/run_passes.sh
+	RAW=$(CURDIR)/reports/_raw-ls DEST=$(CURDIR)/reports/librispeech bash $(S)/bench/score_pair.sh
+
+compare:
+	python3 $(S)/bench/compare_paper.py \
+	  --fleurs reports/fleurs-full/multilingual-int8/summary.md \
+	  --librispeech reports/librispeech/int8/summary.md \
+	  --out reports/COMPARISON.md
+
 publish:
 	@test -n "$(REPO)" || { echo "set REPO=owner/name"; exit 1; }
 	python3 $(S)/publish/push_hf.py --repo $(REPO) --fp32 $(FP32) --int8 $(INT8) $(if $(PUSH),--push,)
 
 clean:
-	rm -rf swift/.build models work reports/_raw-quick reports/quick
+	rm -rf swift/.build models work reports/_raw-quick reports/quick reports/_raw-ls reports/librispeech
 
 distclean: clean
-	rm -rf vendor out data reference reports/_raw
+	rm -rf vendor out data reports/_raw
