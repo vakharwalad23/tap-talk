@@ -69,8 +69,22 @@ def normalize(text):
 
 
 def edits(a, b):
+    # Trim the common prefix and suffix first; near-identical strings then cost almost nothing,
+    # which keeps character-level CER over 20k clips fast.
+    if a == b:
+        return 0
+    n, m = len(a), len(b)
+    lo = 0
+    while lo < n and lo < m and a[lo] == b[lo]:
+        lo += 1
+    while n > lo and m > lo and a[n - 1] == b[m - 1]:
+        n -= 1
+        m -= 1
+    a, b = a[lo:n], b[lo:m]
     if not a:
         return len(b)
+    if not b:
+        return len(a)
     prev = list(range(len(b) + 1))
     for i, ca in enumerate(a, 1):
         cur = [i]

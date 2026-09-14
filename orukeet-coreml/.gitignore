@@ -1,21 +1,21 @@
-.venv/
-vendor/
-reference/
-out/
-setup.log
+# Python and OS junk
 __pycache__/
 *.pyc
 .DS_Store
+*.log
 
-# Benchmark data and build output, anchored so bench/reports/ (docs) stays tracked.
-/bench/.build/
-/bench/models/
-/bench/fleurs/
-/bench/fleurs-multi/
-/bench/fleurs-full/
-/bench/results/
-/bench/work-int8/
-/bench/reports/_raw/
+# Vendored converter and its env
+/vendor/
 
-# Conversion staging.
+# Regenerable working directories
+/out/
 /models/
+/data/
+/work/
+
+# Swift build output
+/swift/.build/
+
+# Generated results are not committed: models, reports, raw passes, and the analysis writeup
+/reports/
+/docs/ANALYSIS.md
