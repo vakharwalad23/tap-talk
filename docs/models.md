@@ -81,12 +81,17 @@ no Hindi. It was converted to the FluidAudio Core ML layout and benchmarked head
 Parakeet on FLEURS. Tooling and the four reports live in [`../orukeet-coreml/`](../orukeet-coreml/)
 (`bench/reports/`); model artifacts are gitignored.
 
-- English: Orukeet lowers WER by ~0.5 to 0.6 points (5.10% to about 4.5%), holding across float32 and
-  int8 encoders.
-- Multilingual (6 languages, 60 clips each): roughly tied - Orukeet wins English, Parakeet wins
-  German, French, and Russian. Does not reproduce the paper's 23-of-25 win at this sample size.
-- Latency runs ~10 to 12 ms slower per clip, a conversion artifact (our int8 encoder is less
-  compressed than FluidInference's), not an architecture difference.
+- Full FLEURS (all 25 languages, 20,146 clips): Orukeet lowers pooled WER from 13.98% to 11.80%
+  (int8), a 15.6% relative reduction, and wins WER on 23 of 25 languages - reproducing the paper's
+  23-of-25 result. Largest gains on higher-error languages (Latvian, Maltese, Lithuanian, Estonian);
+  it loses only French and German. CER improves pooled (4.35% to 3.94%) but is mixed per language.
+- English (647 clips): 5.59% to 5.23% WER. Precision (float32 vs int8) is negligible throughout.
+- Absolute WERs run higher than the paper's (lighter, English-only number normalization and Core ML
+  int8 decoding versus the paper's NeMo pipeline); the relative result holds.
+- Latency runs ~14 ms slower per clip, a conversion artifact (our int8 encoder is less compressed than
+  FluidInference's), not an architecture difference.
+- An early 6-language, 60-clip sample looked tied; that sample missed the higher-error languages where
+  Orukeet gains most. The full run above is definitive.
 
 License is CC-BY-SA-4.0 (ShareAlike) - a new class here; a shipped Core ML conversion would inherit it.
 

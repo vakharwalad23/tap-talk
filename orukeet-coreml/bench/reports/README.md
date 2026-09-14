@@ -1,26 +1,28 @@
 # Orukeet vs Parakeet benchmarks
 
-Head-to-head WER on FLEURS through FluidAudio (Core ML / ANE), the runtime TapTalk uses. Method,
-build, and run steps are in [`../BENCHMARKS.md`](../BENCHMARKS.md). Each report keeps its own
-`results.json` (raw hypotheses and timings) and `summary.md` (scored). WER uses number normalization,
-see [`../score.py`](../score.py).
+Head-to-head WER (and CER) on FLEURS through FluidAudio (Core ML / ANE), the runtime TapTalk uses.
+Method, build, and run steps are in [`../BENCHMARKS.md`](../BENCHMARKS.md). WER uses number
+normalization, see [`../score.py`](../score.py).
+
+## Full FLEURS (definitive)
+
+The complete test set the Orukeet paper reports on: 25 languages, 20,146 clips, WER and CER. See
+[`fleurs-full/`](fleurs-full/README.md).
+
+- Pooled WER: Parakeet 13.98% vs Orukeet 11.80% (int8), a 15.6% relative reduction.
+- Orukeet wins WER on 23 of 25 languages, matching the paper. Largest gains on higher-error languages
+  (Latvian, Maltese, Lithuanian, Estonian).
+- Precision (float32 vs int8) is negligible; latency is ~14 ms slower for Orukeet, a conversion artifact.
+
+## Quick samples (superseded)
+
+Runs 01 through 04 below used 60 to 100 clips over a few low-error European languages as a smoke test.
+They looked roughly tied, because that small sample missed the higher-error languages where Orukeet
+gains the most. Kept for history; the full FLEURS run above is the real result.
 
 | Report | Set | Precision | Overall Orukeet vs Parakeet |
 |---|---|---|---|
-| [01-english-fp32](01-english-fp32/report.md) | FLEURS en_us, 100 | Orukeet float32, Parakeet int8 | -0.64 pp (Orukeet better) |
-| [02-english-int8](02-english-int8/report.md) | FLEURS en_us, 100 | both int8 | -0.55 pp (Orukeet better) |
-| [03-multilingual-fp32](03-multilingual-fp32/report.md) | FLEURS 6 languages, 360 | Orukeet float32, Parakeet int8 | +0.24 pp (roughly tied) |
-| [04-multilingual-int8](04-multilingual-int8/report.md) | FLEURS 6 languages, 360 | both int8 | +0.16 pp (roughly tied) |
-
-## Takeaways
-
-- English: Orukeet lowers WER by about 0.5 to 0.6 pp, and precision (float32 vs int8) barely moves it.
-- Multilingual: mixed and close on this small sample (Orukeet wins English, Parakeet wins German,
-  French, Russian), roughly tied overall either precision. Orukeet does not reproduce the paper's win
-  on 23 of 25 languages here. Confirming that needs the full FLEURS test split, matched decoding, and
-  per-language normalization.
-- Precision barely affects WER: quantizing the Orukeet encoder to int8 moves English by ~0.09 pp and
-  the multilingual overall by ~0.08 pp.
-- Latency: Orukeet runs about 10 to 12 ms slower per clip. The architecture is identical to Parakeet,
-  so this is a conversion artifact: our int8 encoder is 568 MB against FluidInference's 425 MB. A
-  matched conversion and quantization recipe would close the gap.
+| [01-english-fp32](01-english-fp32/report.md) | en_us, 100 | Orukeet float32 | -0.64 pp |
+| [02-english-int8](02-english-int8/report.md) | en_us, 100 | both int8 | -0.55 pp |
+| [03-multilingual-fp32](03-multilingual-fp32/report.md) | 6 languages, 360 | Orukeet float32 | +0.24 pp |
+| [04-multilingual-int8](04-multilingual-int8/report.md) | 6 languages, 360 | both int8 | +0.16 pp |
