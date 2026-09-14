@@ -1,14 +1,21 @@
 .venv/
 vendor/
-models/
 reference/
 out/
 setup.log
 __pycache__/
 *.pyc
 .DS_Store
-.build/
-fleurs/
-fleurs-multi/
-results/
-work-int8/
+
+# Benchmark data and build output, anchored so bench/reports/ (docs) stays tracked.
+/bench/.build/
+/bench/models/
+/bench/fleurs/
+/bench/fleurs-multi/
+/bench/fleurs-full/
+/bench/results/
+/bench/work-int8/
+/bench/reports/_raw/
+
+# Conversion staging.
+/models/

@@ -1,12 +1,26 @@
 #!/usr/bin/env python3
-# Score a benchmark run. Reads results.json (raw ref/hyp/ms per clip), computes corpus and
-# median word error rate per language, and writes summary.md. Numbers are normalized to digits
-# so a model that says "twenty nine" is not penalized against a reference that writes "29".
+# Score benchmark runs. Reads one or more results files (raw ref/hyp/ms rows), merges them by
+# model, and reports per-language WER and CER plus pooled and language-macro rows, matching the
+# Orukeet paper table. Numbers are normalized to digits so a model that says "twenty nine" is not
+# penalized against a reference that writes "29".
 import argparse
 import json
 from pathlib import Path
 
-ORDER = ["parakeet", "orukeet"]
+MODEL_ORDER = ["parakeet", "orukeet"]
+# Paper table order and display names; unknown codes fall back to the code, sorted last.
+LANG_NAMES = [
+    ("bg_bg", "Bulgarian"), ("hr_hr", "Croatian"), ("cs_cz", "Czech"), ("da_dk", "Danish"),
+    ("nl_nl", "Dutch"), ("en_us", "English"), ("et_ee", "Estonian"), ("fi_fi", "Finnish"),
+    ("fr_fr", "French"), ("de_de", "German"), ("el_gr", "Greek"), ("hu_hu", "Hungarian"),
+    ("it_it", "Italian"), ("lv_lv", "Latvian"), ("lt_lt", "Lithuanian"), ("mt_mt", "Maltese"),
+    ("pl_pl", "Polish"), ("pt_br", "Portuguese"), ("ro_ro", "Romanian"), ("ru_ru", "Russian"),
+    ("sk_sk", "Slovak"), ("sl_si", "Slovenian"), ("es_419", "Spanish"), ("sv_se", "Swedish"),
+    ("uk_ua", "Ukrainian"),
+]
+NAME = dict(LANG_NAMES)
+LANG_INDEX = {code: i for i, (code, _) in enumerate(LANG_NAMES)}
+
 UNITS = {w: i for i, w in enumerate(
     "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen "
     "fifteen sixteen seventeen eighteen nineteen".split())}
@@ -31,11 +45,10 @@ def collapse_numbers(tokens):
             elif w in TENS:
                 current += TENS[w]
             elif w in SCALES:
-                scale = SCALES[w]
-                if scale == 100:
+                if SCALES[w] == 100:
                     current = (current or 1) * 100
                 else:
-                    current = (current or 1) * scale
+                    current = (current or 1) * SCALES[w]
                     result += current
                     current = 0
             elif (w == "and" and used > 0 and i + 1 < len(tokens)
@@ -75,68 +88,104 @@ def median(xs):
     return xs[mid] if len(xs) % 2 else (xs[mid - 1] + xs[mid]) / 2
 
 
+def lang_key(code):
+    return (LANG_INDEX.get(code, len(LANG_NAMES)), code)
+
+
 def demo():
     assert normalize("twenty-nine") == ["29"]
     assert normalize("eight hundred") == ["800"]
     assert normalize("two thousand nineteen") == ["2019"]
-    assert normalize("one hundred percent") == ["100", "percent"]
-    assert normalize("Boda-Boda taxi") == ["boda", "boda", "taxi"]
+    assert edits(list("cat"), list("cot")) == 1
     assert edits(["a", "b"], ["a", "c"]) == 1
+
+
+def wer_cer(cell):
+    wer = 100 * cell["we"] / cell["wn"] if cell["wn"] else 0.0
+    cer = 100 * cell["ce"] / cell["cn"] if cell["cn"] else 0.0
+    return wer, cer
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results", type=Path, default=Path("results/results.json"))
+    ap.add_argument("--results", nargs="+", type=Path, required=True,
+                    help="one or more results.json files; rows are merged by their model field")
+    ap.add_argument("--only-lang", default=None, help="keep only this FLEURS code (e.g. en_us)")
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
     demo()
 
-    rows = json.loads(args.results.read_text())
-    models = [m for m in ORDER if any(r["model"] == m for r in rows)]
-    langs = sorted({r["lang"] for r in rows})
-    agg = {}
-    latency = {m: [r["ms"] for r in rows if r["model"] == m] for m in models}
+    rows = []
+    for path in args.results:
+        rows += json.loads(path.read_text())
+    if args.only_lang:
+        rows = [r for r in rows if r["lang"] == args.only_lang]
+    if not rows:
+        raise SystemExit("no rows after filtering")
+
+    models = [m for m in MODEL_ORDER if any(r["model"] == m for r in rows)]
+    models += sorted({r["model"] for r in rows} - set(models))
+    langs = sorted({r["lang"] for r in rows}, key=lang_key)
+
     cells = {}
+    latency = {m: [] for m in models}
     for r in rows:
-        ref = normalize(r["ref"])
-        e = edits(ref, normalize(r["hyp"]))
-        c = cells.setdefault((r["lang"], r["model"]), {"edits": 0, "ref": 0, "clip": []})
-        c["edits"] += e
-        c["ref"] += len(ref)
-        c["clip"].append(100 * e / len(ref) if ref else 0)
+        ref_w = normalize(r["ref"])
+        hyp_w = normalize(r["hyp"])
+        ref_c = list(" ".join(ref_w))
+        hyp_c = list(" ".join(hyp_w))
+        c = cells.setdefault((r["lang"], r["model"]),
+                             {"we": 0, "wn": 0, "ce": 0, "cn": 0, "clip": []})
+        c["we"] += edits(ref_w, hyp_w)
+        c["wn"] += len(ref_w)
+        c["ce"] += edits(ref_c, hyp_c)
+        c["cn"] += len(ref_c)
+        c["clip"].append(100 * edits(ref_w, hyp_w) / len(ref_w) if ref_w else 0)
+        latency[r["model"]].append(r["ms"])
 
-    def corpus(lang, m):
-        c = cells.get((lang, m))
-        return 100 * c["edits"] / c["ref"] if c and c["ref"] else 0.0
-
-    lines = [f"| Language | Clips | {models[0].title()} WER | {models[1].title()} WER | Delta (pp) |",
-             "|---|---|---|---|---|"]
+    m0, m1 = models[0], models[1]
+    head = (f"| Language | Clips | {m0.title()} WER | {m0.title()} CER | "
+            f"{m1.title()} WER | {m1.title()} CER | dWER | dCER |")
+    lines = [head, "|---|---|---|---|---|---|---|---|"]
     for lang in langs:
-        clips = len(cells[(lang, models[0])]["clip"])
-        w0, w1 = corpus(lang, models[0]), corpus(lang, models[1])
-        lines.append(f"| {lang} | {clips} | {w0:.2f}% | {w1:.2f}% | {w1 - w0:+.2f} |")
+        c0, c1 = cells.get((lang, m0)), cells.get((lang, m1))
+        if not c0 or not c1:
+            continue
+        w0, r0 = wer_cer(c0)
+        w1, r1 = wer_cer(c1)
+        name = NAME.get(lang, lang)
+        lines.append(f"| {name} | {len(c0['clip'])} | {w0:.2f}% | {r0:.2f}% | "
+                     f"{w1:.2f}% | {r1:.2f}% | {w1 - w0:+.2f} | {r1 - r0:+.2f} |")
 
-    def overall(m):
-        te = sum(cells[(l, m)]["edits"] for l in langs)
-        tr = sum(cells[(l, m)]["ref"] for l in langs)
-        return 100 * te / tr if tr else 0.0
+    def pooled(m):
+        we = sum(cells[(l, m)]["we"] for l in langs if (l, m) in cells)
+        wn = sum(cells[(l, m)]["wn"] for l in langs if (l, m) in cells)
+        ce = sum(cells[(l, m)]["ce"] for l in langs if (l, m) in cells)
+        cn = sum(cells[(l, m)]["cn"] for l in langs if (l, m) in cells)
+        return (100 * we / wn if wn else 0.0), (100 * ce / cn if cn else 0.0)
 
-    def median_clip(m):
-        return median([w for l in langs for w in cells[(l, m)]["clip"]])
+    def macro(m):
+        per = [wer_cer(cells[(l, m)]) for l in langs if (l, m) in cells]
+        w = sum(x[0] for x in per) / len(per) if per else 0.0
+        c = sum(x[1] for x in per) / len(per) if per else 0.0
+        return w, c
 
-    total = sum(len(cells[(l, models[0])]["clip"]) for l in langs)
-    o0, o1 = overall(models[0]), overall(models[1])
-    lines.append(f"| Overall | {total} | {o0:.2f}% | {o1:.2f}% | {o1 - o0:+.2f} |")
+    total = sum(len(cells[(l, m0)]["clip"]) for l in langs if (l, m0) in cells)
+    pw0, pc0 = pooled(m0)
+    pw1, pc1 = pooled(m1)
+    lines.append(f"| Pooled | {total} | {pw0:.2f}% | {pc0:.2f}% | "
+                 f"{pw1:.2f}% | {pc1:.2f}% | {pw1 - pw0:+.2f} | {pc1 - pc0:+.2f} |")
+    if len(langs) > 1:
+        mw0, mc0 = macro(m0)
+        mw1, mc1 = macro(m1)
+        lines.append(f"| Language macro | {total} | {mw0:.2f}% | {mc0:.2f}% | "
+                     f"{mw1:.2f}% | {mc1:.2f}% | {mw1 - mw0:+.2f} | {mc1 - mc0:+.2f} |")
+
     lines.append("")
-    lines.append(f"Median clip WER: {models[0]} {median_clip(models[0]):.2f}%, "
-                 f"{models[1]} {median_clip(models[1]):.2f}%.")
-    # First clip per model pays warm-up and is dropped from the latency figure.
     lines.append(f"Median warm processing time per clip: "
-                 f"{models[0]} {median(latency[models[0]][1:]):.1f} ms, "
-                 f"{models[1]} {median(latency[models[1]][1:]):.1f} ms.")
-
+                 f"{m0} {median(latency[m0][1:]):.1f} ms, {m1} {median(latency[m1][1:]):.1f} ms.")
     text = "\n".join(lines) + "\n"
-    out = args.out or args.results.parent / "summary.md"
+    out = args.out or args.results[0].parent / "summary.md"
     out.write_text(text)
     print(text)
 

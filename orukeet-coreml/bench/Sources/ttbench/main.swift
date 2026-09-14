@@ -18,10 +18,15 @@ func arg(_ name: String, _ def: String) -> String {
 func note(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
 
 let manifestPath = arg("--manifest", "fleurs/manifest.jsonl")
-let parakeetDir = arg("--parakeet", "models/parakeet/parakeet-tdt-0.6b-v3")
-let orukeetDir = arg("--orukeet", "models/orukeet/parakeet-tdt-0.6b-v3")
-let outDir = arg("--out", "results")
-try FileManager.default.createDirectory(atPath: outDir, withIntermediateDirectories: true)
+let modelDir = arg("--model-dir", "")
+let label = arg("--label", "")
+let outPath = arg("--out", "")
+guard !modelDir.isEmpty, !label.isEmpty, !outPath.isEmpty else {
+    throw BenchError.usage("need --model-dir, --label, --out")
+}
+let outURL = URL(fileURLWithPath: outPath)
+try FileManager.default.createDirectory(
+    at: outURL.deletingLastPathComponent(), withIntermediateDirectories: true)
 
 let manifestText = try String(contentsOf: URL(fileURLWithPath: manifestPath), encoding: .utf8)
 let jsonDecoder = JSONDecoder()
@@ -32,35 +37,28 @@ for line in manifestText.split(whereSeparator: \.isNewline) {
 guard !clips.isEmpty else { throw BenchError.usage("empty manifest: \(manifestPath)") }
 note("loaded \(clips.count) clips from \(manifestPath)")
 
-var samples: [(Clip, [Float])] = []
-for c in clips { samples.append((c, try loadSamples(c.audio))) }
-
 // A staging mistake must fail loud, never silently download a model over the network.
 ModelHub.offlineMode = true
 
-// Both models load through the identical local-directory path so the comparison is symmetric.
-func transcribeAll(_ model: String, _ dir: String, _ items: [(Clip, [Float])]) async throws -> [OutRow] {
-    let models = try await AsrModels.load(from: URL(fileURLWithPath: dir), version: .v3)
-    let manager = AsrManager(config: .default)
-    try await manager.loadModels(models)
-    let layers = await manager.decoderLayerCount
-    var rows: [OutRow] = []
-    for item in items {
-        var state = TdtDecoderState.make(decoderLayers: layers)
-        let result = try await manager.transcribe(item.1, decoderState: &state)
-        rows.append(OutRow(lang: item.0.lang, model: model, ref: item.0.ref, hyp: result.text,
-                           ms: result.processingTime * 1000))
-    }
-    return rows
-}
+let models = try await AsrModels.load(from: URL(fileURLWithPath: modelDir), version: .v3)
+let manager = AsrManager(config: .default)
+try await manager.loadModels(models)
+let layers = await manager.decoderLayerCount
+note("loaded model \(label) from \(modelDir)")
 
 var rows: [OutRow] = []
-note("running parakeet")
-rows += try await transcribeAll("parakeet", parakeetDir, samples)
-note("running orukeet")
-rows += try await transcribeAll("orukeet", orukeetDir, samples)
+var done = 0
+for clip in clips {
+    let samples = try loadSamples(clip.audio)
+    var state = TdtDecoderState.make(decoderLayers: layers)
+    let result = try await manager.transcribe(samples, decoderState: &state)
+    rows.append(OutRow(lang: clip.lang, model: label, ref: clip.ref, hyp: result.text,
+                       ms: result.processingTime * 1000))
+    done += 1
+    if done % 500 == 0 { note("\(label): \(done)/\(clips.count)") }
+}
 
 let jsonEncoder = JSONEncoder()
 jsonEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-try jsonEncoder.encode(rows).write(to: URL(fileURLWithPath: outDir).appendingPathComponent("results.json"))
-note("wrote \(rows.count) rows to \(outDir)/results.json")
+try jsonEncoder.encode(rows).write(to: outURL)
+note("wrote \(rows.count) rows to \(outPath)")

@@ -40,7 +40,7 @@ def prep_lang(lang: str, split: str, limit: int, out: Path) -> list:
     total = len(rows)
     entries = []
     for file_name, ref in rows:
-        if len(entries) >= limit:
+        if limit > 0 and len(entries) >= limit:
             break
         src = found.get(file_name)
         if src is None:
@@ -62,7 +62,7 @@ def prep_lang(lang: str, split: str, limit: int, out: Path) -> list:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--langs", default="en_us", help="comma separated FLEURS codes, e.g. en_us,de_de")
-    ap.add_argument("--limit", type=int, default=100, help="max clips per language")
+    ap.add_argument("--limit", type=int, default=100, help="max clips per language; 0 means all")
     ap.add_argument("--split", default="test")
     ap.add_argument("--out", type=Path, default=Path("fleurs"))
     args = ap.parse_args()
