@@ -46,9 +46,10 @@ mutually exclusive - a rewrite needs the whole transcript.
 **3. Key up** - `Recorder.stop()` pauses the stream, resamples to 16 kHz, trims silence with
 Silero VAD, and applies gain to quiet speech. It returns the samples to Swift.
 
-**4. Recognition** - `AppController` dispatches to the selected engine: `ParakeetEngine` for
-English and European, `NemotronEngine` for Hindi and other languages, or the OpenAI cloud path in
-the Rust core.
+**4. Recognition** - `AppController` dispatches to the selected engine: `OrukeetEngine` (the default
+for English and European), `ParakeetEngine` (also English and European, and the base for optional
+live typing), `NemotronEngine` for Hindi and other languages, or the OpenAI cloud path in the Rust
+core.
 
 **5. Post-processing** - `PostProcessingService.applyDictionary` runs the user's word replacements.
 Then, only on the smart hotkey and only if a rewrite mode is enabled, `AppContextService` builds an

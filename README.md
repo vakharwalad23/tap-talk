@@ -61,17 +61,19 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 
 | Engine | Best for | Languages | Download | Runs on |
 |---|---|---|---|---|
-| **Parakeet** (NVIDIA TDT 0.6B v3) | Fast English/European dictation, optional live typing | ~25 European languages (auto) | ~490 MB, Live typing add-on ~440 MB | Neural Engine |
+| **Orukeet** (Oruk r3, default) | The most accurate English/European dictation | ~25 European languages (auto) | ~467 MB | Neural Engine |
+| **Parakeet** (NVIDIA TDT 0.6B v3) | English/European dictation and the base for optional live typing | ~25 European languages (auto) | ~490 MB, Live typing add-on ~440 MB | Neural Engine |
 | **Multilingual** (NVIDIA Nemotron 3.5 ASR 0.6B) | Hindi and other languages Parakeet doesn't cover | Hindi, Marathi, Urdu, Chinese, Japanese + English/European | ~640 MB | Neural Engine |
 | **Cloud (optional)** | When you explicitly want OpenAI | OpenAI Whisper | - | Your OpenAI account (opt-in) |
 
-- **Parakeet** auto-detects the spoken language, so it shows an "Auto" indicator instead of a language picker.
+- **Orukeet** is the default English/European engine: a Parakeet fine-tune (with fitted Gabor filters) that is measurably more accurate - independently benchmarked at about 15 percent fewer word errors than Parakeet across 25 FLEURS languages. It auto-detects the language and runs batch (no live typing). New installs default to it; existing Parakeet users get a one-time in-app upgrade prompt, and Parakeet is always kept as a fallback and for live typing.
+- **Parakeet** auto-detects the spoken language, so it shows an "Auto" indicator instead of a language picker. It remains the base for the optional Live typing add-on.
 - **Multilingual** lets you pick a language in the Record tab. The list is restricted to what the model can actually produce - measured from its own vocabulary, so it never offers a language it would emit as garbage.
 - **Live typing** - install the optional Realtime EOU add-on from the Models page and enable the toggle in Settings. Words appear in the focused text field as you speak, with sub-second latency on the Neural Engine. Streaming runs locally and is mutually exclusive with Smart Mode (which needs the whole transcript).
 
 ## Features
 
-- **On-device by default** - Parakeet runs locally on the Neural Engine; an optional OpenAI cloud engine is there for those who want it.
+- **On-device by default** - Orukeet and Parakeet run locally on the Neural Engine; an optional OpenAI cloud engine is there for those who want it.
 - **Live typing** - optional streaming mode (Parakeet + Realtime EOU): words appear in the focused text field as you speak, with sub-second latency.
 - **Neural Engine acceleration** - Core ML inference on Apple Silicon.
 - **Global push-to-talk** - a system-wide hotkey that works from any application.

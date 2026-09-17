@@ -49,7 +49,12 @@ actor SomeEngine {
 }
 ```
 
-`ParakeetEngine` - English and 24 European languages, auto-detect only.
+`OrukeetEngine` - Oruk r3, the default English and European engine (a more accurate Parakeet
+fine-tune), auto-detect only, batch only. It wraps the vendored `OrukeetCoreML` package and is the
+one engine that downloads a `.mlpackage` bundle and compiles it to `.mlmodelc` on the device once
+(OS-stamped, recompiled after a macOS upgrade), so its installer has a distinct compiling phase.
+`ParakeetEngine` - English and 24 European languages, auto-detect only; kept as the base for the
+optional live-typing add-on.
 `NemotronEngine` - Hindi and 100+ languages, with an explicit language prompt.
 `EouStreamingEngine` - the live-typing model, conforming to `StreamingTranscriber`.
 
@@ -60,6 +65,12 @@ exhaustive switches will not compile until all of them are updated, which is int
 
 `NemotronEngine.unload()` calls `cleanup()` before dropping the reference. Dropping an actor
 reference alone does not free Core ML models held inside it.
+
+`OrukeetMigration` (with `AppNavigation`) runs once at launch and is resolved from a single
+persisted `orukeetMigrationState`. New installs default to Orukeet. An existing Parakeet user
+without the EOU add-on gets a one-time, dismissible upgrade banner on the Record page that
+downloads and compiles Orukeet, then switches to it. Parakeet is never removed, and a live-typing
+(EOU) user is never switched off it.
 
 ## The rewrite
 
