@@ -80,7 +80,10 @@ final class AppController: ObservableObject {
         sweepDownloadResidue()
         reconcileStreamingFlag()
         warmUpStreamingEngineIfNeeded()
-        MainActor.assumeIsolated { OrukeetMigration.shared.evaluate() }
+        MainActor.assumeIsolated {
+            OrukeetMigration.shared.evaluate()
+            self.reconcileEngineSelection()
+        }
         refresh()
         FloatingPillController.shared.hide()
         resolveMicThenSetupHotkey()
@@ -262,22 +265,46 @@ final class AppController: ObservableObject {
         loadActiveEngine()
     }
 
-    // Makes a just-downloaded engine active so a first-time user does not need a separate
-    // Settings trip. Leaves an existing working local engine untouched, and never overrides
-    // a user who is on the cloud engine.
-    @MainActor func adoptDownloadedEngine(_ engine: LocalEngine) {
-        guard settings.transcriptionEngine == .local else { refresh(); return }
-        if isLocalEngineInstalled(settings.localEngine) { refresh(); return }
-        settings.localEngine = engine
-        refresh()
-    }
+    // Engine preference order, used ONLY as the first-launch default and the fallback when
+    // the active engine is removed. An explicit pick (a download or a Settings choice) is
+    // remembered and wins over this order.
+    static let enginePriority: [LocalEngine] = [.orukeet, .parakeet, .nemotron]
 
-    private func isLocalEngineInstalled(_ engine: LocalEngine) -> Bool {
+    nonisolated static func isInstalled(_ engine: LocalEngine) -> Bool {
         switch engine {
         case .parakeet: return ParakeetEngine.isInstalled()
         case .nemotron: return NemotronEngine.isInstalled()
         case .orukeet:  return OrukeetEngine.isInstalled()
         }
+    }
+
+    nonisolated static func highestPriorityInstalledEngine() -> LocalEngine? {
+        enginePriority.first(where: { isInstalled($0) })
+    }
+
+    // Download selects the model: a just-downloaded engine becomes the active pick, so a
+    // first-time user never needs a separate Settings trip.
+    @MainActor func adoptDownloadedEngine(_ engine: LocalEngine) {
+        settings.transcriptionEngine = .local
+        settings.localEngine = engine
+        refresh()
+    }
+
+    // At launch, keep the remembered engine if it is still installed; otherwise fall back by
+    // priority (e.g. the selected engine was removed while the app was closed).
+    @MainActor func reconcileEngineSelection() {
+        guard settings.transcriptionEngine == .local, !Self.isInstalled(settings.localEngine),
+              let best = Self.highestPriorityInstalledEngine() else { return }
+        settings.localEngine = best
+    }
+
+    // After an engine is removed, if it was the active pick, fall back to the highest-priority
+    // engine still installed, else the app default. Also refreshes the controller.
+    @MainActor func handleEngineRemoved(_ removed: LocalEngine) {
+        if settings.localEngine == removed {
+            settings.localEngine = Self.highestPriorityInstalledEngine() ?? .orukeet
+        }
+        refresh()
     }
 
     private enum ActiveEngine { case parakeet, nemotron, orukeet, none }

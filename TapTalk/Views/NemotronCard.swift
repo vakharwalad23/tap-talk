@@ -39,12 +39,9 @@ final class NemotronDownloadManager: ObservableObject {
         guard !downloading else { return }
         try? NemotronEngine.delete()
         installed = false
-        // Falling back to Parakeet keeps the app in a working state rather than sitting on
-        // an engine whose model was just deleted.
-        if SettingsStore.shared.localEngine == .nemotron {
-            SettingsStore.shared.localEngine = .parakeet
-        }
-        AppController.shared.refresh()
+        // Fall back to the highest-priority installed engine so the app is never left on an
+        // engine whose model was just deleted.
+        AppController.shared.handleEngineRemoved(.nemotron)
     }
 }
 

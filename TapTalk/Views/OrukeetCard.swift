@@ -116,10 +116,7 @@ final class OrukeetInstaller: ObservableObject {
         task = nil
         try? OrukeetEngine.delete()
         status = .idle
-        if SettingsStore.shared.localEngine == .orukeet {
-            SettingsStore.shared.localEngine = .parakeet
-        }
-        AppController.shared.refresh()
+        AppController.shared.handleEngineRemoved(.orukeet)
     }
 }
 

@@ -42,13 +42,13 @@ final class ParakeetDownloadManager: ObservableObject {
         // Live typing requires Parakeet + EOU together - remove the add-on with the engine
         // so the user isn't left with an orphan model and a stale streaming toggle.
         if EouDownloadManager.shared.installed {
-            // EouDownloadManager.remove() already calls AppController.refresh() - let it
-            // cover both removals so the controller isn't refreshed twice.
             EouDownloadManager.shared.remove()
         } else {
             SettingsStore.shared.streamingEnabled = false
-            AppController.shared.refresh()
         }
+        // If Parakeet was the active engine, fall back to the highest-priority installed one.
+        // handleEngineRemoved also refreshes the controller.
+        AppController.shared.handleEngineRemoved(.parakeet)
     }
 }
 
