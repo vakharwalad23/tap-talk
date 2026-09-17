@@ -27,7 +27,7 @@ final class NemotronDownloadManager: ObservableObject {
                 }
                 self.downloading = false
                 self.installed = true
-                AppController.shared.refresh()
+                AppController.shared.adoptDownloadedEngine(.nemotron)
             } catch {
                 self.downloading = false
                 self.installed = NemotronEngine.isInstalled()

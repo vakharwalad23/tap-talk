@@ -29,13 +29,13 @@ enum OrukeetCopy {
 struct AccuracyBadge: View {
     var body: some View {
         HStack(spacing: 3) {
-            Image(systemName: "checkmark.seal.fill").font(.system(size: 9))
-            Text(OrukeetCopy.badge).font(.system(size: 9, weight: .semibold))
+            Image(systemName: "checkmark.seal.fill").font(.system(size: 9, weight: .bold))
+            Text(OrukeetCopy.badge).font(.system(size: 9, weight: .bold))
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(AppTheme.success.opacity(0.14))
-        .foregroundStyle(AppTheme.success)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(AppTheme.success)
+        .foregroundStyle(.white)
         .clipShape(Capsule())
         .help(OrukeetCopy.tooltip)
     }
@@ -99,6 +99,7 @@ final class OrukeetInstaller: ObservableObject {
             try await Task.detached(priority: .userInitiated) { try OrukeetEngine.compile() }.value
             status = .ready
             OrukeetMigration.shared.completeIfEligible()
+            AppController.shared.adoptDownloadedEngine(.orukeet)
         } catch is CancellationError {
             status = OrukeetEngine.isInstalled() ? .ready : .idle
         } catch let error as URLError where error.code == .cancelled {

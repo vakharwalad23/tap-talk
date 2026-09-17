@@ -262,6 +262,24 @@ final class AppController: ObservableObject {
         loadActiveEngine()
     }
 
+    // Makes a just-downloaded engine active so a first-time user does not need a separate
+    // Settings trip. Leaves an existing working local engine untouched, and never overrides
+    // a user who is on the cloud engine.
+    @MainActor func adoptDownloadedEngine(_ engine: LocalEngine) {
+        guard settings.transcriptionEngine == .local else { refresh(); return }
+        if isLocalEngineInstalled(settings.localEngine) { refresh(); return }
+        settings.localEngine = engine
+        refresh()
+    }
+
+    private func isLocalEngineInstalled(_ engine: LocalEngine) -> Bool {
+        switch engine {
+        case .parakeet: return ParakeetEngine.isInstalled()
+        case .nemotron: return NemotronEngine.isInstalled()
+        case .orukeet:  return OrukeetEngine.isInstalled()
+        }
+    }
+
     private enum ActiveEngine { case parakeet, nemotron, orukeet, none }
 
     private enum EnginePlan {

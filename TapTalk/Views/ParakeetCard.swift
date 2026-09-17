@@ -27,7 +27,7 @@ final class ParakeetDownloadManager: ObservableObject {
                 }
                 self.downloading = false
                 self.installed = true
-                AppController.shared.refresh()
+                AppController.shared.adoptDownloadedEngine(.parakeet)
             } catch {
                 self.downloading = false
                 self.installed = ParakeetEngine.isInstalled()
@@ -112,12 +112,12 @@ struct ParakeetCard: View {
                 Text(LocalEngine.parakeet.displayName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppTheme.primary)
-                Text("Optimized")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.white)
+                Text("Fast")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(AppTheme.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2.5)
-                    .background(AppTheme.accent)
+                    .background(AppTheme.divider)
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                 Spacer()
                 Text("~490 MB")
