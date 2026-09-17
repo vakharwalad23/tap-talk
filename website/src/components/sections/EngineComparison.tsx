@@ -77,10 +77,12 @@ export function EngineComparison() {
 								return (
 									<tr key={row.label}>
 										<th scope="row" className={styles.metric}>
-											<span>{row.label}</span>
-											{row.note ? (
-												<span className={styles.note}>{row.note}</span>
-											) : null}
+											<span className={styles.metricInner}>
+												<span>{row.label}</span>
+												{row.note ? (
+													<span className={styles.note}>{row.note}</span>
+												) : null}
+											</span>
 										</th>
 										<td
 											className={cx(

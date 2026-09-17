@@ -48,9 +48,9 @@ export const engineComparison: EngineComparison = {
 		},
 		{
 			label: "Speed (key-up-to-paste)",
-			orukeet: "~215 ms",
+			orukeet: "~207 ms",
 			parakeet: "~215 ms",
-			lead: "tie",
+			lead: "orukeet",
 			note: "Same speed",
 		},
 		{

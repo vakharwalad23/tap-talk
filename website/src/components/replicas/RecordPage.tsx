@@ -36,7 +36,7 @@ export function RecordPage() {
 					</span>
 					<span>
 						<Icon name="timer" size={10} />
-						122ms
+						112ms
 					</span>
 					<span>
 						<Icon name="waveform" size={10} />

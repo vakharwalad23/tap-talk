@@ -38,7 +38,7 @@ export const setupSteps: readonly SetupStep[] = [
 		body: "Open Intelligence, enable AI rewriting, pick Local, and Download the on-device model (Qwen 2.5, about 1.06 GB, plus a small llama.cpp server fetched on first use). Turn on the modes you want and enable the Smart hotkey (default Left Option). Now hold the Smart key to transcribe and rewrite. Prefer your own model? Choose Custom Endpoint and point it at Ollama, LM Studio, or OpenAI.",
 	},
 	{
-		title: "Turn on Live typing",
+		title: "Turn on Live typing (coming soon)",
 		optional: true,
 		body: "For words that appear as you speak, keep Parakeet selected, install the Live typing add-on from Models, and turn on the toggle in Settings.",
 	},

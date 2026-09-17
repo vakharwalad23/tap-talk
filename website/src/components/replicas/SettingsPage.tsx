@@ -43,7 +43,8 @@ export function SettingsPage() {
 					<div className={app.divider} />
 					<div className={app.label}>Local model</div>
 					<div className={app.tiles}>
-						<Tile title="Parakeet TDT" sub="English + 24 European" active />
+						<Tile title="Orukeet" sub="English + 24 European" active />
+						<Tile title="Parakeet TDT" sub="English + 24 European" />
 						<Tile title="Nemotron 3.5" sub="Hindi + 100 languages" />
 					</div>
 					<div className={app.divider} />
