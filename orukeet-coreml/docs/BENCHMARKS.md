@@ -24,8 +24,9 @@ TapTalk uses. Run it with `make bench`; see [RUNNING.md](RUNNING.md). Results ar
 ## Caveats
 
 - Encoder precision: reports pair Orukeet float32 or int8 against Parakeet int8. WER is close either
-  way; latency is only comparable in the int8 pairing, and even there Orukeet runs somewhat slower
-  because our int8 encoder is less compressed than FluidInference's.
+  way; latency is only comparable in the int8 pairing, and even there this earlier int8 conversion of
+  Orukeet runs somewhat slower because its int8 encoder is less compressed than FluidInference's. The
+  shipped optimized greedy build (Oruk-AI/orukeet#6) closes that gap.
 - Orukeet emits one benign Core ML shape-inference warning (`ios17.slice_by_index`) at setup. It does
   not affect output and does not occur for Parakeet.
 - Number normalization is English only; other languages get lowercase and punctuation stripping.
