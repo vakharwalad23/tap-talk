@@ -127,7 +127,7 @@ struct ParakeetCard: View {
             }
 
             HStack(alignment: .center) {
-                Text("NVIDIA Parakeet TDT 0.6B v3. The fastest option for English and European languages. Adds punctuation for you.")
+                Text("NVIDIA Parakeet TDT 0.6B v3. Fast English and European dictation. Adds punctuation for you.")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
