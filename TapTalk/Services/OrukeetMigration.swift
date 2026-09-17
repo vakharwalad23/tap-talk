@@ -73,16 +73,20 @@ final class OrukeetMigration: ObservableObject {
         guard OrukeetEngine.isInstalled() else { return }
         switch settings.orukeetMigrationState {
         case .pending, .dismissed:
-            // Existing (non-live-typing) user upgraded: switch the active engine to Orukeet.
-            // Parakeet is kept installed as a fallback - nothing is deleted.
-            settings.localEngine = .orukeet
+            // A user who set up live typing (the EOU add-on) since the prompt appeared must
+            // not be auto-switched off Parakeet - Orukeet cannot stream. Keep their engine;
+            // Orukeet is installed and selectable manually.
+            if !EouStreamingEngine.isInstalled() {
+                settings.localEngine = .orukeet
+            }
             settings.orukeetMigrationState = .done
             showBanner = false
-            AppController.shared.refresh()
         case .notApplicable, .done, .unevaluated:
-            // New user, live-typing user, or already switched: leave the setup intact.
             break
         }
+        // A newly-installed Orukeet must be reconciled as the active engine regardless of
+        // which branch ran; the generation guard makes a redundant reload a no-op.
+        AppController.shared.refresh()
     }
 }
 

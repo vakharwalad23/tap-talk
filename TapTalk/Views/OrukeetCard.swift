@@ -88,14 +88,17 @@ final class OrukeetInstaller: ObservableObject {
         do {
             if !OrukeetEngine.isDownloaded() {
                 try await OrukeetEngine.download { p in
-                    Task { @MainActor in self.status = .downloading(p) }
+                    Task { @MainActor in
+                        // Unstructured Tasks can deliver out of order; never show progress going backward.
+                        if case .downloading(let current) = self.status, p < current { return }
+                        self.status = .downloading(p)
+                    }
                 }
             }
             status = .compiling
             try await Task.detached(priority: .userInitiated) { try OrukeetEngine.compile() }.value
             status = .ready
             OrukeetMigration.shared.completeIfEligible()
-            AppController.shared.refresh()
         } catch is CancellationError {
             status = OrukeetEngine.isInstalled() ? .ready : .idle
         } catch let error as URLError where error.code == .cancelled {

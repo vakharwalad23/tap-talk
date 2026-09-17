@@ -25,6 +25,8 @@ targets:
         excludes:
           - "Generated/TapTalkCoreFFI.h"
           - "Generated/TapTalkCoreFFI.modulemap"
+          # Local package compiled via the packages: dependency below; exclude its dir so
+          # SwiftPM .build output inside it is not swept into the app target (duplicate tasks).
           - "Vendor/OrukeetCoreML"
     settings:
       base:

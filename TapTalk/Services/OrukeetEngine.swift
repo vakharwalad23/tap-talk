@@ -148,6 +148,12 @@ actor OrukeetEngine {
         guard Self.isInstalled() else { throw EngineError.notInstalled }
         let engine = OrukeetCoreML.OrukeetEngine(modelDirectory: Self.compiledDir())
         try await engine.ensureLoaded()
+        // Actors are reentrant across the await above: if a concurrent call already loaded,
+        // free this duplicate rather than leaving a second resident model to ARC.
+        guard inner == nil else {
+            await engine.unload()
+            return
+        }
         inner = engine
     }
 
@@ -165,10 +171,10 @@ actor OrukeetEngine {
         try await ensureLoaded()
         guard let inner else { throw EngineError.notInstalled }
         let out = try await inner.transcribe(samples: samples)
-        return Output(
-            text: out.text,
-            processingMs: UInt64(max(0, out.processingMs))
-        )
+        // Guard the Double->UInt64 conversion: a non-finite or absurd interval must not trap.
+        let ms = out.processingMs
+        let safeMs: UInt64 = (ms.isFinite && ms > 0) ? UInt64(min(ms, 1e15)) : 0
+        return Output(text: out.text, processingMs: safeMs)
     }
 
     // MARK: Helpers
