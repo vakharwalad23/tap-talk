@@ -10,6 +10,7 @@ matters legally.
 | Model | Role | Size | Runtime | License |
 |---|---|---|---|---|
 | **NVIDIA Parakeet TDT 0.6B v3** | Default ASR - English + 24 European | ~490 MB | Core ML / ANE via FluidAudio | CC-BY-4.0 |
+| **Orukeet r3** | Default ASR for new installs - English + 24 European | ~467 MB | Core ML / ANE, 6-bit LUT/FP16 greedy, compiled on device | CC-BY-SA-4.0 |
 | **NVIDIA Nemotron 3.5 ASR Multilingual 0.6B** | ASR - Hindi + 100 languages | ~640 MB | Core ML / ANE via FluidAudio | OpenMDW-1.1 |
 | **NVIDIA Parakeet Realtime EOU 120M** | Live typing (optional) | ~440 MB | Core ML / ANE via FluidAudio | NVIDIA Open Model License |
 | **Qwen 2.5 1.5B Instruct (GGUF q4_k_m)** | Smart Mode rewrite | 1.06 GB | llama.cpp, pinned release `b10107` | Apache-2.0 |
@@ -73,13 +74,23 @@ not speed.
 and `mitinga` for meeting. It destroys exactly the English loanwords that make code-switched text
 readable.
 
-## Orukeet, evaluated
+## Orukeet, shipped as the default English/European engine
 
 Orukeet is Parakeet TDT 0.6B v3 with frozen Gabor kernels replacing half the encoder filters - same
 architecture, TDT decoder, and tokenizer (vocabulary byte-identical), the same 25 European languages,
 no Hindi. It was converted to the FluidAudio Core ML layout and benchmarked head to head against
 Parakeet on FLEURS. Tooling and the four reports live in [`../orukeet-coreml/`](../orukeet-coreml/)
 (`bench/reports/`); model artifacts are gitignored.
+
+Orukeet now ships as a real engine, not just an evaluation: greedy decode, 6-bit LUT/FP16 Core ML,
+downloaded from `oruk/orukeet` and compiled on device (Preprocessor, Encoder, Decoder,
+JointDecisionv3 to `.mlmodelc`) on first install. It is the default local engine for brand-new
+installs. Existing users on Parakeet are shown a dismissible upgrade banner recommending the
+switch; accepting it installs Orukeet alongside Parakeet and switches the active engine, but
+never removes Parakeet. Parakeet is always retained - it remains the fallback and is the only
+engine Live Typing (Realtime EOU) can drive, since Orukeet has no streaming variant. Users who
+already have live typing enabled are not offered the switch, precisely because it would cost
+them that feature. Nothing already installed is ever deleted by the upgrade.
 
 - Full FLEURS (all 25 languages, 20,146 clips): Orukeet lowers pooled WER from 13.98% to 11.80%
   (int8), a 15.6% relative reduction, and wins WER on 23 of 25 languages - reproducing the paper's
@@ -88,12 +99,17 @@ Parakeet on FLEURS. Tooling and the four reports live in [`../orukeet-coreml/`](
 - English (647 clips): 5.59% to 5.23% WER. Precision (float32 vs int8) is negligible throughout.
 - Absolute WERs run higher than the paper's (lighter, English-only number normalization and Core ML
   int8 decoding versus the paper's NeMo pipeline); the relative result holds.
-- Latency runs ~14 ms slower per clip, a conversion artifact (our int8 encoder is less compressed than
-  FluidInference's), not an architecture difference.
+- Latency runs ~14 ms slower per clip in this int8 benchmark harness, a conversion artifact (our int8
+  encoder is less compressed than FluidInference's), not an architecture difference. The shipped
+  build uses 6-bit LUT/FP16 rather than int8, and its on-device key-up-to-paste latency against
+  Parakeet has not yet been measured, so the app makes no speed claim - only the accuracy result
+  above (see `performance.md`).
 - An early 6-language, 60-clip sample looked tied; that sample missed the higher-error languages where
   Orukeet gains most. The full run above is definitive.
 
-License is CC-BY-SA-4.0 (ShareAlike) - a new class here; a shipped Core ML conversion would inherit it.
+License is CC-BY-SA-4.0 (ShareAlike) - the first copyleft license in this stack. See
+[`../MODEL-LICENSES.md`](../MODEL-LICENSES.md) for what that requires in practice now that the
+conversion is shipped rather than evaluated.
 
 ## Adding or changing a model
 

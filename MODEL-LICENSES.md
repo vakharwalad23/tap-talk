@@ -11,6 +11,7 @@ auditable rather than only in prose. `README.md` carries the user-facing attribu
 | Model | Source | License | Role |
 |---|---|---|---|
 | Parakeet TDT 0.6B v3 | `FluidInference/parakeet-tdt-0.6b-v3-coreml` (NVIDIA upstream) | CC-BY-4.0 | Default engine - English + European |
+| Orukeet r3 (Core ML greedy) | `oruk/orukeet` @ `coreml-taptalk-preview-20260915` (Parakeet TDT 0.6B v3 fine-tune) | CC-BY-SA-4.0 | Default engine - English + European |
 | Nemotron 3.5 ASR Streaming Multilingual 0.6B | `FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML` (NVIDIA upstream) | OpenMDW-1.1 | Multilingual engine - Hindi and beyond |
 | Parakeet Realtime EOU 120M | `FluidInference/parakeet-realtime-eou-120m-coreml` (NVIDIA upstream) | NVIDIA Open Model License | Optional live-typing add-on |
 | Qwen 2.5 1.5B Instruct (GGUF) | `Qwen/Qwen2.5-1.5B-Instruct-GGUF` | Apache-2.0 | Smart Mode rewrite |
@@ -22,6 +23,18 @@ Runtime code: FluidAudio (Apache-2.0), llama.cpp (MIT), TapTalk itself (MIT).
 **CC-BY-4.0** (Parakeet) - attribution: creator, copyright notice, license notice, warranty
 disclaimer, a URI, and an indication of modification. Discharged by the attribution section in
 `README.md`. Conditions attach to distribution of the material; TapTalk distributes none.
+
+**CC-BY-SA-4.0** (Orukeet r3) - the first copyleft license in this stack. ShareAlike
+attaches to the weights and their adaptations, not to independently authored MIT app code
+merely aggregated with them, so the TapTalk binary stays MIT. TapTalk distributes none of
+the material: the bundle downloads at runtime directly from the publisher and the on-device
+compiled cache is a local, non-redistributed adaptation, so no ShareAlike distribution
+obligation is triggered. Attribution requirements (NVIDIA Parakeet, Fluid Inference, and
+Orukeet; indication of modification) are carried by LICENSE-WEIGHTS and NOTICE inside the
+downloaded bundle, which the installer preserves in the cache. If TapTalk ever bundles,
+mirrors, or proxies the weights, this changes and the full CC-BY-SA text must travel with
+them. Unlike FluidAudio's main-pinned downloads, our own downloader revision-pins the
+bundle.
 
 **OpenMDW-1.1** (Nemotron multilingual) - one affirmative duty: *"If you distribute any portion
 of the Model Materials, you shall retain in your distribution (1) a copy of this agreement, and

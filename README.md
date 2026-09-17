@@ -151,6 +151,7 @@ When you press the hotkey, TapTalk captures audio from your default input device
 TapTalk stands on excellent open work. Model weights are downloaded at runtime under their own licenses - full terms and obligations are recorded in [MODEL-LICENSES.md](MODEL-LICENSES.md):
 
 - **NVIDIA Parakeet TDT 0.6B v3** - weights under CC-BY-4.0 (attribution: NVIDIA); run via [FluidAudio](https://github.com/FluidInference/FluidAudio) (Apache-2.0).
+- **Orukeet r3** - the default English/European engine offered as a recommended upgrade to existing Parakeet users (Parakeet is kept, never removed); a Parakeet TDT 0.6B v3 fine-tune converted to a 6-bit LUT / FP16 Core ML greedy pipeline, under CC-BY-SA-4.0 (attribution: NVIDIA Parakeet TDT v3, Fluid Inference conversion research, Orukeet r3 weights, Nathan Roll / Oruk-AI; indication of modification per NOTICE in the model bundle).
 - **NVIDIA Nemotron 3.5 ASR Streaming Multilingual 0.6B** - the multilingual engine, under the OpenMDW-1.1 license (attribution: NVIDIA); Core ML conversion from `FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML`.
 - **NVIDIA Parakeet Realtime EOU 120M** - the optional Live typing add-on, under the NVIDIA Open Model License; Core ML conversion from `FluidInference/parakeet-realtime-eou-120m-coreml`.
 - **Qwen 2.5 1.5B Instruct** - Smart Mode LLM, Apache-2.0; run via llama.cpp.
