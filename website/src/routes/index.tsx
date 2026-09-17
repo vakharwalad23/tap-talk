@@ -3,6 +3,7 @@ import { type ReactNode, Suspense } from "react";
 import { useReveal } from "#/components/interactive/useReveal";
 import { AppReplicas } from "#/components/replicas/AppReplicas";
 import { Comparison } from "#/components/sections/Comparison";
+import { EngineComparison } from "#/components/sections/EngineComparison";
 import { Faq } from "#/components/sections/Faq";
 import { Features } from "#/components/sections/Features";
 import { FinalCta } from "#/components/sections/FinalCta";
@@ -36,6 +37,7 @@ const sections = [
 	PillShowcase,
 	Features,
 	Speed,
+	EngineComparison,
 	Intelligence,
 	Multilingual,
 	WorksEverywhere,
