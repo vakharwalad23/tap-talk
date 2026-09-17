@@ -6,6 +6,8 @@ export interface LogoEntry {
 	readonly role: string;
 	readonly url: string;
 	readonly logo?: LogoName;
+	// Custom brand mark that is not a single-path simple-icons glyph (e.g. Orukeet).
+	readonly mark?: "orukeet";
 	// Fallback glyph for projects without a simple-icons mark.
 	readonly icon?: IconName;
 	readonly license?: string;
@@ -58,8 +60,15 @@ export const builtWith: readonly LogoEntry[] = [
 
 export const models: readonly LogoEntry[] = [
 	{
-		name: "NVIDIA Parakeet TDT 0.6B v3",
+		name: "Orukeet r3",
 		role: "default speech recognition, English and European",
+		url: "https://huggingface.co/oruk/orukeet",
+		mark: "orukeet",
+		license: "CC-BY-SA-4.0",
+	},
+	{
+		name: "NVIDIA Parakeet TDT 0.6B v3",
+		role: "English and European, and the base for live typing",
 		url: "https://huggingface.co/FluidInference/parakeet-tdt-0.6b-v3-coreml",
 		logo: "nvidia",
 		license: "CC-BY-4.0",

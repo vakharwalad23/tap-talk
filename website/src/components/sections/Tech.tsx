@@ -1,6 +1,7 @@
 import type { CSSVars } from "#/components/ui/cx";
 import { Icon } from "#/components/ui/Icon";
 import { Logo } from "#/components/ui/Logo";
+import { OrukeetMark } from "#/components/ui/OrukeetMark";
 import { SectionHeading } from "#/components/ui/SectionHeading";
 import { tech } from "#/content/community";
 import {
@@ -10,6 +11,16 @@ import {
 	models,
 } from "#/content/logos";
 import styles from "./Tech.module.css";
+
+function LogoGlyph({ entry }: { readonly entry: LogoEntry }) {
+	if (entry.mark) {
+		return <OrukeetMark size={22} label={entry.name} />;
+	}
+	if (entry.logo) {
+		return <Logo name={entry.logo} size={22} label={entry.name} />;
+	}
+	return <Icon name={entry.icon ?? "chip"} size={22} />;
+}
 
 function LogoCard({ entry }: { readonly entry: LogoEntry }) {
 	return (
@@ -21,11 +32,7 @@ function LogoCard({ entry }: { readonly entry: LogoEntry }) {
 				className={styles.logo}
 			>
 				<span className={styles.mark}>
-					{entry.logo ? (
-						<Logo name={entry.logo} size={22} label={entry.name} />
-					) : (
-						<Icon name={entry.icon ?? "chip"} size={22} />
-					)}
+					<LogoGlyph entry={entry} />
 				</span>
 				<span className={styles.logoText}>
 					<strong>{entry.name}</strong>
