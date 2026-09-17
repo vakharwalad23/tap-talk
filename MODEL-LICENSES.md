@@ -10,7 +10,7 @@ auditable rather than only in prose. `README.md` carries the user-facing attribu
 
 | Model | Source | License | Role |
 |---|---|---|---|
-| Parakeet TDT 0.6B v3 | `FluidInference/parakeet-tdt-0.6b-v3-coreml` (NVIDIA upstream) | CC-BY-4.0 | Default engine - English + European |
+| Parakeet TDT 0.6B v3 | `FluidInference/parakeet-tdt-0.6b-v3-coreml` (NVIDIA upstream) | CC-BY-4.0 | Fallback / live-typing base - English + European |
 | Orukeet r3 (Core ML greedy) | `oruk/orukeet` @ `coreml-taptalk-preview-20260915` (Parakeet TDT 0.6B v3 fine-tune) | CC-BY-SA-4.0 | Default engine - English + European |
 | Nemotron 3.5 ASR Streaming Multilingual 0.6B | `FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML` (NVIDIA upstream) | OpenMDW-1.1 | Multilingual engine - Hindi and beyond |
 | Parakeet Realtime EOU 120M | `FluidInference/parakeet-realtime-eou-120m-coreml` (NVIDIA upstream) | NVIDIA Open Model License | Optional live-typing add-on |

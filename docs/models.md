@@ -103,7 +103,7 @@ them that feature. Nothing already installed is ever deleted by the upgrade.
   encoder is less compressed than FluidInference's), not an architecture difference. The shipped
   build uses 6-bit LUT/FP16 rather than int8, and its on-device key-up-to-paste latency against
   Parakeet has not yet been measured, so the app makes no speed claim - only the accuracy result
-  above (see `performance.md`).
+  above (see [`../.claude/rules/performance.md`](../.claude/rules/performance.md)).
 - An early 6-language, 60-clip sample looked tied; that sample missed the higher-error languages where
   Orukeet gains most. The full run above is definitive.
 
