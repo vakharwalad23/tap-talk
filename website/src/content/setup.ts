@@ -21,12 +21,12 @@ export const setupSteps: readonly SetupStep[] = [
 	},
 	{
 		title: "Download a model",
-		body: "Go to the Models tab. Tap Download on Parakeet (about 490 MB) for English and European, or Nemotron (about 640 MB) for Hindi and more. Downloads land in Application Support and keep going even if you navigate away. The Record button stays disabled until a model is ready. Nothing is bundled.",
+		body: "Go to the Models tab. Tap Download on Orukeet (about 467 MB, the recommended default for English and European), Parakeet (about 490 MB), or Nemotron (about 640 MB) for Hindi and more. The model you download is selected as your engine automatically, so you can dictate right away; switch between installed engines any time in Settings. Downloads land in Application Support and keep going even if you navigate away. Nothing is bundled.",
 	},
 	{
 		title: "Grant two permissions",
 		body: "On first use TapTalk asks for Microphone (to hear you) and Accessibility (to detect the global hotkey and paste). That is it. No full-disk access, no network permission for on-device use.",
-		note: "If the hotkey does not fire right after you grant Accessibility, quit and reopen once.",
+		note: "If the hotkey does not fire right after you grant Accessibility, quit and reopen once. TapTalk is not notarized yet, so a new version can look like a different app to macOS and may ask for these permissions again. If the hotkey stays dead after an update, remove the old TapTalk entry under System Settings, Privacy and Security, Accessibility, relaunch TapTalk, and grant it again.",
 	},
 	{
 		title: "Dictate",

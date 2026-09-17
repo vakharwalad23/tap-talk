@@ -30,7 +30,8 @@ export function ModelsPage() {
 					<div className={app.row}>
 						<span className={styles.nameRow}>
 							<span className={styles.name}>Orukeet</span>
-							<span className={app.badge}>More accurate</span>
+							<span className={app.badgeGood}>More accurate</span>
+							<span className={app.badgeMuted}>Fast</span>
 						</span>
 						<span className={app.size}>~467 MB</span>
 					</div>
@@ -47,7 +48,7 @@ export function ModelsPage() {
 					<div className={app.row}>
 						<span className={styles.nameRow}>
 							<span className={styles.name}>Parakeet TDT</span>
-							<span className={app.badge}>Optimized</span>
+							<span className={app.badgeMuted}>Fast</span>
 						</span>
 						<span className={app.size}>~490 MB</span>
 					</div>
