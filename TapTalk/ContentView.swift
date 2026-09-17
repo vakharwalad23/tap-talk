@@ -10,11 +10,11 @@ enum NavItem: String, CaseIterable {
 }
 
 struct ContentView: View {
-    @State private var selection: NavItem = .record
+    @ObservedObject private var nav = AppNavigation.shared
 
     var body: some View {
         HStack(spacing: 0) {
-            SidebarView(selection: $selection)
+            SidebarView(selection: $nav.selection)
             Divider()
                 .background(AppTheme.divider)
             content
@@ -27,19 +27,13 @@ struct ContentView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch selection {
-        case .record:
-            RecordView()
-        case .models:
-            ModelsPage()
-        case .settings:
-            SettingsView()
-        case .intelligence:
-            IntelligenceView()
-        case .privacy:
-            PrivacyView()
-        case .about:
-            AboutView()
+        switch nav.selection {
+        case .record:       RecordView()
+        case .models:       ModelsPage()
+        case .settings:     SettingsView()
+        case .intelligence: IntelligenceView()
+        case .privacy:      PrivacyView()
+        case .about:        AboutView()
         }
     }
 

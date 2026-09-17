@@ -13,6 +13,7 @@ final class AppController: ObservableObject {
     private(set) lazy var recorder: Recorder = Recorder()
     let parakeet    = ParakeetEngine()
     let nemotron    = NemotronEngine()
+    let orukeet     = OrukeetEngine()
     let manager:      ModelManager
 
     @Published var state = RecordingState()
@@ -79,6 +80,7 @@ final class AppController: ObservableObject {
         sweepDownloadResidue()
         reconcileStreamingFlag()
         warmUpStreamingEngineIfNeeded()
+        MainActor.assumeIsolated { OrukeetMigration.shared.evaluate() }
         refresh()
         FloatingPillController.shared.hide()
         resolveMicThenSetupHotkey()
@@ -123,6 +125,7 @@ final class AppController: ObservableObject {
         Task.detached {
             ParakeetEngine.sweepOrphans()
             NemotronEngine.sweepOrphans()
+            OrukeetEngine.sweepOrphans()
             EouStreamingEngine.sweepOrphans()
             AppContextService.warmUp()
         }
@@ -259,12 +262,13 @@ final class AppController: ObservableObject {
         loadActiveEngine()
     }
 
-    private enum ActiveEngine { case parakeet, nemotron, none }
+    private enum ActiveEngine { case parakeet, nemotron, orukeet, none }
 
     private enum EnginePlan {
         case cloud
         case parakeet
         case nemotron
+        case orukeet
         case unavailable(status: String)
     }
 
@@ -278,6 +282,7 @@ final class AppController: ObservableObject {
         case .cloud:              state.setModel(.ready);   state.status = "Cloud (OpenAI)"
         case .parakeet:           state.setModel(.loading); state.status = "Loading \(LocalEngine.parakeet.displayName)..."
         case .nemotron:           state.setModel(.loading); state.status = "Loading \(LocalEngine.nemotron.displayName)..."
+        case .orukeet:            state.setModel(.loading); state.status = "Loading \(LocalEngine.orukeet.displayName)..."
         case .unavailable(let s): state.setModel(.none);    state.status = s
         }
 
@@ -302,6 +307,10 @@ final class AppController: ObservableObject {
             return NemotronEngine.isInstalled()
                 ? .nemotron
                 : .unavailable(status: "\(LocalEngine.nemotron.displayName) not installed - download it in Models")
+        case .orukeet:
+            return OrukeetEngine.isInstalled()
+                ? .orukeet
+                : .unavailable(status: "\(LocalEngine.orukeet.displayName) not installed - download it in Models")
         }
     }
 
@@ -309,6 +318,7 @@ final class AppController: ObservableObject {
         switch plan {
         case .parakeet:            await releaseEngines(keep: .parakeet)
         case .nemotron:            await releaseEngines(keep: .nemotron)
+        case .orukeet:             await releaseEngines(keep: .orukeet)
         case .cloud, .unavailable: await releaseEngines(keep: .none)
         }
         guard await isCurrentGeneration(gen) else { return }
@@ -330,6 +340,13 @@ final class AppController: ObservableObject {
             } catch {
                 await finishLoad(gen, model: .none, status: "\(LocalEngine.nemotron.displayName) failed: \(error.localizedDescription)")
             }
+        case .orukeet:
+            do {
+                try await orukeet.ensureLoaded()
+                await finishLoad(gen, model: .ready, status: "\(LocalEngine.orukeet.displayName) ready")
+            } catch {
+                await finishLoad(gen, model: .none, status: "\(LocalEngine.orukeet.displayName) failed: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -337,6 +354,7 @@ final class AppController: ObservableObject {
     private func releaseEngines(keep: ActiveEngine) async {
         if keep != .parakeet { await parakeet.unload() }
         if keep != .nemotron { await nemotron.unload() }
+        if keep != .orukeet { await orukeet.unload() }
     }
 
     @MainActor private func isCurrentGeneration(_ gen: Int) -> Bool { engineLoadGeneration == gen }
@@ -659,6 +677,10 @@ final class AppController: ObservableObject {
                 } else if localEngine == .nemotron {
                     let out = try await self.nemotron.transcribe(samples: audio.samples, language: lang)
                     result = TranscriptionResult(text: out.text, language: out.language, durationMs: out.processingMs)
+                } else if localEngine == .orukeet {
+                    let out = try await self.orukeet.transcribe(samples: audio.samples)
+                    // Orukeet auto-detects (EU); do not fabricate a specific language label.
+                    result = TranscriptionResult(text: out.text, language: "auto", durationMs: out.processingMs)
                 } else {
                     let out = try await self.parakeet.transcribe(samples: audio.samples)
                     // Parakeet auto-detects (EU); don't fabricate a specific language label.

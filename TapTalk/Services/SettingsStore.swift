@@ -10,6 +10,7 @@ enum TranscriptionEngine: String {
 enum LocalEngine: String, CaseIterable {
     case parakeet     // FluidAudio / NVIDIA Parakeet (English/EU, punctuation)
     case nemotron     // FluidAudio / NVIDIA Nemotron 3.5 multilingual (Hindi and beyond)
+    case orukeet      // OrukeetCoreML / Orukeet r3 (English/EU, batch, more accurate than Parakeet)
 
     /// Model name, credited rather than described. Both engines are multilingual - they simply
     /// cover different language sets - so "Multilingual" was never a distinguishing label.
@@ -17,6 +18,7 @@ enum LocalEngine: String, CaseIterable {
         switch self {
         case .parakeet: return "Parakeet TDT"
         case .nemotron: return "Nemotron 3.5"
+        case .orukeet:  return "Orukeet"
         }
     }
 
@@ -25,6 +27,7 @@ enum LocalEngine: String, CaseIterable {
         switch self {
         case .parakeet: return "English + 24 European"
         case .nemotron: return "Hindi + 100 languages"
+        case .orukeet:  return "English + 24 European"
         }
     }
 
@@ -34,6 +37,7 @@ enum LocalEngine: String, CaseIterable {
         switch self {
         case .parakeet: return false
         case .nemotron: return true
+        case .orukeet:  return false
         }
     }
 
@@ -42,6 +46,7 @@ enum LocalEngine: String, CaseIterable {
         switch self {
         case .parakeet: return "Auto - EU"
         case .nemotron: return "Auto"
+        case .orukeet:  return "Auto - EU"
         }
     }
 
@@ -51,6 +56,7 @@ enum LocalEngine: String, CaseIterable {
         switch self {
         case .parakeet: return true   // Parakeet + EOU realtime endpointing model
         case .nemotron: return false  // batch only here; the EOU add-on is Parakeet-specific
+        case .orukeet:  return false  // no streaming Orukeet; live typing stays on Parakeet + EOU
         }
     }
 
@@ -60,6 +66,7 @@ enum LocalEngine: String, CaseIterable {
         switch self {
         case .parakeet: return []
         case .nemotron: return NemotronEngine.supportedLanguages
+        case .orukeet:  return []
         }
     }
 }
@@ -76,6 +83,15 @@ enum HindiScript: String, CaseIterable {
         case .roman:      return "Roman"
         }
     }
+}
+
+/// One-time Orukeet migration lifecycle for a given user.
+enum OrukeetMigrationState: String {
+    case unevaluated      // not yet resolved on this build
+    case pending          // existing Parakeet-only user, banner shown
+    case dismissed        // user dismissed the banner; upgrade still available in Models
+    case done             // migrated (Parakeet removed where applicable, engine switched)
+    case notApplicable    // new user, or live-typing user we do not push off Parakeet
 }
 
 enum LLMBackend: String {
@@ -121,6 +137,10 @@ final class SettingsStore: ObservableObject {
 
     @Published var localEngine: LocalEngine {
         didSet { UserDefaults.standard.set(localEngine.rawValue, forKey: "localEngine") }
+    }
+
+    @Published var orukeetMigrationState: OrukeetMigrationState {
+        didSet { UserDefaults.standard.set(orukeetMigrationState.rawValue, forKey: "orukeetMigrationState") }
     }
 
     @Published var streamingEnabled: Bool {
@@ -219,6 +239,9 @@ final class SettingsStore: ObservableObject {
 
         let rawSmartCode = UserDefaults.standard.integer(forKey: "smartHotkeyCode")
         smartHotkeyCode = rawSmartCode > 0 ? UInt16(rawSmartCode) : UInt16(0x3A) // kVK_Option
+
+        let rawMigration = UserDefaults.standard.string(forKey: "orukeetMigrationState") ?? "unevaluated"
+        orukeetMigrationState = OrukeetMigrationState(rawValue: rawMigration) ?? .unevaluated
 
         if let data = UserDefaults.standard.data(forKey: "dictionarySegments"),
            let decoded = try? JSONDecoder().decode([DictionarySegment].self, from: data) {

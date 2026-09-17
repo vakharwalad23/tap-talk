@@ -6,9 +6,14 @@ struct RecordView: View {
     // state observed directly - nested ObservableObject changes don't bubble up through ctrl
     @ObservedObject private var state    = AppController.shared.state
     @ObservedObject private var settings = SettingsStore.shared
+    @ObservedObject private var migration = OrukeetMigration.shared
 
     var body: some View {
         VStack(spacing: 0) {
+            if migration.showBanner {
+                MigrationBanner()
+                    .padding(.bottom, 16)
+            }
             HStack(spacing: 8) {
                 modelControl
                 languageControl
@@ -95,6 +100,8 @@ struct RecordView: View {
                 engineChip(LocalEngine.parakeet.displayName, icon: "bolt.fill")
             case .nemotron:
                 engineChip(LocalEngine.nemotron.displayName, icon: "globe")
+            case .orukeet:
+                engineChip(LocalEngine.orukeet.displayName, icon: "waveform")
             }
         } else {
             engineChip("Cloud - \(settings.cloudModel)", icon: "cloud")

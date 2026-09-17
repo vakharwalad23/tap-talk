@@ -153,6 +153,7 @@ struct SettingsView: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(AppTheme.secondary)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: LocalEngine.allCases.count), spacing: 8) {
+                localEngineButton(.orukeet, label: LocalEngine.orukeet.displayName, sub: LocalEngine.orukeet.languageSummary)
                 localEngineButton(.parakeet, label: LocalEngine.parakeet.displayName, sub: LocalEngine.parakeet.languageSummary)
                 localEngineButton(.nemotron, label: LocalEngine.nemotron.displayName, sub: LocalEngine.nemotron.languageSummary)
             }
