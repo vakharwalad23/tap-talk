@@ -3,6 +3,12 @@
 # Single source of truth is project.yml; anything else drifts from the bundle.
 VERSION := $(shell awk -F'"' '/^ *MARKETING_VERSION:/{print $$2; exit}' project.yml)
 
+# Stable local code-signing identity for dev builds so macOS keeps mic + accessibility
+# grants across rebuilds. Ad-hoc "-" changes the code hash each build and resets grants.
+# Override in an untracked Makefile.local:  SIGN_ID = TapTalk Local Signing
+-include Makefile.local
+SIGN_ID ?= -
+
 all: build
 
 rust:
@@ -19,7 +25,8 @@ xcode: bindings
 
 build: xcode
 	xcodebuild -project TapTalk.xcodeproj -scheme TapTalk -configuration Debug \
-		-derivedDataPath build ONLY_ACTIVE_ARCH=YES 2>&1 | tail -20
+		-derivedDataPath build ONLY_ACTIVE_ARCH=YES \
+		CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$(SIGN_ID)" 2>&1 | tail -20
 
 run: build
 	open build/Build/Products/Debug/TapTalk.app

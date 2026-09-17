@@ -70,3 +70,7 @@ dist/
 tmp/
 temp/
 *.tmp
+
+# SDD execution workspace (scratch) + local build override
+.superpowers/
+Makefile.local
