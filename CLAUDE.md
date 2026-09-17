@@ -50,13 +50,15 @@ Coding standards live in `.claude/rules/`:
 - `performance.md` - Key-up-to-paste latency budget, ANE/MLX selection, warm paths
 - `resources.md` - Memory, lifecycle, and concurrency audit required after every change
 - `website.md` - Marketing site only: TanStack Start, strict TypeScript, Biome, Cloudflare deploy
+- `ascii.md` - ASCII-only everywhere, strict and enforced; Devanagari example data the sole exception
 
 ## Key Constraints
 
 - No web tech in the app (no React, Electron, WebView, npm, pnpm) - `website/` is the one exception
 - No Python anywhere
 - ASCII only in code, comments, docs, and UI strings: no em or en dashes, smart quotes, arrows, or
-  ellipsis characters. Devanagari in Hindi examples and demo data is the one exception.
+  ellipsis characters. Devanagari in Hindi examples and demo data is the one exception. Strict and
+  enforced - see `.claude/rules/ascii.md`.
 - No `unwrap()` in Rust outside tests
 - No force-unwrap in Swift outside previews
 - No bundled models - download at runtime to Application Support
