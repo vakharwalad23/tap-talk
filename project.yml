@@ -9,6 +9,8 @@ packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     exactVersion: "0.15.5"
+  OrukeetCoreML:
+    path: TapTalk/Vendor/OrukeetCoreML
 
 targets:
   TapTalk:
@@ -16,11 +18,14 @@ targets:
     platform: macOS
     dependencies:
       - package: FluidAudio
+      - package: OrukeetCoreML
+        product: OrukeetCoreML
     sources:
       - path: TapTalk
         excludes:
           - "Generated/TapTalkCoreFFI.h"
           - "Generated/TapTalkCoreFFI.modulemap"
+          - "Vendor/OrukeetCoreML"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: talk.tap.app
