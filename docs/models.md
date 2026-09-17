@@ -9,7 +9,7 @@ matters legally.
 
 | Model | Role | Size | Runtime | License |
 |---|---|---|---|---|
-| **NVIDIA Parakeet TDT 0.6B v3** | Default ASR - English + 24 European | ~490 MB | Core ML / ANE via FluidAudio | CC-BY-4.0 |
+| **NVIDIA Parakeet TDT 0.6B v3** | Fallback / live-typing base - English + 24 European | ~490 MB | Core ML / ANE via FluidAudio | CC-BY-4.0 |
 | **Orukeet r3** | Default ASR for new installs - English + 24 European | ~467 MB | Core ML / ANE, 6-bit LUT/FP16 greedy, compiled on device | CC-BY-SA-4.0 |
 | **NVIDIA Nemotron 3.5 ASR Multilingual 0.6B** | ASR - Hindi + 100 languages | ~640 MB | Core ML / ANE via FluidAudio | OpenMDW-1.1 |
 | **NVIDIA Parakeet Realtime EOU 120M** | Live typing (optional) | ~440 MB | Core ML / ANE via FluidAudio | NVIDIA Open Model License |

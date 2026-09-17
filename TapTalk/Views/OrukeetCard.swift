@@ -68,14 +68,17 @@ final class OrukeetInstaller: ObservableObject {
         }
     }
 
-    var installed: Bool { if case .ready = status { return true }; return OrukeetEngine.isInstalled() }
     var busy: Bool {
         switch status { case .downloading, .compiling: return true; default: return false }
     }
 
     func install() {
         if busy { return }
-        if OrukeetEngine.isInstalled() { status = .ready; return }
+        if OrukeetEngine.isInstalled() {
+            status = .ready
+            OrukeetMigration.shared.completeIfEligible()
+            return
+        }
         status = .downloading(0)
         task?.cancel()
         task = Task { await run() }

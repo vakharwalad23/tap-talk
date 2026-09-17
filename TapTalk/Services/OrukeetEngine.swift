@@ -189,8 +189,6 @@ actor OrukeetEngine {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
         process.arguments = ["-x", "-k", zip.path, dir.path]
-        let errPipe = Pipe()
-        process.standardError = errPipe
         try process.run()
         process.waitUntilExit()
         guard process.terminationStatus == 0 else { throw EngineError.unzipFailed(process.terminationStatus) }

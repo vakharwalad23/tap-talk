@@ -41,6 +41,12 @@ final class OrukeetMigration: ObservableObject {
         // Recompile a stale/interrupted cache (e.g. after a macOS upgrade) without re-download.
         Task.detached { OrukeetEngine.reconcileCompiledCache() }
 
+        // Self-heal: if a prior upgrade's compile finished out-of-band, finish the switch
+        // instead of showing a banner whose Upgrade button would no-op.
+        if settings.orukeetMigrationState == .pending, OrukeetEngine.isInstalled() {
+            completeIfEligible()
+        }
+
         showBanner = (settings.orukeetMigrationState == .pending)
     }
 
