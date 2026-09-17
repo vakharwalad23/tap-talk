@@ -57,7 +57,7 @@ That's it. No full-disk access, no network entitlement is required for the on-de
 
 ## Transcription engines
 
-TapTalk lets you pick the engine per your needs. All on-device engines run locally; pick one in **Settings -> Local model**.
+TapTalk lets you pick the engine per your needs. All on-device engines run locally. Downloading a model from the Models page selects it as your engine automatically - you only need **Settings -> Local model** to switch between installed engines.
 
 | Engine | Best for | Languages | Download | Runs on |
 |---|---|---|---|---|
@@ -119,6 +119,16 @@ This is Gatekeeper being cautious, not actual corruption. After copying `TapTalk
 ```bash
 xattr -dr com.apple.quarantine "/Applications/TapTalk.app"
 ```
+
+**Hotkey stopped working after updating**
+
+TapTalk is not notarized or signed with a stable identity yet, so a new version can look like a different app to macOS. After an update it may ask for Microphone and Accessibility again, and sometimes a stale entry blocks the hotkey. If push-to-talk does not fire after updating:
+
+1. Open **System Settings -> Privacy & Security -> Accessibility**.
+2. Select the old **TapTalk** entry and remove it with the minus button.
+3. Relaunch TapTalk and grant Accessibility again when prompted.
+
+Do the same under **Privacy & Security -> Microphone** if dictation cannot hear you.
 
 ## Getting Started
 
