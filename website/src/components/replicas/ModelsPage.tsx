@@ -29,6 +29,23 @@ export function ModelsPage() {
 				<div className={app.card}>
 					<div className={app.row}>
 						<span className={styles.nameRow}>
+							<span className={styles.name}>Orukeet</span>
+							<span className={app.badge}>More accurate</span>
+						</span>
+						<span className={app.size}>~467 MB</span>
+					</div>
+					<div className={cx(app.row, styles.descRow)}>
+						<p className={cx(app.hint, styles.desc)}>
+							Oruk r3, the default engine for English and European. A more
+							accurate drop-in for everyday dictation.
+						</p>
+						<span className={app.downloadButton}>Download</span>
+					</div>
+				</div>
+
+				<div className={app.card}>
+					<div className={app.row}>
+						<span className={styles.nameRow}>
 							<span className={styles.name}>Parakeet TDT</span>
 							<span className={app.badge}>Optimized</span>
 						</span>
@@ -36,8 +53,8 @@ export function ModelsPage() {
 					</div>
 					<div className={cx(app.row, styles.descRow)}>
 						<p className={cx(app.hint, styles.desc)}>
-							NVIDIA Parakeet TDT 0.6B v3. The fastest option for English and
-							European languages. Adds punctuation for you.
+							NVIDIA Parakeet TDT 0.6B v3. Fast English and European dictation,
+							and the base for the Live typing add-on. Adds punctuation for you.
 						</p>
 						<Installed />
 					</div>

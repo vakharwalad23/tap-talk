@@ -62,7 +62,7 @@ export const models: readonly LogoEntry[] = [
 	{
 		name: "Orukeet r3",
 		role: "default speech recognition, English and European",
-		url: "https://huggingface.co/oruk/orukeet",
+		url: "https://oruk.ai",
 		mark: "orukeet",
 		license: "CC-BY-SA-4.0",
 	},

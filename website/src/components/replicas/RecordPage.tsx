@@ -11,8 +11,8 @@ export function RecordPage() {
 		<div className={styles.page}>
 			<div className={styles.chips}>
 				<span className={cx(app.chip, styles.engineChip)}>
-					<Icon name="bolt" size={10} />
-					Parakeet TDT
+					<Icon name="waveform" size={10} />
+					Orukeet
 				</span>
 				<span className={cx(app.chip, styles.langChip)}>
 					<Icon name="globe" size={10} />
