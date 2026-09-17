@@ -93,4 +93,4 @@ Allow: /
 User-agent: Diffbot
 Allow: /
 
-Sitemap: https://taptalk.dhruvvakharwala.dev/sitemap.xml
+Sitemap: https://thetaptalk.com/sitemap.xml

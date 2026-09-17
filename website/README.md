@@ -1,6 +1,6 @@
 # TapTalk website
 
-The marketing site for TapTalk, served at https://taptalk.dhruvvakharwala.dev.
+The marketing site for TapTalk, served at https://thetaptalk.com.
 
 TanStack Start in prerender mode: the single route is rendered to static HTML at build time and
 served as a Cloudflare static asset. The Worker only runs for paths that are not assets, so SSR is

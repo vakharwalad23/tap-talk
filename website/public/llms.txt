@@ -21,7 +21,7 @@ TapTalk is a free, open-source, on-device alternative to Wispr Flow (cloud only,
 
 ## Links
 
-- Website: https://taptalk.dhruvvakharwala.dev
+- Website: https://thetaptalk.com
 - Source code: https://github.com/vakharwalad23/tap-talk
 - Releases: https://github.com/vakharwalad23/tap-talk/releases
 - Issues: https://github.com/vakharwalad23/tap-talk/issues

@@ -6,9 +6,9 @@
 
 **Local speech-to-text for macOS. Press a key, speak, paste - your voice never leaves your Mac.**
 
-**Website:** [taptalk.dhruvvakharwala.dev](https://taptalk.dhruvvakharwala.dev)
+**Website:** [thetaptalk.com](https://thetaptalk.com)
 
-[![Website](https://img.shields.io/badge/website-taptalk.dhruvvakharwala.dev-000)](https://taptalk.dhruvvakharwala.dev)
+[![Website](https://img.shields.io/badge/website-thetaptalk.com-000)](https://thetaptalk.com)
 [![Release](https://img.shields.io/github/v/release/vakharwalad23/tap-talk?label=release)](https://github.com/vakharwalad23/tap-talk/releases/latest)
 [![GitHub stars](https://img.shields.io/github/stars/vakharwalad23/tap-talk?logo=github)](https://github.com/vakharwalad23/tap-talk/stargazers)
 [![macOS](https://img.shields.io/badge/macOS-14%2B-000?logo=apple&logoColor=white)](https://www.apple.com/macos/)

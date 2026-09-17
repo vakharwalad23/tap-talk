@@ -4,7 +4,7 @@ const version = "0.4.0";
 
 export const site = {
 	name: "TapTalk",
-	url: "https://taptalk.dhruvvakharwala.dev",
+	url: "https://thetaptalk.com",
 	repoUrl: "https://github.com/vakharwalad23/tap-talk",
 	repoSlug: "vakharwalad23/tap-talk",
 	// GitHub answers this with a 302 to the asset and Content-Disposition: attachment, so the
