@@ -8,6 +8,7 @@
 	// thetaptalk.com is the primary; the old subdomain stays live as an alias.
 	"routes": [
 		{ "pattern": "thetaptalk.com", "custom_domain": true },
+		{ "pattern": "www.thetaptalk.com", "custom_domain": true },
 		{ "pattern": "taptalk.dhruvvakharwala.dev", "custom_domain": true }
 	],
 	// Smart Placement: Cloudflare runs the Worker where it is fastest rather than pinned to the edge.
