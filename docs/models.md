@@ -100,12 +100,13 @@ them that feature. Nothing already installed is ever deleted by the upgrade.
 - Absolute WERs run higher than the paper's (lighter, English-only number normalization and Core ML
   int8 decoding versus the paper's NeMo pipeline); the relative result holds.
 - Latency, measured on Apple M3 Pro (TapTalk Release build, key-up-to-paste via the in-app
-  LatencyTrace): warm key-up-to-paste is a tie at ~215 ms (Orukeet ~216 ms, Parakeet ~212 ms), and
-  the engine-specific recognition step is a touch faster on Orukeet (~112 ms vs Parakeet ~120 ms).
+  LatencyTrace): warm key-up-to-paste is ~207 ms on Orukeet versus ~215 ms on Parakeet, and
+  the engine-specific recognition step is faster on Orukeet (~112 ms vs Parakeet ~120 ms).
   Cold is no worse: Orukeet ~226 ms total / ~104 ms recognition, since the model preloads at app
   launch and carries no cold penalty, while Parakeet's first use after a switch is ~246 ms / ~152 ms
-  (that number includes the one-time model load). The optimized greedy build closes the earlier
-  ~14 ms int8 gap, so the app can now stand on both the accuracy result above and speed parity (see
+  (that number includes the one-time model load). The optimized greedy build closed the earlier
+  ~14 ms int8 gap and now edges ahead, so the app stands on both the accuracy result above and being
+  as fast or a touch faster (see
   [`../.claude/rules/performance.md`](../.claude/rules/performance.md)).
 - An early 6-language, 60-clip sample looked tied; that sample missed the higher-error languages where
   Orukeet gains most. The full run above is definitive.
