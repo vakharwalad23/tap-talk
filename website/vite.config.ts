@@ -3,7 +3,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const siteHost = "https://taptalk.dhruvvakharwala.dev";
+const siteHost = "https://thetaptalk.com";
 
 export default defineConfig({
 	resolve: { tsconfigPaths: true },
