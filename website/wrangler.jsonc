@@ -4,10 +4,14 @@
 	"compatibility_date": "2026-09-06",
 	"compatibility_flags": ["nodejs_compat"],
 	"main": "@tanstack/react-start/server-entry",
-	// Workers custom domain: Cloudflare creates the DNS record and certificate on deploy.
+	// Workers custom domains: Cloudflare creates the DNS record and certificate on deploy.
+	// thetaptalk.com is the primary; the old subdomain stays live as an alias.
 	"routes": [
+		{ "pattern": "thetaptalk.com", "custom_domain": true },
 		{ "pattern": "taptalk.dhruvvakharwala.dev", "custom_domain": true }
 	],
+	// Smart Placement: Cloudflare runs the Worker where it is fastest rather than pinned to the edge.
+	"placement": { "mode": "smart" },
 	// Branch builds get a versioned preview URL without touching the custom domain.
 	"preview_urls": true,
 	// Prerendered pages are served as static assets; the Worker only runs for misses, so
