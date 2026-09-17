@@ -1,6 +1,6 @@
 // Bump on each release. The asset name is fixed by the Makefile (dist/TapTalk-$(VERSION).dmg)
 // and by the Homebrew cask, so this one value keeps the direct download link current.
-const version = "0.3.0";
+const version = "0.4.0";
 
 export const site = {
 	name: "TapTalk",
@@ -16,7 +16,7 @@ export const site = {
 	authorName: "Dhruv Vakharwala",
 	authorUrl: "https://www.dhruvvakharwala.dev",
 	version,
-	lastUpdated: "2026-09-06",
+	lastUpdated: "2026-09-18",
 	title: "TapTalk - Free On-Device Dictation for Mac",
 	// Under 160 characters so search snippets show the whole sentence.
 	description:
