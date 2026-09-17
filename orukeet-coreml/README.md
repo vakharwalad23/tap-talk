@@ -13,6 +13,14 @@ offline build and evaluation tooling; nothing is imported by the app.
 `make bench` builds the Orukeet Core ML bundle, stages both models, transcribes FLEURS through
 FluidAudio, and writes WER and CER reports to `reports/` (generated locally, not committed).
 
+## Upstream conversion and parity benchmark
+
+The Orukeet Core ML build TapTalk ships comes from the model author. Nathan Roll (Oruk, creator of
+Orukeet) produced an official Core ML export and a head-to-head Orukeet vs Parakeet parity
+benchmark, with faster greedy decoding, in
+[Oruk-AI/orukeet#6](https://github.com/Oruk-AI/orukeet/pull/6). This directory is TapTalk's own
+earlier conversion and FLEURS evaluation tooling.
+
 ## Quickstart
 
 Apple Silicon Mac, with `uv`, Xcode command line tools, and `git`.
