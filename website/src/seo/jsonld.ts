@@ -1,5 +1,4 @@
 import { faq } from "#/content/faq";
-import { setupSteps } from "#/content/setup";
 import { site } from "#/content/site";
 
 type JsonLd = Record<string, unknown>;
@@ -36,23 +35,6 @@ function faqPage(): JsonLd {
 	};
 }
 
-function howTo(): JsonLd {
-	return {
-		"@context": "https://schema.org",
-		"@type": "HowTo",
-		name: "How to set up TapTalk on your Mac",
-		description:
-			"Install TapTalk, download an on-device model, grant two permissions, and dictate into any app.",
-		totalTime: "PT2M",
-		step: setupSteps.map((step, index) => ({
-			"@type": "HowToStep",
-			position: index + 1,
-			name: step.optional ? `${step.title} (optional)` : step.title,
-			text: step.note ? `${step.body} ${step.note}` : step.body,
-		})),
-	};
-}
-
 function webSite(): JsonLd {
 	return {
 		"@context": "https://schema.org",
@@ -67,7 +49,7 @@ export function jsonLdScripts(): ReadonlyArray<{
 	type: string;
 	children: string;
 }> {
-	return [softwareApplication(), faqPage(), howTo(), webSite()].map((data) => ({
+	return [softwareApplication(), faqPage(), webSite()].map((data) => ({
 		type: "application/ld+json",
 		children: JSON.stringify(data),
 	}));

@@ -6,10 +6,10 @@
 
 - Price: free. No subscription, no trial, no account, no word limits.
 - License: MIT. Source: https://github.com/vakharwalad23/tap-talk
-- Platform: macOS 14 or later, any Apple Silicon Mac. Newer chips have a faster Neural Engine, so newer Macs are faster. Version 0.3.0.
+- Platform: macOS 14 or later, any Apple Silicon Mac. Newer chips have a faster Neural Engine, so newer Macs are faster. Version 0.4.0.
 - Install: brew install --cask vakharwalad23/tap/taptalk, or the .dmg from GitHub Releases.
 - Privacy: audio is processed in memory on-device and discarded. No telemetry, no analytics, no crash reporting.
-- Speech models (downloaded at runtime, never bundled): NVIDIA Parakeet TDT 0.6B v3 (English and European, auto-detected), NVIDIA Nemotron 3.5 ASR Multilingual 0.6B (Hindi, Marathi, Urdu, Chinese, Japanese and more), NVIDIA Parakeet Realtime EOU 120M (optional live typing).
+- Speech models (downloaded at runtime, never bundled): Orukeet r3 (default for new installs; English and 24 European languages, auto-detected; about 15 percent fewer word errors than Parakeet across 25 FLEURS languages, and as fast on Apple M3 Pro; CC-BY-SA-4.0), NVIDIA Parakeet TDT 0.6B v3 (fallback, and the base for optional live typing; English and European, auto-detected), NVIDIA Nemotron 3.5 ASR Multilingual 0.6B (Hindi, Marathi, Urdu, Chinese, Japanese and more), NVIDIA Parakeet Realtime EOU 120M (optional live typing). Existing Parakeet users get a one-time in-app prompt to upgrade to Orukeet; Parakeet is always kept as the fallback and for live typing.
 - Smart Mode: an optional second hotkey rewrites the transcript with a local LLM (Qwen 2.5 1.5B via llama.cpp) to remove filler, resolve spoken corrections, and match the app being typed into. Custom OpenAI-compatible endpoints (Ollama, LM Studio, OpenAI) are supported.
 - Hinglish: Hindi dictation can be output as Roman-script Hinglish, on-device.
 - Built with SwiftUI and Rust (no Electron). Models are memory-mapped; about 164 MB resident with a model loaded.
@@ -23,6 +23,7 @@ TapTalk is a free, open-source, on-device alternative to Wispr Flow (cloud only,
 
 - Website: https://thetaptalk.com
 - Source code: https://github.com/vakharwalad23/tap-talk
+- Orukeet model (default engine): https://oruk.ai
 - Releases: https://github.com/vakharwalad23/tap-talk/releases
 - Issues: https://github.com/vakharwalad23/tap-talk/issues
 - Model licenses: https://github.com/vakharwalad23/tap-talk/blob/main/MODEL-LICENSES.md

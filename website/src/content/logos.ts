@@ -17,7 +17,7 @@ export const builtWith: readonly LogoEntry[] = [
 	{
 		name: "Rust",
 		role: "the audio core",
-		url: "https://www.rust-lang.org",
+		url: "https://rust-lang.org",
 		logo: "rust",
 	},
 	{
@@ -29,7 +29,7 @@ export const builtWith: readonly LogoEntry[] = [
 	{
 		name: "Apple Silicon and Core ML",
 		role: "Neural Engine inference",
-		url: "https://developer.apple.com/machine-learning/core-ml/",
+		url: "https://developer.apple.com/documentation/coreml/",
 		icon: "chip",
 	},
 	{
@@ -111,7 +111,7 @@ export const siteBuiltWith: readonly LogoEntry[] = [
 	{
 		name: "Cloudflare",
 		role: "",
-		url: "https://workers.cloudflare.com",
+		url: "https://www.cloudflare.com/products/workers/",
 		logo: "cloudflare",
 	},
 ];
