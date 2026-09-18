@@ -1,5 +1,4 @@
 import Foundation
-import CryptoKit
 import OrukeetCoreML
 
 // TapTalk-side Orukeet engine. Owns download, sha256 verification, unzip, and the
@@ -7,11 +6,6 @@ import OrukeetCoreML
 // transcribe. Batch only - Orukeet has no streaming variant, so live typing stays
 // on Parakeet + EOU. Downloaded only on explicit user action from the catalog.
 actor OrukeetEngine {
-    // Our own downloader, so the URL is revision-pinned (unlike FluidAudio's hardcoded main).
-    private static let downloadURLString =
-        "https://huggingface.co/oruk/orukeet/resolve/coreml-taptalk-preview-20260915/coreml/orukeet-r3-coreml-greedy.zip"
-    private static let expectedSHA256 =
-        "beccdc6f18c4b10527a764f6e3ab12e3e11b969220c0cee175b3bb7eaa94290e"
     private static let components = ["Preprocessor", "Encoder", "Decoder", "JointDecisionv3"]
     private static let vocabFile = "parakeet_vocab.json"
 
@@ -34,12 +28,6 @@ actor OrukeetEngine {
 
     // MARK: Paths
 
-    private static func downloadURL() -> URL {
-        guard let url = URL(string: downloadURLString) else {
-            preconditionFailure("Orukeet download URL literal is malformed")
-        }
-        return url
-    }
     private static func rootDir() -> URL {
         URL(fileURLWithPath: AppController.modelsDirectory())
             .appendingPathComponent("Orukeet", isDirectory: true)
@@ -81,8 +69,14 @@ actor OrukeetEngine {
         let tmpZip = rootDir().appendingPathComponent("greedy.zip.partial")
         try? fm.removeItem(at: tmpZip)
         do {
-            try await ZipDownloader.download(from: downloadURL(), to: tmpZip, progress: progress)
-            guard try sha256(of: tmpZip) == expectedSHA256 else { throw EngineError.checksumMismatch }
+            let archive = try await OrukeetDownloadManifest.load()
+            try Task.checkCancellation()
+            try await ZipDownloader.download(
+                from: OrukeetDownloadManifest.url(for: archive.filename), to: tmpZip, progress: progress)
+            try Task.checkCancellation()
+            guard try archive.matches(file: tmpZip) else {
+                throw EngineError.checksumMismatch
+            }
 
             let unzipTmp = rootDir().appendingPathComponent("unzip-tmp", isDirectory: true)
             try? fm.removeItem(at: unzipTmp)
@@ -178,18 +172,6 @@ actor OrukeetEngine {
     }
 
     // MARK: Helpers
-
-    private nonisolated static func sha256(of url: URL) throws -> String {
-        let handle = try FileHandle(forReadingFrom: url)
-        defer { try? handle.close() }
-        var hasher = SHA256()
-        while true {
-            let chunk = try handle.read(upToCount: 1 << 20) ?? Data()
-            if chunk.isEmpty { break }
-            hasher.update(data: chunk)
-        }
-        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
-    }
 
     private nonisolated static func unzip(_ zip: URL, to dir: URL) throws {
         let process = Process()
