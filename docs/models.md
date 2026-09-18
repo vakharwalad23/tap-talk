@@ -5,6 +5,12 @@ publisher, to `~/Library/Application Support/`. Nothing model-shaped is in the a
 or this repository - see [`../MODEL-LICENSES.md`](../MODEL-LICENSES.md) for why that boundary
 matters legally.
 
+Orukeet downloads read `coreml/manifest.json` from the same immutable Hugging Face
+revision as the archive. The installer verifies the selected filename, the
+pinned SHA-256, and the archive's declared byte count before extraction. This
+required integrity request also participates in Hugging Face's normal model
+download accounting. Cached model loads and transcription make no such requests.
+
 ## What runs
 
 | Model | Role | Size | Runtime | License |
