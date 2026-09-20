@@ -1,0 +1,683 @@
+{
+  "nathan/parakeet": {
+    "a": {
+      "words": 1215,
+      "errors": 107,
+      "wer": 0.08806584362139917,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 4
+        },
+        "en": {
+          "words": 155,
+          "errors": 7
+        },
+        "es": {
+          "words": 154,
+          "errors": 5
+        },
+        "fr": {
+          "words": 195,
+          "errors": 15
+        },
+        "it": {
+          "words": 158,
+          "errors": 19
+        },
+        "lv": {
+          "words": 113,
+          "errors": 44
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 6
+        }
+      }
+    },
+    "b": {
+      "words": 1324,
+      "errors": 110,
+      "wer": 0.08308157099697885,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 10
+        },
+        "en": {
+          "words": 183,
+          "errors": 25
+        },
+        "es": {
+          "words": 189,
+          "errors": 4
+        },
+        "fr": {
+          "words": 238,
+          "errors": 25
+        },
+        "it": {
+          "words": 152,
+          "errors": 5
+        },
+        "lv": {
+          "words": 121,
+          "errors": 21
+        },
+        "ru": {
+          "words": 153,
+          "errors": 13
+        },
+        "uk": {
+          "words": 152,
+          "errors": 7
+        }
+      }
+    }
+  },
+  "nathan/baseline": {
+    "a": {
+      "words": 1215,
+      "errors": 99,
+      "wer": 0.08148148148148149,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 4
+        },
+        "es": {
+          "words": 154,
+          "errors": 5
+        },
+        "fr": {
+          "words": 195,
+          "errors": 14
+        },
+        "it": {
+          "words": 158,
+          "errors": 19
+        },
+        "lv": {
+          "words": 113,
+          "errors": 41
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 6
+        }
+      }
+    },
+    "b": {
+      "words": 1323,
+      "errors": 95,
+      "wer": 0.07180650037792895,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 7
+        },
+        "en": {
+          "words": 183,
+          "errors": 25
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 238,
+          "errors": 22
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 12
+        },
+        "ru": {
+          "words": 153,
+          "errors": 14
+        },
+        "uk": {
+          "words": 151,
+          "errors": 4
+        }
+      }
+    }
+  },
+  "nathan/greedy": {
+    "a": {
+      "words": 1215,
+      "errors": 99,
+      "wer": 0.08148148148148149,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 4
+        },
+        "es": {
+          "words": 154,
+          "errors": 5
+        },
+        "fr": {
+          "words": 195,
+          "errors": 14
+        },
+        "it": {
+          "words": 158,
+          "errors": 19
+        },
+        "lv": {
+          "words": 113,
+          "errors": 41
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 6
+        }
+      }
+    },
+    "b": {
+      "words": 1323,
+      "errors": 95,
+      "wer": 0.07180650037792895,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 7
+        },
+        "en": {
+          "words": 183,
+          "errors": 25
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 238,
+          "errors": 22
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 12
+        },
+        "ru": {
+          "words": 153,
+          "errors": 14
+        },
+        "uk": {
+          "words": 151,
+          "errors": 4
+        }
+      }
+    }
+  },
+  "nathan/nemo-fp32": {
+    "a": {
+      "words": 1215,
+      "errors": 92,
+      "wer": 0.0757201646090535,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 5
+        },
+        "es": {
+          "words": 154,
+          "errors": 4
+        },
+        "fr": {
+          "words": 195,
+          "errors": 11
+        },
+        "it": {
+          "words": 158,
+          "errors": 17
+        },
+        "lv": {
+          "words": 113,
+          "errors": 40
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 5
+        }
+      }
+    },
+    "b": {
+      "words": 1323,
+      "errors": 93,
+      "wer": 0.07029478458049887,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 7
+        },
+        "en": {
+          "words": 183,
+          "errors": 24
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 238,
+          "errors": 22
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 14
+        },
+        "ru": {
+          "words": 153,
+          "errors": 11
+        },
+        "uk": {
+          "words": 151,
+          "errors": 4
+        }
+      }
+    }
+  },
+  "orukeet-fp16-greedy": {
+    "a": {
+      "words": 1214,
+      "errors": 91,
+      "wer": 0.07495881383855024,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 5
+        },
+        "es": {
+          "words": 154,
+          "errors": 4
+        },
+        "fr": {
+          "words": 194,
+          "errors": 12
+        },
+        "it": {
+          "words": 158,
+          "errors": 17
+        },
+        "lv": {
+          "words": 113,
+          "errors": 38
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 5
+        }
+      }
+    },
+    "b": {
+      "words": 1322,
+      "errors": 96,
+      "wer": 0.07261724659606657,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 7
+        },
+        "en": {
+          "words": 183,
+          "errors": 24
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 237,
+          "errors": 22
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 16
+        },
+        "ru": {
+          "words": 153,
+          "errors": 12
+        },
+        "uk": {
+          "words": 151,
+          "errors": 4
+        }
+      }
+    }
+  },
+  "orukeet-int8asym-greedy": {
+    "a": {
+      "words": 1214,
+      "errors": 94,
+      "wer": 0.07742998352553541,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 5
+        },
+        "es": {
+          "words": 154,
+          "errors": 4
+        },
+        "fr": {
+          "words": 194,
+          "errors": 12
+        },
+        "it": {
+          "words": 158,
+          "errors": 18
+        },
+        "lv": {
+          "words": 113,
+          "errors": 38
+        },
+        "ru": {
+          "words": 123,
+          "errors": 9
+        },
+        "uk": {
+          "words": 135,
+          "errors": 5
+        }
+      }
+    },
+    "b": {
+      "words": 1322,
+      "errors": 97,
+      "wer": 0.07337367624810892,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 6
+        },
+        "en": {
+          "words": 183,
+          "errors": 24
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 237,
+          "errors": 23
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 17
+        },
+        "ru": {
+          "words": 153,
+          "errors": 12
+        },
+        "uk": {
+          "words": 151,
+          "errors": 4
+        }
+      }
+    }
+  },
+  "orukeet-int8sym-greedy": {
+    "a": {
+      "words": 1215,
+      "errors": 90,
+      "wer": 0.07407407407407407,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 5
+        },
+        "es": {
+          "words": 154,
+          "errors": 4
+        },
+        "fr": {
+          "words": 195,
+          "errors": 11
+        },
+        "it": {
+          "words": 158,
+          "errors": 17
+        },
+        "lv": {
+          "words": 113,
+          "errors": 38
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 5
+        }
+      }
+    },
+    "b": {
+      "words": 1322,
+      "errors": 93,
+      "wer": 0.07034795763993948,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 6
+        },
+        "en": {
+          "words": 183,
+          "errors": 24
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 237,
+          "errors": 21
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 15
+        },
+        "ru": {
+          "words": 153,
+          "errors": 12
+        },
+        "uk": {
+          "words": 151,
+          "errors": 4
+        }
+      }
+    }
+  },
+  "shipped-greedy": {
+    "a": {
+      "words": 1215,
+      "errors": 99,
+      "wer": 0.08148148148148149,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 4
+        },
+        "es": {
+          "words": 154,
+          "errors": 5
+        },
+        "fr": {
+          "words": 195,
+          "errors": 14
+        },
+        "it": {
+          "words": 158,
+          "errors": 19
+        },
+        "lv": {
+          "words": 113,
+          "errors": 41
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 6
+        }
+      }
+    },
+    "b": {
+      "words": 1323,
+      "errors": 95,
+      "wer": 0.07180650037792895,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 7
+        },
+        "en": {
+          "words": 183,
+          "errors": 25
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 238,
+          "errors": 22
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 12
+        },
+        "ru": {
+          "words": 153,
+          "errors": 14
+        },
+        "uk": {
+          "words": 151,
+          "errors": 4
+        }
+      }
+    }
+  },
+  "nathan/orukeet-precision": {
+    "b": {
+      "words": 1322,
+      "errors": 95,
+      "wer": 0.0718608169440242,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 6
+        },
+        "en": {
+          "words": 183,
+          "errors": 26
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 237,
+          "errors": 24
+        },
+        "it": {
+          "words": 152,
+          "errors": 5
+        },
+        "lv": {
+          "words": 121,
+          "errors": 13
+        },
+        "ru": {
+          "words": 153,
+          "errors": 11
+        },
+        "uk": {
+          "words": 151,
+          "errors": 5
+        }
+      }
+    }
+  }
+}
