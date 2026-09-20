@@ -10,11 +10,16 @@ Everything comes from pinned public sources, so the results reproduce on any App
 2. [docs/bench.md](docs/bench.md): the regression corpus, how a bundle is scored, how parity with
    the published numbers was checked.
 3. [docs/bundles.md](docs/bundles.md): exporting the model and building the encoder variants.
-4. [docs/profiling.md](docs/profiling.md): latency tools, what each number means.
-5. [docs/batched-joint.md](docs/batched-joint.md): the K-frame joint experiment.
-6. [docs/results.md](docs/results.md): the measured tables.
-7. [docs/findings.md](docs/findings.md): what the measurements taught us.
-8. [docs/research.md](docs/research.md): the ideas that were considered and where each ended.
+4. [docs/windows.md](docs/windows.md): shorter fixed-window exports, traced encoder shapes and
+   the parity audit against the 15 s baseline.
+5. [docs/profiling.md](docs/profiling.md): latency tools, what each number means.
+6. [docs/warm.md](docs/warm.md): encoder placement pick and first-load cost, what an installer
+   would do with them.
+7. [docs/batched-joint.md](docs/batched-joint.md): the K-frame joint experiment.
+8. [docs/fusion.md](docs/fusion.md): the fused decoder+joint graph, one dispatch per step.
+9. [docs/results.md](docs/results.md): the measured tables.
+10. [docs/findings.md](docs/findings.md): what the measurements taught us.
+11. [docs/research.md](docs/research.md): the ideas that were considered and where each ended.
 
 ## Quickstart
 
