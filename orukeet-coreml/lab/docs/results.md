@@ -94,3 +94,14 @@ against 191 for the same FP16 weights at 15 s, 4 transcripts differ.
 | Encoder load, GPU | 1.9 s |
 | First load after a fresh compile, Neural Engine | 14.8 s |
 | Second load in the same process | 0.09 s |
+
+## Blank penalty, baseline joint, own loop, 128 clips
+
+| Penalty | Errors / words | WER |
+|---|---|---|
+| 0 (identical to greedy) | 194 / 2538 | 7.64 |
+| 0.5 | 194 / 2538 | 7.64 |
+| 1.0 | 199 / 2538 | 7.84 |
+| 1.5 | 200 / 2538 | 7.88 |
+| 2.0 | 201 / 2538 | 7.92 |
+| 3.0 | 208 / 2538 | 8.20 |

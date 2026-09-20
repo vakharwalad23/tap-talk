@@ -37,6 +37,9 @@ What the measurements established, one item each.
 - **Fusing decoder and joint loses in a caching loop.** The loop runs the decoder only on
   emissions (39 per 11 s clip) and the joint on every step (51); the fused graph recomputes the
   LSTM on all 51 steps and costs 5 ms more. Transcripts identical.
+- **A blank penalty does not help here.** With the top-K joint, penalty 0 reproduces greedy exactly;
+  0.5 ties at 194 errors and 1.0 to 3.0 add 5 to 14 errors, all insertions. The model does not
+  under-emit on this corpus.
 - **Per-token cost is what remains in the decode loop.** About 0.23 ms per Core ML call, 85 calls
   per 11 s clip. Fusing decoder and joint halves the calls (FluidInference measured 1.11x); a
   native loop removes dispatch but stays memory-bound. A few milliseconds either way.

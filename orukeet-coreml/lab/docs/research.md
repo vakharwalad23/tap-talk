@@ -33,7 +33,7 @@ How the experiments were chosen. Each line: the question, where the answer came 
 | int8 per-channel encoder instead of the 6-bit palette | Measured 185 vs 194 errors, same latency; full FLEURS is the remaining gate |
 | Nathan's FP16 precision profile | Underpowered on 64 clips; worth scoring on full FLEURS |
 | Beam search | Every published TDT result shows near-zero gain without a language model; dropped |
-| N-gram fusion, phrase boosting, blank penalty | Real gains in the literature; need the blank logit and top-K or full logits, which the batched joint export carries |
+| N-gram fusion, phrase boosting, blank penalty | Blank penalty measured on the top-K joint: 0.5 ties, larger values add errors, closed; fusion and boosting still need a vocabulary test set |
 | Calibration-based palettization | Fallback if the 143 MB of int8 is unacceptable |
 
 ## Streaming
