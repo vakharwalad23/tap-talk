@@ -49,3 +49,16 @@ again in a second model instance (warm), and prints both totals.
 - An installer should pick placement once per machine with logic like `make warm` and persist the
   result, then warm the Neural Engine program once, right after compiling a model, instead of
   paying the first-load cost during the user's first dictation.
+
+## Measured, M3 Pro, macOS 26.6
+
+| Measurement | Value |
+|---|---|
+| Encoder on the Neural Engine, median of 10 | 27.6 ms |
+| Encoder on the GPU, median of 10 | 73.3 ms |
+| Encoder load, Neural Engine (program cached) | 0.2 s |
+| Encoder load, GPU (shader build) | 1.9 s |
+| First load after a fresh compile, Neural Engine, plus one prediction | 14.8 s |
+| Second load in the same process, plus one prediction | 0.09 s |
+
+Pick on this chip: Neural Engine. The 14.8 s is the cost an installer should absorb once.

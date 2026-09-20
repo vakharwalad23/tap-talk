@@ -83,10 +83,14 @@ Exact match at fp32, not merely within tolerance.
 make decode AUDIO=data/fixtures/jfk.wav FUSED=out/fused/decoder_joint_decision_fp16.mlmodelc
 ```
 
-`swift/Sources/ttdecode` already has a `FusedStepper` and a `--fused <model.mlmodelc>` flag built
-to this exact input/output contract. The `decode` Makefile target does not yet forward a `FUSED`
-variable to it, only `JOINT`; it needs a `$(if $(FUSED),--fused "$(FUSED)",)` clause before this
-command exercises the fused graph. Not measured yet.
+`ttdecode --fused` runs the fused graph through the FluidAudio-semantics loop. Corpus: the fp16
+fused graph gives transcripts identical to the shipped Decoder + JointDecisionv3 on all 128 clips
+(the fp32 one differs on 1). JFK 11 s clip, M3 Pro, medians of 20 warm runs, two interleaved pairs:
+
+| Decoder side | Decode time | Calls |
+|---|---|---|
+| separate Decoder + JointDecisionv3 | 20.5 ms | 51 joint + 39 decoder |
+| fused fp16 | 25.5 ms | 51 fused |
 
 A smoke run only, to confirm the graph loads and predicts (`fuse_decoder_joint.py bench
 --build-dir out/fused --shipped-dir models/shipped-greedy --warmup 3 --runs 30`), taken while a
@@ -101,6 +105,8 @@ all        separate 0.591 ms (p95 0.654)   fused 0.568 ms (p95 0.622)   speedup 
 
 ## Verdict
 
-Pending. Parity is exact and the graph runs; the open question is decode-loop latency against
-the shipped bundle's 48.0 ms own-loop baseline (results.md), which needs the `FUSED` wiring in
-the `decode` target and a clean machine to measure on.
+Closed, slower. The loop caches the decoder projection across blank frames, so the separate
+decoder runs only on the 39 emissions while the joint runs 51 times; the fused graph recomputes
+the LSTM on every one of the 51 steps, and that costs more than the dispatch it saves. Fusion
+would only pay in a loop that ran the decoder on every joint step, which neither FluidAudio nor
+this lab does. The graphs and the parity stay for reference.

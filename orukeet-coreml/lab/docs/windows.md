@@ -75,10 +75,38 @@ the 5 s case. Channel-wise argmax over 1024 raw encoder features is also a far m
 metric than the batched-joint audit's decision-head token argmax (docs/batched-joint.md); it is not
 a decoding accuracy number by itself.
 
+## Decode parity and latency
+
+```bash
+make window-compile SECONDS="5 10"                       # out/windows/5s, out/windows/10s (compiled pairs)
+make decode-reg LABEL=own-windows WINDOWS="out/windows/5s out/windows/10s"
+make decode AUDIO=data/fleurs-a/en_us-10233995782544396174.wav WINDOWS="out/windows/5s out/windows/10s"
+```
+
+`ttdecode --window` picks the smallest window whose sample count covers the frame-aligned clip. On
+the 128 sealed clips, 2 ran at 5 s, 55 at 10 s and 71 at 15 s. Against the same FP16 weights at
+15 s (`out/bundles/orukeet-fp16-greedy`), 4 of 128 transcripts differ and the corpus goes from 191
+to 192 errors: a tie. Against the shipped palette bundle, 21 differ, which is the palette-vs-FP16
+difference on the windowed clips, not the window.
+
+Latency, M3 Pro, Neural Engine, medians of 20 warm runs through `ttdecode` (shipped bundle for the
+15 s side, FP16 exports for the windows):
+
+| Clip | Window | Preprocessor | Encoder | Decode | Total |
+|---|---|---|---|---|---|
+| 4.32 s | 15 s | 1.5 | 26.6 | 12.9 | 40.9 |
+| 4.32 s | 5 s | 0.6 | 19.1 | 13.2 | 32.9 |
+| 5.76 s | 15 s | 1.5 | 26.6 | 16.4 | 44.5 |
+| 5.76 s | 10 s | 1.0 | 21.7 | 17.2 | 40.0 |
+| 9.36 s | 15 s | 1.5 | 26.6 | 26.4 | 54.6 |
+| 9.36 s | 10 s | 1.0 | 21.8 | 26.6 | 49.6 |
+
+The encoder does not scale with the window: 63 frames cost 19 ms, 126 cost 22 ms, 188 cost 27 ms,
+so about 17 ms of the encoder is fixed cost per call and the rest is about 0.06 ms per frame.
+
 ## Verdict
 
-Not yet decided. Shapes trace and export cleanly at both windows with no converter changes beyond
-the two documented patches, and the audited encoder features stay close to the 15 s baseline at
-10 s, less so at 5 s. Whether either window is worth shipping depends on latency, not measured
-here: `make decode AUDIO=<clip> DIR=<a bundle built from one of these exports>` with `ttdecode`
-gives the key-up-to-paste number the performance standard requires before any verdict.
+Worth shipping for short dictations: 8 ms saved on clips under 5 s and 5 ms on clips under 10 s,
+with no accuracy change on the corpus. Cost: a second and third encoder on disk (the weights are
+the same 1.1 GB FP16 or 594 MB int8 per copy), unless one encoder can carry several traced shapes;
+that is the next question for the export.

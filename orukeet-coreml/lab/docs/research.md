@@ -22,8 +22,8 @@ How the experiments were chosen. Each line: the question, where the answer came 
 | Batch K encoder frames per joint call | Built and measured slower; TDT already skips blanks |
 | Move the encoder to the GPU | 2.8x slower on M3 Pro, faster on M5-class parts; per chip only |
 | Lower encoder precision for speed | No effect on the Neural Engine, compute-bound; int4 was slower and worse in FluidInference's sweep |
-| Fuse decoder and joint into one graph | FluidInference measured 1.11x; a few milliseconds, not pursued yet |
-| Shorter encoder windows for short dictations | Untested; the export uses fixed shapes, so it needs new exports and a window-aware pipeline |
+| Fuse decoder and joint into one graph | Built and measured 5 ms slower: the loop already skips the decoder on blank steps, the fused graph cannot; closed |
+| Shorter encoder windows for short dictations | Built 5 s and 10 s exports; 8 ms saved under 5 s, 5 ms under 10 s, accuracy unchanged; one encoder with several traced shapes is the open question |
 | `MLOptimizationHints`, `MLState`, W8A8 | FluidAudio measured the hints as a regression; state is tiny here; W8A8 is contested on the Neural Engine |
 
 ## Accuracy ideas
