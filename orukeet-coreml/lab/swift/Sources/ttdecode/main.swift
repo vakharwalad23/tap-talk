@@ -226,10 +226,15 @@ final class SeparateStepper: Stepper {
     var c: MLMultiArray
     var projection: MLMultiArray?
     var frames: FrameSource?
+    let blankPenalty: Float
 
-    init(decoder: MLModel, joint: MLModel) throws {
+    init(decoder: MLModel, joint: MLModel, blankPenalty: Float) throws {
         self.decoder = decoder
         self.joint = joint
+        self.blankPenalty = blankPenalty
+        if blankPenalty > 0, joint.modelDescription.outputDescriptionsByName["top_k_logits"] == nil {
+            fail("--blank-penalty needs a joint with top_k_logits (the baseline profile)")
+        }
         targets = try MLMultiArray(shape: [1, 1], dataType: .int32)
         targetLength = try MLMultiArray(shape: [1], dataType: .int32)
         targetLength[0] = 1
@@ -262,7 +267,37 @@ final class SeparateStepper: Stepper {
         timing.jointCalls += 1
         let output = try joint.prediction(from: MLDictionaryFeatureProvider(dictionary: [
             "encoder_step": encoderStep, "decoder_step": projection]))
-        return readDecision(output)
+        let decision = readDecision(output)
+        if blankPenalty > 0, decision.token == blankId { return penalizeBlank(output, decision) }
+        return decision
+    }
+
+    // Subtracts the penalty from the blank logit and re-picks the token from the top-K list; the
+    // duration bin is kept. Confidence becomes the softmax over the top-K logits.
+    private func penalizeBlank(_ output: MLFeatureProvider, _ decision: Decision) -> Decision {
+        let ids = feature(output, "top_k_ids")
+        let logits = feature(output, "top_k_logits")
+        let n = min(ids.count, logits.count)
+        var blankLogit: Float = -.infinity
+        var bestId = blankId
+        var bestLogit: Float = -.infinity
+        var peak: Float = -.infinity
+        for i in 0..<n {
+            let id = Int(truncating: ids[i])
+            if id > blankId { continue }
+            let logit = logits[i].floatValue
+            peak = max(peak, logit)
+            if id == blankId {
+                blankLogit = logit
+            } else if logit > bestLogit {
+                bestLogit = logit
+                bestId = id
+            }
+        }
+        guard bestId != blankId, bestLogit > blankLogit - blankPenalty else { return decision }
+        var sum: Float = 0
+        for i in 0..<n where Int(truncating: ids[i]) <= blankId { sum += expf(logits[i].floatValue - peak) }
+        return Decision(token: bestId, probability: expf(bestLogit - peak) / sum, durationBin: decision.durationBin)
     }
 
     func emit(_ token: Int, timing: inout Timing) throws {
@@ -446,7 +481,8 @@ final class Pipeline {
     let targetLength: MLMultiArray
     let encoderSteps: MLMultiArray
 
-    init(bundle: URL, windowDirs: [URL], joint jointURL: URL?, fused fusedURL: URL?, encoderUnits: MLComputeUnits) throws {
+    init(bundle: URL, windowDirs: [URL], joint jointURL: URL?, fused fusedURL: URL?, encoderUnits: MLComputeUnits,
+         blankPenalty: Float) throws {
         var loaded = [try Window(dir: bundle, encoderUnits: encoderUnits)]
         for dir in windowDirs { loaded.append(try Window(dir: dir, encoderUnits: encoderUnits)) }
         windows = loaded.sorted { $0.samples < $1.samples }
@@ -464,9 +500,10 @@ final class Pipeline {
             fail("joint model has neither encoder_steps nor encoder_step input")
         }
         if let fusedURL {
+            if blankPenalty > 0 { fail("--blank-penalty is not supported with --fused") }
             stepper = try FusedStepper(model: try loadModel(fusedURL, .cpuOnly))
         } else {
-            stepper = try SeparateStepper(decoder: decoder, joint: joint)
+            stepper = try SeparateStepper(decoder: decoder, joint: joint, blankPenalty: blankPenalty)
         }
         targets = try MLMultiArray(shape: [1, 1], dataType: .int32)
         targetLength = try MLMultiArray(shape: [1], dataType: .int32)
@@ -646,16 +683,17 @@ func units(_ s: String) -> MLComputeUnits {
 }
 
 guard let bundlePath = arg("--bundle") else {
-    fail("usage: ttdecode --bundle <dir> [--window <dir>]... [--fused <model.mlmodelc>] [--joint <batched.mlmodelc>] [--manifest m.json --out hyps.json] [--audio clip.wav --runs N] [--encoder-units ane|gpu|cpu]")
+    fail("usage: ttdecode --bundle <dir> [--window <dir>]... [--fused <model.mlmodelc>] [--joint <batched.mlmodelc>] [--blank-penalty X] [--manifest m.json --out hyps.json] [--audio clip.wav --runs N] [--encoder-units ane|gpu|cpu]")
 }
 let bundle = URL(fileURLWithPath: bundlePath)
 let jointURL = arg("--joint").map { URL(fileURLWithPath: $0) }
 let fusedURL = arg("--fused").map { URL(fileURLWithPath: $0) }
 let windowDirs = args("--window").map { URL(fileURLWithPath: $0) }
+let blankPenalty = Float(arg("--blank-penalty") ?? "0") ?? 0
 let pipeline = try Pipeline(bundle: bundle, windowDirs: windowDirs, joint: jointURL, fused: fusedURL,
-                            encoderUnits: units(arg("--encoder-units") ?? "ane"))
+                            encoderUnits: units(arg("--encoder-units") ?? "ane"), blankPenalty: blankPenalty)
 note("bundle \(bundle.lastPathComponent), windows \(pipeline.windows.map { String(format: "%.0f s", $0.seconds) }.joined(separator: ", ")), "
-     + "decoder \(fusedURL == nil ? "separate" : "fused"), joint \(jointURL?.lastPathComponent ?? "JointDecisionv3.mlmodelc"), K=\(pipeline.k)")
+     + "decoder \(fusedURL == nil ? "separate" : "fused"), joint \(jointURL?.lastPathComponent ?? "JointDecisionv3.mlmodelc"), K=\(pipeline.k), blank penalty \(blankPenalty)")
 
 if let manifestPath = arg("--manifest"), let outPath = arg("--out") {
     let manifestURL = URL(fileURLWithPath: manifestPath)

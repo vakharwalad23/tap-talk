@@ -15,11 +15,12 @@ Everything comes from pinned public sources, so the results reproduce on any App
 5. [docs/profiling.md](docs/profiling.md): latency tools, what each number means.
 6. [docs/warm.md](docs/warm.md): encoder placement pick and first-load cost, what an installer
    would do with them.
-7. [docs/batched-joint.md](docs/batched-joint.md): the K-frame joint experiment.
-8. [docs/fusion.md](docs/fusion.md): the fused decoder+joint graph, one dispatch per step.
-9. [docs/results.md](docs/results.md): the measured tables.
-10. [docs/findings.md](docs/findings.md): what the measurements taught us.
-11. [docs/research.md](docs/research.md): the ideas that were considered and where each ended.
+7. [docs/blank-penalty.md](docs/blank-penalty.md): the blank-penalty sweep on the top-K joint.
+8. [docs/batched-joint.md](docs/batched-joint.md): the K-frame joint experiment.
+9. [docs/fusion.md](docs/fusion.md): the fused decoder+joint graph, one dispatch per step.
+10. [docs/results.md](docs/results.md): the measured tables.
+11. [docs/findings.md](docs/findings.md): what the measurements taught us.
+12. [docs/research.md](docs/research.md): the ideas that were considered and where each ended.
 
 ## Quickstart
 
