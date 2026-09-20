@@ -16,5 +16,6 @@ let package = Package(
             name: "ttreg",
             dependencies: [.product(name: "FluidAudio", package: "FluidAudio")]
         ),
+        .executableTarget(name: "ttdecode"),
     ]
 )
