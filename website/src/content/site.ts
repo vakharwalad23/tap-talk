@@ -1,6 +1,6 @@
 // Bump on each release. The asset name is fixed by the Makefile (dist/TapTalk-$(VERSION).dmg)
 // and by the Homebrew cask, so this one value keeps the direct download link current.
-const version = "0.4.0";
+const version = "0.4.1";
 
 export const site = {
 	name: "TapTalk",
