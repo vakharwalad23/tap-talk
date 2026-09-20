@@ -1,0 +1,89 @@
+{
+  "k": 16,
+  "units": {
+    "CPU_ONLY": [
+      {
+        "audio": "es_419.source.wav",
+        "frames": 97,
+        "emitted_tokens": 31,
+        "compared": 542,
+        "token_agreement": 0.9981549815498155,
+        "duration_agreement": 0.9981549815498155,
+        "max_token_prob_diff": 0.03369140625,
+        "max_blank_prob_err": 0.03407450898100972
+      },
+      {
+        "audio": "fr_fr.source.wav",
+        "frames": 118,
+        "emitted_tokens": 62,
+        "compared": 1035,
+        "token_agreement": 0.9922705314009662,
+        "duration_agreement": 0.996135265700483,
+        "max_token_prob_diff": 0.051025390625,
+        "max_blank_prob_err": 0.05381128366892013
+      },
+      {
+        "audio": "jfk.wav",
+        "frames": 138,
+        "emitted_tokens": 38,
+        "compared": 684,
+        "token_agreement": 0.9970760233918129,
+        "duration_agreement": 1.0,
+        "max_token_prob_diff": 0.032958984375,
+        "max_blank_prob_err": 0.032370635544442694
+      },
+      {
+        "audio": "lv_lv.source.wav",
+        "frames": 90,
+        "emitted_tokens": 27,
+        "compared": 638,
+        "token_agreement": 1.0,
+        "duration_agreement": 1.0,
+        "max_token_prob_diff": 0.029296875,
+        "max_blank_prob_err": 0.03274200758124168
+      }
+    ],
+    "CPU_AND_NE": [
+      {
+        "audio": "es_419.source.wav",
+        "frames": 97,
+        "emitted_tokens": 31,
+        "compared": 542,
+        "token_agreement": 1.0,
+        "duration_agreement": 0.9981549815498155,
+        "max_token_prob_diff": 0.01220703125,
+        "max_blank_prob_err": 0.008473465084595455
+      },
+      {
+        "audio": "fr_fr.source.wav",
+        "frames": 118,
+        "emitted_tokens": 62,
+        "compared": 1019,
+        "token_agreement": 0.9980372914622179,
+        "duration_agreement": 0.9980372914622179,
+        "max_token_prob_diff": 0.01513671875,
+        "max_blank_prob_err": 0.015902560040972236
+      },
+      {
+        "audio": "jfk.wav",
+        "frames": 138,
+        "emitted_tokens": 38,
+        "compared": 684,
+        "token_agreement": 0.9985380116959064,
+        "duration_agreement": 1.0,
+        "max_token_prob_diff": 0.009765625,
+        "max_blank_prob_err": 0.010426335306250256
+      },
+      {
+        "audio": "lv_lv.source.wav",
+        "frames": 90,
+        "emitted_tokens": 27,
+        "compared": 638,
+        "token_agreement": 0.9968652037617555,
+        "duration_agreement": 0.9952978056426333,
+        "max_token_prob_diff": 0.011474609375,
+        "max_blank_prob_err": 0.010541458393382386
+      }
+    ]
+  }
+}
