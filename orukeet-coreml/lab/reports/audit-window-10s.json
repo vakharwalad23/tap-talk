@@ -1,0 +1,31 @@
+{
+  "window_seconds": 10.0,
+  "full_preprocessor": "models/shipped-greedy-packages/Preprocessor.mlpackage",
+  "full_encoder": "out/export/parakeet_encoder.mlpackage",
+  "window_preprocessor": "out/export-10s/parakeet_preprocessor.mlpackage",
+  "window_encoder": "out/export-10s/parakeet_encoder.mlpackage",
+  "clips": [
+    {
+      "audio": "en_us-10197164397713068203.wav",
+      "input_samples": 92160,
+      "input_seconds": 5.76,
+      "full_encoder_length": 73,
+      "window_encoder_length": 73,
+      "common_frames": 73,
+      "max_abs_diff": 0.002716064453125,
+      "mean_abs_diff": 0.0001746768393786624,
+      "argmax_agreement": 0.9726027397260274
+    },
+    {
+      "audio": "lv_lv-10382133161810297551.wav",
+      "input_samples": 149760,
+      "input_seconds": 9.36,
+      "full_encoder_length": 118,
+      "window_encoder_length": 118,
+      "common_frames": 118,
+      "max_abs_diff": 0.01136016845703125,
+      "mean_abs_diff": 0.0002471211482770741,
+      "argmax_agreement": 1.0
+    }
+  ]
+}
