@@ -215,6 +215,18 @@ if flag("--ideal") {
     exit(0)
 }
 
+// --extra <model.mlmodelc>: time any additional single-call model with synthetic inputs, e.g. a
+// batched joint next to the bundle's single-step joint.
+let extraArgs = CommandLine.arguments.enumerated().filter { $0.element == "--extra" }.map { CommandLine.arguments[$0.offset + 1] }
+for path in extraArgs {
+    let cfg = MLModelConfiguration()
+    cfg.computeUnits = units(decUnits)
+    let model = try MLModel(contentsOf: URL(fileURLWithPath: path), configuration: cfg)
+    describe(model, (path as NSString).lastPathComponent)
+    let (m, p) = try timeModel(model, warm: 20, runs: 300)
+    print(String(format: "%@ (%@)  p50 %.3f ms  p95 %.3f ms", (path as NSString).lastPathComponent, decUnits, m, p))
+}
+
 if !audioArgs.isEmpty {
     let vocabData = try Data(contentsOf: dir.appendingPathComponent("parakeet_vocab.json"))
     let raw = try JSONDecoder().decode([String: String].self, from: vocabData)
