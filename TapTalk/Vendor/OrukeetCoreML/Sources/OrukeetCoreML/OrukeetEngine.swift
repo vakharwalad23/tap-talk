@@ -1,18 +1,15 @@
-// Vendored verbatim from Oruk-AI/orukeet@347f646 export/coreml/benchmark/Sources/OrukeetCoreML.
-// License: MIT (conversion/integration code). Do not edit here; update by re-vendoring.
+// Based on Oruk-AI/orukeet@347f646 export/coreml/benchmark/Sources/OrukeetCoreML (MIT).
+// TapTalk maintains this copy: the bundle loads through FluidAudio's AsrModels.loadLocal,
+// and the streaming wrapper the app never used is gone.
 @preconcurrency import CoreML
 import FluidAudio
 import Foundation
 
 public enum OrukeetModelError: Error, LocalizedError {
-    case missingComponent(String)
     case invalidVocabulary
 
     public var errorDescription: String? {
-        switch self {
-        case .missingComponent(let path): "Missing Orukeet Core ML component: \(path)"
-        case .invalidVocabulary: "Orukeet requires the complete 8192-token v3 vocabulary"
-        }
+        "Orukeet requires the complete 8192-token v3 vocabulary"
     }
 }
 
@@ -36,48 +33,30 @@ public enum OrukeetLocalModels {
             to: destination.appendingPathComponent("parakeet_vocab.json"))
     }
 
+    /// Opens the compiled bundle with FluidAudio's local loader: v3 file names, preprocessor
+    /// on the CPU, decoder and joint on the Neural Engine, encoder where asked.
+    /// FluidAudio only requires ids 0..<8192 to exist; Orukeet ships exactly those, so any
+    /// missing, extra or duplicate id means a wrong or damaged vocabulary file.
     public static func load(
         from directory: URL,
         encoderComputeUnits: MLComputeUnits = .cpuAndNeuralEngine
     ) throws -> AsrModels {
-        func component(_ name: String, _ units: MLComputeUnits) throws -> MLModel {
-            let path = directory.appendingPathComponent("\(name).mlmodelc")
-            guard FileManager.default.fileExists(atPath: path.path) else {
-                throw OrukeetModelError.missingComponent(path.path)
-            }
-            let config = MLModelConfiguration()
-            config.computeUnits = units
-            return try MLModel(contentsOf: path, configuration: config)
-        }
         let data = try Data(contentsOf: directory.appendingPathComponent("parakeet_vocab.json"))
         let raw = try JSONDecoder().decode([String: String].self, from: data)
-        var vocabulary: [Int: String] = [:]
-        for (key, value) in raw {
-            guard let id = Int(key), id >= 0, id < 8192, vocabulary[id] == nil else {
-                throw OrukeetModelError.invalidVocabulary
-            }
-            vocabulary[id] = value
+        let ids = Set(raw.keys.compactMap { Int($0) })
+        guard raw.count == 8192, ids.count == 8192, ids.allSatisfy({ (0..<8192).contains($0) }) else {
+            throw OrukeetModelError.invalidVocabulary
         }
-        guard vocabulary.count == 8192 else { throw OrukeetModelError.invalidVocabulary }
-        let config = MLModelConfiguration()
-        config.computeUnits = .cpuAndNeuralEngine
-        return try AsrModels(
-            encoder: component("Encoder", encoderComputeUnits),
-            preprocessor: component("Preprocessor", .cpuOnly),
-            decoder: component("Decoder", .cpuAndNeuralEngine),
-            joint: component("JointDecisionv3", .cpuAndNeuralEngine),
-            configuration: config, vocabulary: vocabulary, version: .v3
-        )
+        return try AsrModels.loadLocal(from: directory, encoderComputeUnits: encoderComputeUnits)
     }
 }
 
 /// TapTalk-compatible local engine. Input is mono 16 kHz PCM, as in ParakeetEngine.
-/// The greedy bundle supports this API's unconditioned decoding. Use the baseline
-/// bundle when integrating language hints or top-K vocabulary reranking.
+/// The greedy bundle supports unconditioned decoding only: no language hint is passed,
+/// so the joint's top-K outputs are never read.
 public actor OrukeetEngine {
     private let modelDirectory: URL
     private let encoderComputeUnits: MLComputeUnits
-    private var models: AsrModels?
     private var manager: AsrManager?
 
     public init(modelDirectory: URL, encoderComputeUnits: MLComputeUnits = .cpuAndNeuralEngine) {
@@ -85,16 +64,17 @@ public actor OrukeetEngine {
         self.encoderComputeUnits = encoderComputeUnits
     }
 
-    public func ensureLoaded() throws {
-        guard manager == nil else { return }
-        let loaded = try OrukeetLocalModels.load(from: modelDirectory, encoderComputeUnits: encoderComputeUnits)
-        models = loaded
-        manager = AsrManager(config: .default, models: loaded)
+    @discardableResult
+    public func ensureLoaded() throws -> AsrManager {
+        if let manager { return manager }
+        let models = try OrukeetLocalModels.load(from: modelDirectory, encoderComputeUnits: encoderComputeUnits)
+        let loaded = AsrManager(config: .default, models: models)
+        manager = loaded
+        return loaded
     }
 
     public func unload() {
         manager = nil
-        models = nil
     }
 
     public struct Output: Sendable {
@@ -103,24 +83,11 @@ public actor OrukeetEngine {
     }
 
     public func transcribe(samples: [Float]) async throws -> Output {
-        try ensureLoaded()
-        guard let manager else { throw OrukeetModelError.missingComponent(modelDirectory.path) }
+        let manager = try ensureLoaded()
         var state = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
         let result = try await manager.transcribe(samples, decoderState: &state)
         return Output(
             text: result.text.trimmingCharacters(in: .whitespacesAndNewlines),
             processingMs: result.processingTime * 1000)
-    }
-
-    /// Sliding-window TDT streaming, with the same model and policy as FluidAudio.
-    /// This is distinct from TapTalk's separate 120M EOU live-typing model.
-    public func makeStreamingManager(
-        config: SlidingWindowAsrConfig = .streaming
-    ) async throws -> SlidingWindowAsrManager {
-        try ensureLoaded()
-        guard let models else { throw OrukeetModelError.missingComponent(modelDirectory.path) }
-        let streaming = SlidingWindowAsrManager(config: config)
-        try await streaming.loadModels(models)
-        return streaming
     }
 }
