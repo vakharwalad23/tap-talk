@@ -8,7 +8,8 @@ options:
 packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    exactVersion: "0.15.5"
+    exactVersion: "0.15.8"
+    traits: []
   OrukeetCoreML:
     path: TapTalk/Vendor/OrukeetCoreML
 
