@@ -26,14 +26,17 @@ make decode AUDIO=data/fixtures/jfk.wav JOINT=out/joint/JointDecisionBatchedK8.m
 make decode-reg LABEL=own-shipped-k1                                      # both corpora, then make score
 ```
 
-Runs the four Core ML models directly, without FluidAudio: pad to 15 s, preprocessor, encoder,
-then greedy TDT decoding with NeMo semantics (argmax token and duration per frame, blank advances by
-its duration, a non-blank updates the decoder). Reports preprocessor, encoder and decode time
-separately, plus decoder and joint call counts. Picks the single-step joint from the bundle, or a
-K-frame batched joint given with `JOINT`.
+Runs the Core ML models directly, without FluidAudio, with FluidAudio's single-window decode
+semantics: frame-aligned declared length, a cached predictor output across blank frames, the
+same-frame and forced-advance rules, the end-of-window flush over the boundary frames, and the
+empty-decode recovery ladder. On the 128 sealed clips the transcripts are identical to
+`AsrManager.transcribe`. Reports preprocessor, encoder and decode time separately, decoder and
+joint call counts, and the mean token confidence.
 
-The declared audio length is rounded up to a whole 80 ms frame, as FluidAudio does; without that
-the mel features differ slightly and about 10 percent of transcripts change.
+Options on the binary: `--window <dir>` (repeatable) adds a Preprocessor + Encoder pair with a
+shorter fixed window; the smallest window that fits the clip is used. `--fused <model.mlmodelc>`
+replaces Decoder + joint with a fused decoder+joint graph. `--joint <batched.mlmodelc>` runs a
+K-frame batched joint through the older NeMo-style loop, kept for the batched-joint measurement.
 
 ## What the numbers mean
 
