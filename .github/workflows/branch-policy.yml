@@ -1,0 +1,38 @@
+name: branch policy
+
+on:
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  head-is-dev:
+    if: github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: main accepts pull requests from dev only
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$HEAD_REF" != "dev" ]; then
+            echo "Pull requests into main must come from dev, not from $HEAD_REF."
+            exit 1
+          fi
+          echo "Source branch is dev."
+
+  no-experiment-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: experiment folders stay on experiment branches
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          touched=$(git diff --name-only --diff-filter=AMR "origin/$BASE_REF...HEAD" | grep -E '^orukeet-coreml/' || true)
+          if [ -n "$touched" ]; then
+            echo "These paths belong on an experiments/ branch, not on $BASE_REF:"
+            echo "$touched"
+            exit 1
+          fi
+          echo "No experiment paths touched."
