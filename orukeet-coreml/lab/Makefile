@@ -7,7 +7,7 @@ BENCHPY := uv run --project $(LAB)/bench python
 NEMO := $(LAB)/work/orukeet-v0.1.0.nemo
 EXPORT := $(LAB)/out/export
 ENCODERS := $(LAB)/out/encoders
-JOINT := $(LAB)/out/joint
+JOINT_DIR := $(LAB)/out/joint
 BUNDLES := $(LAB)/out/bundles
 FIXTURES := $(LAB)/data/fixtures
 RAW := $(LAB)/reports/_raw
@@ -95,8 +95,8 @@ int8-asym:
 	@[ -d "$(ENCODERS)/int8asym.mlpackage" ] || $(PY) $(LAB)/convert/quantize_encoder.py --src "$(EXPORT)/parakeet_encoder.mlpackage" --dst "$(ENCODERS)/int8asym.mlpackage" --mode linear
 
 greedy-joint:
-	mkdir -p "$(JOINT)"
-	@[ -d "$(JOINT)/greedy.mlpackage" ] || $(PY) $(LAB)/convert/prune_joint.py --src "$(EXPORT)/parakeet_joint_decision_single_step.mlpackage" --dst "$(JOINT)/greedy.mlpackage"
+	mkdir -p "$(JOINT_DIR)"
+	@[ -d "$(JOINT_DIR)/greedy.mlpackage" ] || $(PY) $(LAB)/convert/prune_joint.py --src "$(EXPORT)/parakeet_joint_decision_single_step.mlpackage" --dst "$(JOINT_DIR)/greedy.mlpackage"
 
 # One bundle per encoder variant; decoder and greedy joint are shared. The preprocessor comes from
 # the pinned release: it has no learned weights, and the mobius export of it takes a range-shaped
@@ -104,9 +104,9 @@ greedy-joint:
 # exist are kept, so re-running a target after a partial failure resumes where it stopped.
 PREPROCESSOR := $(LAB)/models/shipped-greedy-packages/Preprocessor.mlpackage
 bundles: greedy-joint shipped
-	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(ENCODERS)/int8sym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8sym-greedy"
-	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(EXPORT)/parakeet_encoder.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-fp16-greedy"
-	@if [ -d "$(ENCODERS)/int8asym.mlpackage" ]; then $(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(ENCODERS)/int8asym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8asym-greedy"; fi
+	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(ENCODERS)/int8sym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT_DIR)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8sym-greedy"
+	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(EXPORT)/parakeet_encoder.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT_DIR)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-fp16-greedy"
+	@if [ -d "$(ENCODERS)/int8asym.mlpackage" ]; then $(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(ENCODERS)/int8asym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT_DIR)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8asym-greedy"; fi
 
 build:
 	swift build --package-path swift -c release
@@ -149,8 +149,8 @@ score:
 	$(BENCHPY) bench/score.py --lab "$(LAB)"
 
 joint-batched:
-	mkdir -p "$(JOINT)"
-	$(PY) $(LAB)/convert/export_batched_joint.py --nemo "$(NEMO)" --k $(K) --out "$(JOINT)"
+	mkdir -p "$(JOINT_DIR)"
+	$(PY) $(LAB)/convert/export_batched_joint.py --nemo "$(NEMO)" --k $(K) --out "$(JOINT_DIR)"
 
 fused:
 	@[ -d out/fused ] || bash convert/fuse.sh "$(NEMO)" out/fused
@@ -166,7 +166,7 @@ sweep: build
 
 audit: shipped
 	mkdir -p reports
-	$(PY) $(LAB)/convert/audit_batched_joint.py --bundle "$(SHIPPED)" --batched "$(JOINT)/JointDecisionBatchedK$(K).mlmodelc" --k $(K) --fixtures "$(FIXTURES)" --out reports/audit-k$(K).json
+	$(PY) $(LAB)/convert/audit_batched_joint.py --bundle "$(SHIPPED)" --batched "$(JOINT_DIR)/JointDecisionBatchedK$(K).mlmodelc" --k $(K) --fixtures "$(FIXTURES)" --out reports/audit-k$(K).json
 
 clean:
 	rm -rf out reports/_raw* swift/.build
