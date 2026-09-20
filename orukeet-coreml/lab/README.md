@@ -60,8 +60,23 @@ make joint-batched K=8 && make audit K=8
 `make profile` with no arguments profiles the shipped bundle in `models/shipped-greedy/`. Nothing
 here reads a TapTalk install; the reference comes from the pinned Hugging Face release.
 
-## Results
+## Results (2026-09-20, Apple M3 Pro, FluidAudio 0.15.5)
 
-Filled in as runs complete. Reference points from Oruk-AI/orukeet#6 on the same 128 clips:
-Parakeet Core ML 217 errors / 2539 words (8.55 percent), Orukeet greedy 194 / 2538 (7.64 percent),
-Orukeet NeMo FP32 185 / 2538 (7.29 percent).
+Regression corpus: Nathan's two sealed 64-clip FLEURS samples, rebuilt byte-identical, scored with his
+scorer. Our run of the shipped greedy bundle reproduces his 194 / 2538 (7.64 percent) exactly.
+
+| Bundle | Errors / words | WER | Encoder p50 | Per clip (ttreg) |
+|---|---|---|---|---|
+| shipped greedy (6-bit palette) | 194 / 2538 | 7.64 | 26.5 ms | 78 ms |
+| int8 symmetric per-channel, greedy joint | 185 / 2535 | 7.30 | 27.0 ms | 78 ms |
+| int8 asymmetric, greedy joint | 190 / 2535 | 7.50 | 26.6 ms | 80 ms |
+| FP16, greedy joint | 191 / 2535 | 7.53 | 26.6 ms | 78 ms |
+| Nathan NeMo FP32 reference | 185 / 2538 | 7.29 | | |
+
+Decode loop on the shipped bundle, JFK 11 s clip: FluidAudio `transcribe` 73 to 77 ms; `ttdecode`
+with the single-step joint 48 ms (preprocessor 1.5, encoder 26.6, decode 20.0 for 39 decoder and
+46 joint calls) and 127 of 128 transcripts identical; `ttdecode` with the K=8 batched joint 64 ms,
+K=16 77 ms. Batching a TDT joint does not pay: it is already called about once per emitted token.
+
+Full tables and the reasoning: [docs/CORE-ML-OPTIMIZATION.md](docs/CORE-ML-OPTIMIZATION.md);
+per-model scores in `reports/score.md`; parity audits in `reports/audit-k8.json` and `audit-k16.json`.
