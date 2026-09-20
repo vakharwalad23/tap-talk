@@ -60,17 +60,18 @@ export:
 
 int8:
 	mkdir -p "$(ENCODERS)"
-	$(PY) $(LAB)/convert/quantize_encoder.py --src "$(EXPORT)/parakeet_encoder.mlpackage" --dst "$(ENCODERS)/int8sym.mlpackage" --mode linear_symmetric
+	@[ -d "$(ENCODERS)/int8sym.mlpackage" ] || $(PY) $(LAB)/convert/quantize_encoder.py --src "$(EXPORT)/parakeet_encoder.mlpackage" --dst "$(ENCODERS)/int8sym.mlpackage" --mode linear_symmetric
 
 int8-asym:
 	mkdir -p "$(ENCODERS)"
-	$(PY) $(LAB)/convert/quantize_encoder.py --src "$(EXPORT)/parakeet_encoder.mlpackage" --dst "$(ENCODERS)/int8asym.mlpackage" --mode linear
+	@[ -d "$(ENCODERS)/int8asym.mlpackage" ] || $(PY) $(LAB)/convert/quantize_encoder.py --src "$(EXPORT)/parakeet_encoder.mlpackage" --dst "$(ENCODERS)/int8asym.mlpackage" --mode linear
 
 greedy-joint:
 	mkdir -p "$(JOINT)"
-	$(PY) $(LAB)/convert/prune_joint.py --src "$(EXPORT)/parakeet_joint_decision_single_step.mlpackage" --dst "$(JOINT)/greedy.mlpackage"
+	@[ -d "$(JOINT)/greedy.mlpackage" ] || $(PY) $(LAB)/convert/prune_joint.py --src "$(EXPORT)/parakeet_joint_decision_single_step.mlpackage" --dst "$(JOINT)/greedy.mlpackage"
 
-# One bundle per encoder variant; decoder, preprocessor and greedy joint are shared.
+# One bundle per encoder variant; decoder, preprocessor and greedy joint are shared. Outputs that
+# already exist are kept, so re-running a target after a partial failure resumes where it stopped.
 bundles: greedy-joint shipped
 	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(EXPORT)/parakeet_preprocessor.mlpackage" --encoder "$(ENCODERS)/int8sym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8sym-greedy"
 	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(EXPORT)/parakeet_preprocessor.mlpackage" --encoder "$(EXPORT)/parakeet_encoder.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-fp16-greedy"
