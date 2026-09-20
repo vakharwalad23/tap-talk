@@ -34,6 +34,7 @@ make clean        # remove all build artifacts
 - `docs/rust-core.md` - audio path, FFI surface, VAD constants that must not be tuned blindly
 - `docs/swift-app.md` - services, engine actor contract, prompt-clause precedence
 - `docs/models.md` - model choices with their measurements, and rejected alternatives with reasons
+- `docs/branching.md` - branch flow: dev-first, main release-only, experiment branches never merge
 - `MODEL-LICENSES.md` - model terms; keep weights *and* tokenizer/config files out of the repo
 
 Read `docs/models.md` before proposing a model or inference change - several obvious optimizations
@@ -45,6 +46,7 @@ Coding standards live in `.claude/rules/`:
 - `rust.md` - Rust style, memory, error handling, UniFFI exports
 - `swift.md` - SwiftUI patterns, performance, architecture
 - `commits.md` - Conventional commits (feat/fix/refactor), no co-authored-by
+- `branching.md` - dev-first flow, main is release-only, experiments never merge
 - `comments.md` - Minimal comments, no decorative, no first-person
 - `architecture.md` - Modular, pluggable, configurable design
 - `performance.md` - Key-up-to-paste latency budget, ANE/MLX selection, warm paths
@@ -63,3 +65,5 @@ Coding standards live in `.claude/rules/`:
 - No force-unwrap in Swift outside previews
 - No bundled models - download at runtime to Application Support
 - Apple Silicon only for v1
+- No experiment folders on `dev` or `main`: `orukeet-coreml/` and its successors live on `experiments/*`
+  branches only, never merged
