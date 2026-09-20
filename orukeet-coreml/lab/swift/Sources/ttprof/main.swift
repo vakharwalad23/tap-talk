@@ -59,14 +59,23 @@ func zeroInputs(_ model: MLModel) throws -> MLDictionaryFeatureProvider {
     var dict: [String: Any] = [:]
     for (name, desc) in model.modelDescription.inputDescriptionsByName {
         guard let c = desc.multiArrayConstraint else { continue }
-        let arr = try MLMultiArray(shape: c.shape, dataType: c.dataType)
+        // A range-shaped input (the mobius preprocessor) is exercised at its maximum size.
+        var shape = c.shape
+        if c.shapeConstraint.type == .range {
+            shape = (0..<c.shape.count).map { d in
+                let r = c.shapeConstraint.sizeRangeForDimension[d].rangeValue
+                return NSNumber(value: r.location + r.length - 1)
+            }
+        }
+        let arr = try MLMultiArray(shape: shape, dataType: c.dataType)
         let n = arr.count
         let ptr = arr.dataPointer
+        let audioLength = Int32(shape.last?.intValue ?? 240000)
         switch c.dataType {
         case .int32:
             // decoder targets: use blank id 8192 as a plausible token
             let p = ptr.bindMemory(to: Int32.self, capacity: n)
-            for i in 0..<n { p[i] = name.contains("length") ? Int32(c.shape.count == 1 ? 240000 : 1) : 8192 }
+            for i in 0..<n { p[i] = name.contains("length") ? (shape.count == 1 ? audioLength : 1) : 8192 }
         case .float32:
             let p = ptr.bindMemory(to: Float.self, capacity: n)
             for i in 0..<n { p[i] = 0 }
@@ -83,7 +92,10 @@ func zeroInputs(_ model: MLModel) throws -> MLDictionaryFeatureProvider {
 func describe(_ model: MLModel, _ label: String) {
     var ins: [String] = []
     for (name, desc) in model.modelDescription.inputDescriptionsByName.sorted(by: { $0.key < $1.key }) {
-        if let c = desc.multiArrayConstraint { ins.append("\(name)\(c.shape.map { $0.intValue })/\(c.dataType.rawValue)") }
+        if let c = desc.multiArrayConstraint {
+            let flex = c.shapeConstraint.type == .range ? " (range)" : ""
+            ins.append("\(name)\(c.shape.map { $0.intValue })/\(c.dataType.rawValue)\(flex)")
+        }
     }
     var outs: [String] = []
     for (name, desc) in model.modelDescription.outputDescriptionsByName.sorted(by: { $0.key < $1.key }) {
