@@ -322,88 +322,8 @@
   "orukeet-fp16-greedy": {
     "a": {
       "words": 1214,
-      "errors": 91,
-      "wer": 0.07495881383855024,
-      "languages": {
-        "de": {
-          "words": 182,
-          "errors": 3
-        },
-        "en": {
-          "words": 155,
-          "errors": 5
-        },
-        "es": {
-          "words": 154,
-          "errors": 4
-        },
-        "fr": {
-          "words": 194,
-          "errors": 12
-        },
-        "it": {
-          "words": 158,
-          "errors": 17
-        },
-        "lv": {
-          "words": 113,
-          "errors": 38
-        },
-        "ru": {
-          "words": 123,
-          "errors": 7
-        },
-        "uk": {
-          "words": 135,
-          "errors": 5
-        }
-      }
-    },
-    "b": {
-      "words": 1322,
-      "errors": 96,
-      "wer": 0.07261724659606657,
-      "languages": {
-        "de": {
-          "words": 136,
-          "errors": 7
-        },
-        "en": {
-          "words": 183,
-          "errors": 24
-        },
-        "es": {
-          "words": 189,
-          "errors": 5
-        },
-        "fr": {
-          "words": 237,
-          "errors": 22
-        },
-        "it": {
-          "words": 152,
-          "errors": 6
-        },
-        "lv": {
-          "words": 121,
-          "errors": 16
-        },
-        "ru": {
-          "words": 153,
-          "errors": 12
-        },
-        "uk": {
-          "words": 151,
-          "errors": 4
-        }
-      }
-    }
-  },
-  "orukeet-int8asym-greedy": {
-    "a": {
-      "words": 1214,
-      "errors": 94,
-      "wer": 0.07742998352553541,
+      "errors": 93,
+      "wer": 0.07660626029654036,
       "languages": {
         "de": {
           "words": 182,
@@ -427,11 +347,11 @@
         },
         "lv": {
           "words": 113,
-          "errors": 38
+          "errors": 39
         },
         "ru": {
           "words": 123,
-          "errors": 9
+          "errors": 7
         },
         "uk": {
           "words": 135,
@@ -440,17 +360,17 @@
       }
     },
     "b": {
-      "words": 1322,
-      "errors": 97,
-      "wer": 0.07337367624810892,
+      "words": 1321,
+      "errors": 98,
+      "wer": 0.07418622255866768,
       "languages": {
         "de": {
           "words": 136,
-          "errors": 6
+          "errors": 7
         },
         "en": {
           "words": 183,
-          "errors": 24
+          "errors": 26
         },
         "es": {
           "words": 189,
@@ -465,8 +385,8 @@
           "errors": 6
         },
         "lv": {
-          "words": 121,
-          "errors": 17
+          "words": 120,
+          "errors": 14
         },
         "ru": {
           "words": 153,
@@ -474,16 +394,16 @@
         },
         "uk": {
           "words": 151,
-          "errors": 4
+          "errors": 5
         }
       }
     }
   },
-  "orukeet-int8sym-greedy": {
+  "orukeet-int8asym-greedy": {
     "a": {
-      "words": 1215,
-      "errors": 90,
-      "wer": 0.07407407407407407,
+      "words": 1214,
+      "errors": 93,
+      "wer": 0.07660626029654036,
       "languages": {
         "de": {
           "words": 182,
@@ -498,12 +418,12 @@
           "errors": 4
         },
         "fr": {
-          "words": 195,
-          "errors": 11
+          "words": 194,
+          "errors": 12
         },
         "it": {
           "words": 158,
-          "errors": 17
+          "errors": 19
         },
         "lv": {
           "words": 113,
@@ -520,9 +440,9 @@
       }
     },
     "b": {
-      "words": 1322,
-      "errors": 93,
-      "wer": 0.07034795763993948,
+      "words": 1321,
+      "errors": 97,
+      "wer": 0.07342922028766086,
       "languages": {
         "de": {
           "words": 136,
@@ -530,7 +450,87 @@
         },
         "en": {
           "words": 183,
-          "errors": 24
+          "errors": 26
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 237,
+          "errors": 23
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 120,
+          "errors": 15
+        },
+        "ru": {
+          "words": 153,
+          "errors": 11
+        },
+        "uk": {
+          "words": 151,
+          "errors": 5
+        }
+      }
+    }
+  },
+  "orukeet-int8sym-greedy": {
+    "a": {
+      "words": 1214,
+      "errors": 91,
+      "wer": 0.07495881383855024,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 5
+        },
+        "es": {
+          "words": 154,
+          "errors": 4
+        },
+        "fr": {
+          "words": 194,
+          "errors": 11
+        },
+        "it": {
+          "words": 158,
+          "errors": 17
+        },
+        "lv": {
+          "words": 113,
+          "errors": 39
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 5
+        }
+      }
+    },
+    "b": {
+      "words": 1321,
+      "errors": 94,
+      "wer": 0.07115821347464042,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 6
+        },
+        "en": {
+          "words": 183,
+          "errors": 26
         },
         "es": {
           "words": 189,
@@ -545,16 +545,16 @@
           "errors": 6
         },
         "lv": {
-          "words": 121,
-          "errors": 15
+          "words": 120,
+          "errors": 14
         },
         "ru": {
           "words": 153,
-          "errors": 12
+          "errors": 11
         },
         "uk": {
           "words": 151,
-          "errors": 4
+          "errors": 5
         }
       }
     }

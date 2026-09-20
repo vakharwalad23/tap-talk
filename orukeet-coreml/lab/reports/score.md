@@ -5,9 +5,9 @@
 | nathan/nemo-fp32 | 10 | 29 | 9 | 33 | 23 | 54 | 18 | 9 | 92 | 93 | 185 / 2538 | 7.29 |
 | nathan/orukeet-precision | 6 | 26 | 5 | 24 | 5 | 13 | 11 | 5 | - | 95 | 95 / 1322 | 7.19 |
 | nathan/parakeet | 14 | 32 | 9 | 40 | 24 | 65 | 20 | 13 | 107 | 110 | 217 / 2539 | 8.55 |
-| orukeet-fp16-greedy | 10 | 29 | 9 | 34 | 23 | 54 | 19 | 9 | 91 | 96 | 187 / 2536 | 7.37 |
-| orukeet-int8asym-greedy | 9 | 29 | 9 | 35 | 24 | 55 | 21 | 9 | 94 | 97 | 191 / 2536 | 7.53 |
-| orukeet-int8sym-greedy | 9 | 29 | 9 | 32 | 23 | 53 | 19 | 9 | 90 | 93 | 183 / 2537 | 7.21 |
+| orukeet-fp16-greedy | 10 | 31 | 9 | 35 | 24 | 53 | 19 | 10 | 93 | 98 | 191 / 2535 | 7.53 |
+| orukeet-int8asym-greedy | 9 | 31 | 9 | 35 | 25 | 53 | 18 | 10 | 93 | 97 | 190 / 2535 | 7.50 |
+| orukeet-int8sym-greedy | 9 | 31 | 9 | 32 | 23 | 53 | 18 | 10 | 91 | 94 | 185 / 2535 | 7.30 |
 | shipped-greedy | 10 | 29 | 10 | 36 | 25 | 53 | 21 | 10 | 99 | 95 | 194 / 2538 | 7.64 |
 
 shipped-greedy vs nathan/greedy: 1 of 128 transcripts differ
