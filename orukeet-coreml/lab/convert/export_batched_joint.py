@@ -32,7 +32,9 @@ class JointDecisionBatched(torch.nn.Module):
         token_prob = torch.gather(probs, -1, token_id.long().unsqueeze(-1)).squeeze(-1)
         duration = torch.argmax(duration_logits, dim=-1).to(torch.int32)
         blank_logit = token_logits[..., self.vocab_with_blank - 1]
-        logsumexp = torch.logsumexp(token_logits, dim=-1)
+        # Explicit max subtraction keeps the FP16 exp in range; the fused logsumexp op does not.
+        peak = torch.amax(token_logits, dim=-1, keepdim=True)
+        logsumexp = peak.squeeze(-1) + torch.log(torch.sum(torch.exp(token_logits - peak), dim=-1))
         return token_id, token_prob, duration, blank_logit, logsumexp
 
 
