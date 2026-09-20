@@ -17,5 +17,6 @@ let package = Package(
             dependencies: [.product(name: "FluidAudio", package: "FluidAudio")]
         ),
         .executableTarget(name: "ttdecode"),
+        .executableTarget(name: "ttwarm"),
     ]
 )
