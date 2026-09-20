@@ -1,0 +1,31 @@
+# Findings
+
+What the measurements established, one item each.
+
+- **The palette costs accuracy, not the conversion.** Nathan's numerical validation attributes 95
+  percent of the encoder's deviation from FP32 to the inherited 6-bit per-tensor palette. Replacing
+  it with int8 per-channel symmetric weights moves the corpus from 194 to 185 errors, equal to the
+  NeMo FP32 reference, for +143 MB.
+- **Weight format does not change encoder latency.** 6-bit palette, int8 and FP16 all run the 15 s
+  window in 26.5 to 27.0 ms on the Neural Engine. The encoder is compute-bound; the palette buys
+  download size only.
+- **The June int8 bundle was slow because of its preprocessor.** The mobius preprocessor export
+  takes a variable-length input and costs 11 ms per clip against 1.4 ms for the fixed-shape one.
+  Lab bundles reuse the shipped preprocessor, which has no learned weights.
+- **FluidAudio spends 20 ms per transcription zero-filling a buffer.** `MLArrayCache.returnArray`
+  clears the 240000-sample input one `NSNumber` at a time after each transcription, on the path
+  that returns the text. `memset` takes 0.006 ms. Present in 0.15.5 and still on main.
+- **The own decode loop reproduces FluidAudio and saves the overhead.** Same four models, no
+  FluidAudio: 48 ms against 73 to 77 ms on the 11 s clip, 127 of 128 transcripts identical. The
+  declared audio length must be rounded up to a whole 80 ms frame to match.
+- **Batching the joint does not pay for TDT.** Durations already skip blank frames; the joint runs
+  about once per emitted token, and a batched call costs 3.6x more. Closed.
+- **Encoder placement depends on the chip.** GPU is 2.8x slower than the Neural Engine on M3 Pro;
+  FluidAudio and Nathan measured GPU faster on M5-class parts. Keep the Neural Engine as default,
+  choose per chip only by measurement.
+- **The first load builds the Neural Engine program.** 15.6 s on first load of a compiled bundle,
+  0.1 s afterwards, again after a macOS upgrade. The `.mlpackage` compile TapTalk already does is
+  not this step.
+- **Per-token cost is what remains in the decode loop.** About 0.23 ms per Core ML call, 85 calls
+  per 11 s clip. Fusing decoder and joint halves the calls (FluidInference measured 1.11x); a
+  native loop removes dispatch but stays memory-bound. A few milliseconds either way.
