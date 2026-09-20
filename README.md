@@ -90,9 +90,9 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 - Any Apple Silicon Mac (newer Neural Engines are faster)
 - Xcode 16 or later
 - Rust 1.77 or later
-- [xcodegen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
+- [xcodegen](https://github.com/yonaskolb/XcodeGen) 2.46 or newer (`brew install xcodegen`); the project declares Swift package traits
 
-Swift Package dependencies (FluidAudio, for Parakeet) are resolved automatically by Xcode on first build.
+Swift Package dependencies (FluidAudio, for Parakeet) are resolved automatically by Xcode on first build. FluidAudio is pinned to an exact version with its NeMo text-normalization trait disabled: that engine is a Rust static library, and TapTalk already links its own Rust core.
 
 ## Install
 
