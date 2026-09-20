@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Compile four .mlpackage components into the layout TapTalk installs (Preprocessor, Encoder,
 # Decoder, JointDecisionv3 .mlmodelc + parakeet_vocab.json) and record per-file hashes.
+# Standard library only, so it runs in the small bench environment.
 import argparse
 import hashlib
 import json

@@ -24,6 +24,7 @@ pyproject.toml        conversion environment (torch, coremltools, nemo-toolkit)
 convert/
   vendor_mobius.sh    FluidInference converter source at the pinned commit
   fetch_nemo.sh       r3 checkpoint download and sha256 check
+  fetch_shipped.sh    published greedy (or baseline) bundle, verified and compiled into models/
   export.sh           .nemo to FP16 Core ML components (mobius convert-parakeet.py, unchanged)
   quantize_encoder.py int8 per-channel encoder, symmetric or asymmetric
   prune_joint.py      greedy joint: drop the top-K outputs
@@ -47,6 +48,7 @@ docs/                 research write-ups
 ```bash
 make setup                 # vendor converter source, sync both uv environments
 make nemo                  # 2.5 GB checkpoint into work/, verified
+make shipped               # Nathan's published greedy bundle, verified and compiled into models/
 make vendor corpus         # Nathan's tooling and the two sealed 64-clip corpora
 make export                # FP16 components into out/export/
 make int8 int8-asym bundles   # encoders and compiled bundles into out/bundles/
@@ -55,7 +57,8 @@ make profile DIR=out/bundles/orukeet-int8sym-greedy AUDIO=data/fixtures/jfk.wav
 make joint-batched K=8 && make audit K=8
 ```
 
-`make profile` with no arguments profiles the bundle TapTalk compiled on install.
+`make profile` with no arguments profiles the shipped bundle in `models/shipped-greedy/`. Nothing
+here reads a TapTalk install; the reference comes from the pinned Hugging Face release.
 
 ## Results
 

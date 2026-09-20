@@ -1,6 +1,7 @@
 /vendor/
 /work/
 /out/
+/models/
 /data/
 /reports/_raw*/
 /swift/.build/
