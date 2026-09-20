@@ -1,0 +1,11 @@
+/vendor/
+/work/
+/out/
+/data/
+/reports/_raw*/
+/swift/.build/
+__pycache__/
+*.pyc
+.DS_Store
+/.venv/
+/bench/.venv/
