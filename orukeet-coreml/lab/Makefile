@@ -20,7 +20,7 @@ DIR ?= $(SHIPPED)
 UNITS ?= ane
 K ?= 8
 
-.PHONY: help setup nemo shipped export int8 int8-asym greedy-joint bundles build profile vendor corpus reg reg-all score joint-batched audit clean
+.PHONY: help setup nemo shipped export int8 int8-asym greedy-joint bundles build profile decode decode-reg vendor corpus reg reg-all score joint-batched audit clean
 
 help:
 	@echo "Orukeet Core ML lab: variants built from the r3 .nemo, measured against the shipped greedy bundle"
@@ -35,6 +35,8 @@ help:
 	@echo "  make bundles        assemble compiled bundles into out/bundles/<name>/"
 	@echo "  make build          build ttprof and ttreg"
 	@echo "  make profile        latency of DIR (default: the shipped bundle); UNITS=ane|gpu|cpu, AUDIO=clip.wav"
+	@echo "  make decode         own decode loop on DIR: AUDIO=clip.wav for timing; JOINT=<batched .mlmodelc> optional"
+	@echo "  make decode-reg     own decode loop over both corpora, LABEL=<name>, JOINT optional"
 	@echo "  make vendor         sparse-clone Nathan's PR branch (corpus sealer, scorer, evidence) and fixtures"
 	@echo "  make corpus         seal both 64-clip FLEURS corpora and verify against Nathan's manifests"
 	@echo "  make reg            transcribe both corpora with DIR, LABEL=<name> (writes reports/_raw/<LABEL>-{a,b}.json)"
@@ -85,6 +87,15 @@ build:
 
 profile: build
 	swift/.build/release/ttprof --dir "$(DIR)" --encoder-units $(UNITS) --components --runs 20 $(if $(AUDIO),--audio "$(AUDIO)",)
+
+decode: build
+	swift/.build/release/ttdecode --bundle "$(DIR)" $(if $(JOINT),--joint "$(JOINT)",) $(if $(AUDIO),--audio "$(AUDIO)" --runs 20,)
+
+decode-reg: build
+	@test -n "$(LABEL)" || { echo "set LABEL=<name>"; exit 1; }
+	mkdir -p "$(RAW)"
+	swift/.build/release/ttdecode --bundle "$(DIR)" $(if $(JOINT),--joint "$(JOINT)",) --manifest data/fleurs-a/manifest.json --out "$(RAW)/$(LABEL)-a.json"
+	swift/.build/release/ttdecode --bundle "$(DIR)" $(if $(JOINT),--joint "$(JOINT)",) --manifest data/fleurs-b/manifest.json --out "$(RAW)/$(LABEL)-b.json"
 
 vendor:
 	bash bench/vendor.sh
