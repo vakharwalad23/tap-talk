@@ -178,14 +178,16 @@ TapTalk stands on excellent open work. Model weights are downloaded at runtime u
 
 ## Contributing
 
-Contributions are welcome. Please open an issue to discuss your idea before submitting a pull request.
+Contributions are welcome. Please open an issue to discuss your idea before submitting a pull request, and read [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full flow.
 
 Start with [`docs/architecture.md`](docs/architecture.md) - it walks one dictation end to end, which is the fastest way to find the code you need. [`docs/models.md`](docs/models.md) records what has already been measured and rejected, so it is worth a look before proposing a model or performance change.
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/your-feature`)
+2. Create a feature branch from `dev` (`git checkout -b feat/your-feature dev`)
 3. Commit your changes using [conventional commits](https://www.conventionalcommits.org/)
-4. Open a pull request against `main`
+4. Open a pull request against `dev`; the maintainer moves `dev` to `main` for releases
+
+`main` is release-only and protected: it accepts pull requests from `dev` alone. Experiments (model conversions, benchmarks, research notes) live on `experiments/<topic>` branches that are never merged; see [`docs/branching.md`](docs/branching.md).
 
 ## License
 
