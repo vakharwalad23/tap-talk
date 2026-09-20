@@ -40,7 +40,7 @@ only and link the experiment branch.
 - [ ] No `unwrap()` in Rust outside tests, no force-unwrap in Swift outside previews.
 - [ ] Resource audit done for anything touching lifecycle or concurrency (`.claude/rules/resources.md`).
 - [ ] Measurements attached for anything on the dictation path.
-- [ ] No files from `orukeet-coreml/` or any experiment folder, no model weights.
+- [ ] No files from any experiment folder, no model weights.
 
 ## Review and merge
 
