@@ -559,6 +559,246 @@
       }
     }
   },
+  "own-int8sym-k8": {
+    "a": {
+      "words": 1215,
+      "errors": 96,
+      "wer": 0.07901234567901234,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 5
+        },
+        "es": {
+          "words": 154,
+          "errors": 4
+        },
+        "fr": {
+          "words": 195,
+          "errors": 14
+        },
+        "it": {
+          "words": 158,
+          "errors": 18
+        },
+        "lv": {
+          "words": 113,
+          "errors": 40
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 5
+        }
+      }
+    },
+    "b": {
+      "words": 1322,
+      "errors": 94,
+      "wer": 0.07110438729198185,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 6
+        },
+        "en": {
+          "words": 183,
+          "errors": 26
+        },
+        "es": {
+          "words": 189,
+          "errors": 4
+        },
+        "fr": {
+          "words": 238,
+          "errors": 22
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 120,
+          "errors": 14
+        },
+        "ru": {
+          "words": 153,
+          "errors": 11
+        },
+        "uk": {
+          "words": 151,
+          "errors": 5
+        }
+      }
+    }
+  },
+  "own-shipped-k1": {
+    "a": {
+      "words": 1215,
+      "errors": 99,
+      "wer": 0.08148148148148149,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 4
+        },
+        "es": {
+          "words": 154,
+          "errors": 5
+        },
+        "fr": {
+          "words": 195,
+          "errors": 14
+        },
+        "it": {
+          "words": 158,
+          "errors": 19
+        },
+        "lv": {
+          "words": 113,
+          "errors": 41
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 6
+        }
+      }
+    },
+    "b": {
+      "words": 1323,
+      "errors": 97,
+      "wer": 0.07331821617535904,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 7
+        },
+        "en": {
+          "words": 183,
+          "errors": 25
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 238,
+          "errors": 22
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 12
+        },
+        "ru": {
+          "words": 153,
+          "errors": 14
+        },
+        "uk": {
+          "words": 151,
+          "errors": 6
+        }
+      }
+    }
+  },
+  "own-shipped-k8": {
+    "a": {
+      "words": 1215,
+      "errors": 99,
+      "wer": 0.08148148148148149,
+      "languages": {
+        "de": {
+          "words": 182,
+          "errors": 3
+        },
+        "en": {
+          "words": 155,
+          "errors": 4
+        },
+        "es": {
+          "words": 154,
+          "errors": 5
+        },
+        "fr": {
+          "words": 195,
+          "errors": 14
+        },
+        "it": {
+          "words": 158,
+          "errors": 19
+        },
+        "lv": {
+          "words": 113,
+          "errors": 41
+        },
+        "ru": {
+          "words": 123,
+          "errors": 7
+        },
+        "uk": {
+          "words": 135,
+          "errors": 6
+        }
+      }
+    },
+    "b": {
+      "words": 1323,
+      "errors": 98,
+      "wer": 0.07407407407407407,
+      "languages": {
+        "de": {
+          "words": 136,
+          "errors": 8
+        },
+        "en": {
+          "words": 183,
+          "errors": 25
+        },
+        "es": {
+          "words": 189,
+          "errors": 5
+        },
+        "fr": {
+          "words": 238,
+          "errors": 21
+        },
+        "it": {
+          "words": 152,
+          "errors": 6
+        },
+        "lv": {
+          "words": 121,
+          "errors": 12
+        },
+        "ru": {
+          "words": 153,
+          "errors": 15
+        },
+        "uk": {
+          "words": 151,
+          "errors": 6
+        }
+      }
+    }
+  },
   "shipped-greedy": {
     "a": {
       "words": 1215,
