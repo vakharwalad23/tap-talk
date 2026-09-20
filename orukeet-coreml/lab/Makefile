@@ -70,12 +70,15 @@ greedy-joint:
 	mkdir -p "$(JOINT)"
 	@[ -d "$(JOINT)/greedy.mlpackage" ] || $(PY) $(LAB)/convert/prune_joint.py --src "$(EXPORT)/parakeet_joint_decision_single_step.mlpackage" --dst "$(JOINT)/greedy.mlpackage"
 
-# One bundle per encoder variant; decoder, preprocessor and greedy joint are shared. Outputs that
-# already exist are kept, so re-running a target after a partial failure resumes where it stopped.
+# One bundle per encoder variant; decoder and greedy joint are shared. The preprocessor comes from
+# the pinned release: it has no learned weights, and the mobius export of it takes a range-shaped
+# input that runs about 8x slower on the CPU (11 ms vs 1.4 ms per clip). Outputs that already
+# exist are kept, so re-running a target after a partial failure resumes where it stopped.
+PREPROCESSOR := $(LAB)/models/shipped-greedy-packages/Preprocessor.mlpackage
 bundles: greedy-joint shipped
-	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(EXPORT)/parakeet_preprocessor.mlpackage" --encoder "$(ENCODERS)/int8sym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8sym-greedy"
-	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(EXPORT)/parakeet_preprocessor.mlpackage" --encoder "$(EXPORT)/parakeet_encoder.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-fp16-greedy"
-	@if [ -d "$(ENCODERS)/int8asym.mlpackage" ]; then $(BENCHPY) convert/assemble_bundle.py --preprocessor "$(EXPORT)/parakeet_preprocessor.mlpackage" --encoder "$(ENCODERS)/int8asym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8asym-greedy"; fi
+	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(ENCODERS)/int8sym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8sym-greedy"
+	$(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(EXPORT)/parakeet_encoder.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-fp16-greedy"
+	@if [ -d "$(ENCODERS)/int8asym.mlpackage" ]; then $(BENCHPY) convert/assemble_bundle.py --preprocessor "$(PREPROCESSOR)" --encoder "$(ENCODERS)/int8asym.mlpackage" --decoder "$(EXPORT)/parakeet_decoder.mlpackage" --joint "$(JOINT)/greedy.mlpackage" --vocab "$(VOCAB)" --out "$(BUNDLES)/orukeet-int8asym-greedy"; fi
 
 build:
 	swift build --package-path swift -c release
