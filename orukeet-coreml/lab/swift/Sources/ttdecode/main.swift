@@ -139,7 +139,10 @@ final class Pipeline {
             if let base = src.baseAddress { audioPtr.update(from: base, count: count) }
         }
         if count < windowSamples { audioPtr.advanced(by: count).update(repeating: 0, count: windowSamples - count) }
-        audioLength[0] = NSNumber(value: Int32(count))
+        // FluidAudio declares the length rounded up to a whole 80 ms frame (1280 samples); the
+        // preprocessor normalizes over the declared length, so match it for comparable numerics.
+        let aligned = min(windowSamples, (count + 1279) / 1280 * 1280)
+        audioLength[0] = NSNumber(value: Int32(aligned))
         let mel = try preprocessor.prediction(from: MLDictionaryFeatureProvider(dictionary: [
             "audio_signal": audio, "audio_length": audioLength]))
         timing.preprocessorMs += now() - t0
