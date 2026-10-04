@@ -13,7 +13,7 @@ interface MicLevel {
 // Speech at normal input gain sits well above this; room noise stays under it.
 const HEARD_RMS = 0.02;
 
-// Feeds a raw RMS level (about 0 to 0.3, like the app's cpal callback) into a ref at frame rate.
+// Feeds a raw RMS level (about 0 to 0.3, like the app's level meter) into a ref at frame rate.
 export function useMicLevel(): MicLevel {
 	const levelRef = useRef(0);
 	const [status, setStatus] = useState<MicStatus>("off");

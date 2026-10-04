@@ -1,4 +1,4 @@
-export type FlowLayer = "rust" | "swift";
+export type FlowLayer = "audio" | "swift";
 
 export interface FlowNode {
 	readonly id: string;
@@ -31,18 +31,18 @@ export const flowNodes: readonly FlowNode[] = [
 	{
 		id: "capture",
 		title: "Capture",
-		summary: "Rust, zero-copy mono",
+		summary: "AVAudioEngine, real-time safe",
 		detail:
-			"A native Rust audio core records from your mic with zero-copy, real-time-safe buffers. No stutters, no allocations while you speak.",
-		layer: "rust",
+			"A native audio engine records from your mic into a preallocated, lock-free buffer on the real-time thread. No stutters, no allocations while you speak.",
+		layer: "audio",
 	},
 	{
 		id: "trim",
 		title: "Trim and boost",
 		summary: "Silero VAD, AGC, 16 kHz",
 		detail:
-			"Silero voice-activity detection trims the silence. Automatic gain lifts quiet speech. Resampled to 16 kHz for the model.",
-		layer: "rust",
+			"Silero voice-activity detection runs on Core ML while you speak, so the silence is already trimmed when you let go. Automatic gain lifts quiet speech. Resampled to 16 kHz for the model.",
+		layer: "audio",
 	},
 	{
 		id: "recognize",

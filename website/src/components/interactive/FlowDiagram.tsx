@@ -34,7 +34,7 @@ export function FlowDiagram() {
 							<span className={styles.head}>
 								<span className={styles.step}>{index + 1}</span>
 								<span className={styles.layer}>
-									{node.layer === "rust" ? "Rust" : "Swift + ANE"}
+									{node.layer === "audio" ? "Swift audio" : "Swift + ANE"}
 								</span>
 							</span>
 							<span className={styles.title}>{node.title}</span>
@@ -66,8 +66,8 @@ export function FlowDiagram() {
 						<span>Smart Mode adds the local rewrite step</span>
 					</label>
 					<p className="faint">
-						Rust owns the audio path. Swift and the Neural Engine own
-						recognition, the rewrite, and the paste.
+						Swift owns everything from the mic to the paste; recognition runs on
+						the Neural Engine.
 					</p>
 					<p className="faint">{flowCopy.liveTypingNote}</p>
 				</div>
