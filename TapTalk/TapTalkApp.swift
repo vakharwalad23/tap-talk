@@ -35,10 +35,11 @@ final class AppRecordingState: ObservableObject {
     private init() {}
 }
 
-// Stops the llama-server subprocess on quit so it doesn't outlive TapTalk and hold port 8899.
+// Stops the llama-server subprocess and the microphone on quit so neither outlives TapTalk.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         LlamaServerManager.shared.stop()
+        AppController.shared.shutdownAudio()
     }
 
     // MenuBarExtra keeps TapTalk alive for the global hotkey when the user closes the main window.
