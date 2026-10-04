@@ -8,7 +8,7 @@ const rows = [
 	{ label: "Engines", value: "NVIDIA Parakeet TDT, Nemotron 3.5 ASR" },
 	{ label: "Runtime", value: "Core ML / Neural Engine via FluidAudio" },
 	{ label: "Rewrite", value: "Qwen 2.5 1.5B, llama.cpp" },
-	{ label: "Audio", value: "cpal, Silero VAD silence trimming" },
+	{ label: "Audio", value: "AVAudioEngine, Silero VAD on Core ML" },
 	{ label: "Platform", value: "macOS 14+, Apple Silicon" },
 ] as const;
 

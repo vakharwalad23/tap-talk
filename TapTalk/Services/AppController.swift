@@ -2,6 +2,8 @@ import SwiftUI
 import Carbon.HIToolbox
 import AVFoundation
 import Combine
+import TapTalkAudio
+import os
 
 /// App-level singleton. Owns recorder, engines, state, and hotkey registration.
 /// Lives for the full app lifetime - independent of any window.
@@ -10,7 +12,7 @@ final class AppController: ObservableObject {
 
     // Lazy: defer audio-unit initialization until after mic permission has been resolved.
     // Eager construction at singleton init touches CoreAudio before TCC has been queried, which can re-prompt on rebuild.
-    private(set) lazy var recorder: Recorder = Recorder()
+    private(set) lazy var recorder = DictationRecorder()
     let parakeet    = ParakeetEngine()
     let nemotron    = NemotronEngine()
     let orukeet     = OrukeetEngine()
@@ -27,8 +29,6 @@ final class AppController: ObservableObject {
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var hasRequestedAccessibilityPermission = false
     private var recordingWatchdog: DispatchWorkItem?
-    // Stable owner for the Rust level callback - its lifetime must outlast the audio thread.
-    private let levelHandler = PillLevelHandler()
 
     // Bumped on every engine (re)load so a superseded async load/unload can no-op instead
     // of racing the newer one. All engine load/unload runs serialized through engineTask.
@@ -51,7 +51,6 @@ final class AppController: ObservableObject {
     // Live-typing state. Non-nil only while a streaming recording session is in flight.
     let liveInserter = LiveInserter()
     private var streamingEngine: EouStreamingEngine?
-    private var streamingChunkHandler: StreamingChunkHandler?
     private var streamConsumerTask: Task<Void, Never>?
 
     private let maxRecordingSeconds: TimeInterval = 120
@@ -188,6 +187,14 @@ final class AppController: ObservableObject {
                 self?.refresh()
             }
             .store(in: &settingsCancellables)
+
+        // Launch only warms EOU when live typing was already on; turning it on later warms it now.
+        settings.$streamingEnabled
+            .dropFirst()
+            .removeDuplicates()
+            .filter { $0 }
+            .sink { _ in Task.detached { await EouStreamingEngine.warmUp() } }
+            .store(in: &settingsCancellables)
     }
 
     // Starts the local LLM while the user is still speaking, so a cold server does not land on
@@ -227,9 +234,8 @@ final class AppController: ObservableObject {
         state.audioDuration = 0
     }
 
-    // Ensures mic permission is resolved before the hotkey goes live.
-    // CPAL blocks the main thread during the CoreAudio permission dialog; if the hotkey
-    // fires while that block is in progress, keyUp is missed and recording gets stuck.
+    // Ensures mic permission is resolved before the hotkey goes live, so the permission dialog
+    // can never interrupt a key press and leave a recording stuck waiting for key-up.
     private func resolveMicThenSetupHotkey() {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
@@ -249,16 +255,31 @@ final class AppController: ObservableObject {
         }
     }
 
-    // Pre-creates the CoreAudio AudioUnit so TCC validation happens at
-    // launch - not inside the hotkey callback where it blocks the main thread.
-    // Touches `recorder` on main thread first (safe lazy init) then warms
-    // up the CPAL stream in background.
+    // Builds the audio graph off the main thread once permission is granted, so device setup never
+    // lands inside the hotkey callback. Silero downloads here when missing (~0.9 MB, pinned); until
+    // it is installed, recordings are transcribed untrimmed.
     private func warmUpAudioStream() {
         let rec = recorder
-        rec.setLevelCallback(callback: levelHandler)
+        rec.setLevelHandler { rms in
+            DispatchQueue.main.async { FloatingPillController.shared.setLevel(rms) }
+        }
+        let store = VadModelStore(modelsDirectory: URL(fileURLWithPath: Self.modelsDirectory(), isDirectory: true))
         Task.detached {
             try? rec.warmUp()
+            do {
+                store.sweepResidue()
+                if !store.isInstalled() { try await store.install() }
+                try await rec.loadVoiceActivity(modelURL: store.modelURL)
+            } catch {
+                Logger(subsystem: "talk.tap.app", category: "audio").error(
+                    "voice activity unavailable, recordings stay untrimmed: \(error.localizedDescription, privacy: .public)")
+            }
         }
+    }
+
+    /// Releases the microphone hardware; called on app quit.
+    func shutdownAudio() {
+        recorder.shutdown()
     }
 
     func refresh() {
@@ -450,18 +471,20 @@ final class AppController: ObservableObject {
         guard state.canRecord else { return }
         cancelIdleRelease()
         if state.transcribing { cancelTranscription() }
+        let liveSink = shouldStream(smart: smart) ? beginStreamingSession() : nil
         do {
-            try recorder.start()
+            try recorder.start(liveSink: liveSink)
             state.beginRecording(hotkey: hotkey, smart: smart)
             state.status = "Recording..."
             AppRecordingState.shared.isRecording = true
             FloatingPillController.shared.show(state: .recording)
             startRecordingWatchdog()
-
-            if shouldStream(smart: smart) {
-                beginStreamingSession()
-            }
         } catch {
+            if let engine = streamingEngine {
+                liveInserter.cancel()
+                tearDownStreamingSession()
+                Task.detached { await engine.cancel() }
+            }
             state.status = "Error: \(error.localizedDescription)"
         }
     }
@@ -478,17 +501,11 @@ final class AppController: ObservableObject {
             && EouStreamingEngine.isInstalled()
     }
 
-    // Boots the streaming engine and wires the recorder's chunk callback to feed it.
-    // Chunk callback is set IMMEDIATELY (before engine.start finishes loading), so audio
-    // buffers in the engine's FIFO from the first sample - no audio is dropped while the
-    // model loads on a cold start. Updates land on the main actor and drive both the
-    // LiveInserter (live typing) and the UI preview.
-    private func beginStreamingSession() {
-        let rate = Double(recorder.inputSampleRate() ?? 16_000)
-        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: rate, channels: 1, interleaved: false) else {
-            state.status = "Live typing failed: invalid sample rate"
-            return
-        }
+    // Boots the streaming engine and returns the live sink that feeds it. The recorder starts with
+    // the sink attached, so the engine's FIFO holds audio from the first sample while the model
+    // loads on a cold start. Updates land on the main actor and drive both the LiveInserter (live
+    // typing) and the UI preview.
+    private func beginStreamingSession() -> LiveSink {
         let engine = EouStreamingEngine()
         streamingEngine = engine
         liveInserter.begin()
@@ -507,16 +524,10 @@ final class AppController: ObservableObject {
             await self?.releaseEngines(keep: .none)
         }
 
-        // Wire chunks to the engine's Sendable FIFO right away. Yielding into AsyncStream
-        // is sync and order-preserving - no Task scheduling race per audio chunk.
-        let handler = StreamingChunkHandler(format: format, continuation: engine.inputContinuation)
-        streamingChunkHandler = handler
-        recorder.setAudioChunkCallback(callback: handler)
-
         streamConsumerTask = Task { [weak self] in
             guard let self else { return }
             do {
-                try await engine.start(sampleRate: rate)
+                try await engine.start(sampleRate: Double(SpeechTrim.sampleRate))
                 let stream = await engine.updates
                 for await update in stream {
                     if update.isFinal { continue }   // commit() handles the final pass
@@ -537,16 +548,18 @@ final class AppController: ObservableObject {
                 }
             }
         }
+
+        // Yielding into AsyncStream is sync and order-preserving - no Task scheduling race per buffer.
+        let continuation = engine.inputContinuation
+        return { buffer in continuation.yield(buffer) }
     }
 
     private func tearDownStreamingSession() {
         // Idempotent: a double-call (cancel arriving while error path also tears down)
         // becomes a no-op once the session flags are already cleared.
         guard state.streamingActive || streamingEngine != nil || streamConsumerTask != nil else { return }
-        recorder.clearAudioChunkCallback()
         streamConsumerTask?.cancel()
         streamConsumerTask = nil
-        streamingChunkHandler = nil
         streamingEngine = nil
         state.streamingActive = false
         state.streamingConfirmed = ""
@@ -574,7 +587,7 @@ final class AppController: ObservableObject {
         guard state.recording else { return }
         cancelRecordingWatchdog()
         // Reset UI/state first; tear the audio stream down off the main thread. A slow
-        // cpal pause() (CoreAudio start->pause race) used to block this method and leave
+        // CoreAudio pause (start->pause race) used to block this method and leave
         // the app stuck in the .recording phase.
         state.cancel()
         state.status = "Cancelled"
@@ -591,7 +604,7 @@ final class AppController: ObservableObject {
             tearDownStreamingSession()
         }
         Task.detached { [recorder, activeStreamingEngine] in
-            _ = try? recorder.stop()
+            _ = try? await recorder.stop(.discard)
             if let engine = activeStreamingEngine { await engine.cancel() }
         }
     }
@@ -622,12 +635,12 @@ final class AppController: ObservableObject {
             // Clear instance var immediately so a concurrent cancelRecording can't re-touch
             // this engine while the detached finish() is in flight.
             self.streamingEngine = nil
-            recorder.clearAudioChunkCallback()
             let segments = settings.dictionarySegments
             let hotkeyTriggeredLocal = hotkeyTriggered
             transcribeTask = Task.detached { [weak self] in
                 guard let self else { return }
-                _ = try? self.recorder.stop()
+                // Discard still flushes the final audio into the EOU FIFO before finish() drains it.
+                _ = try? await self.recorder.stop(.discard)
                 do {
                     let final = try await engine.finish()
                     let processed = PostProcessingService.applyDictionary(final, segments: segments)
@@ -699,7 +712,7 @@ final class AppController: ObservableObject {
         transcribeTask = Task.detached { [weak self] in
             guard let self = self else { return }
             do {
-                let audio = try self.recorder.stop()
+                let audio = try await self.recorder.stop(.transcribe)
                 trace.mark("audio")
 
                 if Task.isCancelled {
@@ -786,7 +799,7 @@ final class AppController: ObservableObject {
                         self.state.transcriptText = finalText
                         self.state.transcriptLang = result.language
                         self.state.transcriptMs   = result.durationMs
-                        self.state.audioDuration  = audio.durationSecs
+                        self.state.audioDuration  = audio.speechSeconds
                         self.state.finish()
                         if let err = finalError {
                             self.state.status = "Smart rewrite failed: \(err)"
@@ -901,30 +914,5 @@ final class AppController: ObservableObject {
             NSWorkspace.shared.openApplication(at: url, configuration: config)
             NSApp.terminate(nil)
         }
-    }
-}
-
-// Forwards live mic RMS from the Rust recorder to the floating pill on the main thread.
-private final class PillLevelHandler: AudioLevelCallback {
-    func onLevel(rms: Float) {
-        DispatchQueue.main.async {
-            FloatingPillController.shared.setLevel(rms)
-        }
-    }
-}
-
-// Forwards live mono audio chunks from the Rust recorder to the streaming engine via a
-// Sendable FIFO continuation. Yielding is sync and thread-safe, preserving arrival order -
-// critical for streaming ASR (out-of-order chunks corrupt the recognizer state).
-final class StreamingChunkHandler: AudioChunkCallback {
-    let format: AVAudioFormat
-    let continuation: AsyncStream<AVAudioPCMBuffer>.Continuation
-    init(format: AVAudioFormat, continuation: AsyncStream<AVAudioPCMBuffer>.Continuation) {
-        self.format = format
-        self.continuation = continuation
-    }
-    func onChunk(samples: [Float]) {
-        guard !samples.isEmpty, let buffer = makeBuffer(samples: samples, format: format) else { return }
-        continuation.yield(buffer)
     }
 }

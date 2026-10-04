@@ -1,4 +1,4 @@
-.PHONY: all rust bindings xcode build run install kill clean release notarize staple dmg dmg-unsigned
+.PHONY: all rust bindings xcode build run test install kill clean release notarize staple dmg dmg-unsigned
 
 # Single source of truth is project.yml; anything else drifts from the bundle.
 VERSION := $(shell awk -F'"' '/^ *MARKETING_VERSION:/{print $$2; exit}' project.yml)
@@ -30,6 +30,10 @@ build: xcode
 
 run: build
 	open build/Build/Products/Debug/TapTalk.app
+
+test:
+	cd core && cargo test
+	cd TapTalk/Audio && swift test
 
 # Builds an optimized app and installs it to /Applications as a STATIC binary.
 # Because it isn't rebuilt on every launch, macOS keeps the mic + accessibility

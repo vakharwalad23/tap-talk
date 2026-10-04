@@ -16,7 +16,7 @@ export interface LogoEntry {
 export const builtWith: readonly LogoEntry[] = [
 	{
 		name: "Rust",
-		role: "the audio core",
+		role: "model downloads and the cloud client",
 		url: "https://rust-lang.org",
 		logo: "rust",
 	},

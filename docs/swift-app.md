@@ -1,10 +1,11 @@
 # The Swift app
 
 SwiftUI and AppKit, no third-party UI. Everything that talks to Apple frameworks lives here:
-recognition, the rewrite, the hotkey, the paste, the interface.
+audio, recognition, the rewrite, the hotkey, the paste, the interface.
 
 ```
 TapTalk/
+  Audio/      TapTalkAudio package: capture, 16 kHz conversion, Silero VAD, trim, gain
   Services/   system interaction and orchestration
   Pages/      full screens (Record, Settings, Intelligence, Privacy, About)
   Views/      reusable components and the floating pill
@@ -32,6 +33,31 @@ from a superseded plan cannot run after the next load has finished.
 
 The transcribe path is a detached task. Settings are snapshotted **by value** on the main actor
 before crossing into it - never read `settings` from inside the task.
+
+## Audio
+
+`TapTalk/Audio` is a local Swift package (`TapTalkAudio`) with its own tests (`make test`).
+
+- `MicrophoneCapture` - `AVAudioEngine` input into an `AVAudioSinkNode`. The sink block runs on
+  Core Audio's real-time thread and only downmixes into `SampleRing`: no locks, no allocation, no
+  reference counting. The engine is paused, never torn down, between dictations; a device change
+  marks the graph for rebuild on the next start.
+- `RecordingPipeline` (actor) drains the ring every 32 ms: RMS for the pill, `AVAudioConverter`
+  to 16 kHz, Silero on each complete 512-sample window, or the live sink for EOU instead.
+- `DictationRecorder.stop` pauses the engine and finishes only the last ~32 ms. Measured on an M3
+  Pro with 17 to 21 s clips: 0.7 to 1.2 ms, against 53 to 66 ms for the Rust stage it replaced
+  (ONNX Silero at ~2.5 ms per second of audio plus a full-clip resample, and ~100 ms more on the
+  first dictation of a process).
+
+**512 is not a tuning knob.** Silero v5 and v6 need exactly 512 samples at 16 kHz. Larger windows
+were measured 3x faster and clipped up to 2976 ms of opening speech on 34 of 59 real clips while
+returning plausible probabilities. The threshold is 0.35, below Silero's 0.5, to catch murmured
+dictation; six windows (~190 ms) of padding are kept either side. Do not change any of these
+without re-running that comparison on real speech.
+
+Silero (`silero-vad-unified-v6.0.0`, the 32 ms Core ML conversion) downloads at launch from a
+pinned Hugging Face revision with SHA-256 checks, into `models/silero-vad/`. Until it is present,
+recordings are transcribed untrimmed.
 
 ## Recognition engines
 
@@ -108,7 +134,9 @@ a list already missed a browser installed on the development machine.
 ## Conventions
 
 - `@Published` + `didSet` writing to `UserDefaults` for every setting; Keychain for secrets.
-- Actors for engines, `@MainActor` for UI state. No `@unchecked Sendable`.
+- Actors for engines, `@MainActor` for UI state. No `@unchecked Sendable`, except the three audio
+  types that share raw memory or `AVAudioEngine` with the real-time thread (`SampleRing`, its
+  `Writer`, `MicrophoneCapture`); each names its invariant in a comment.
 - No force-unwrapping outside previews.
 - Warnings are treated as errors in review even though the build does not enforce it - the Swift 6
   concurrency warnings in particular have twice indicated real races.
@@ -118,8 +146,9 @@ a list already missed a browser installed on the development machine.
 ```bash
 make run      # rust -> bindings -> xcodegen -> xcodebuild -> launch
 make kill     # stop a running instance first; two instances fight over the event tap
+make test     # Rust tests and the TapTalkAudio package tests
 ```
 
-There is no test target. The added logic is prompt composition and enum dispatch, where exhaustive
-`switch` breakage at compile time is a stronger check than a test would be. `make build` failing is
-the signal.
+`make test` runs the Rust tests and the `TapTalkAudio` package tests. The rest of the app has no
+test target: its logic is prompt composition and enum dispatch, where exhaustive `switch` breakage
+at compile time is a stronger check than a test would be. `make build` failing is the signal.

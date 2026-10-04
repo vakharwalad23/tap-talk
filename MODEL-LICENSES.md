@@ -3,7 +3,8 @@
 TapTalk ships **no model weights**. Nothing model-shaped is inside the app bundle, the DMG,
 or this repository. Models are downloaded by the end user's machine, on explicit action, from
 the upstream host - so each user receives the weights directly from the publisher under that
-publisher's own grant.
+publisher's own grant. The one download that does not wait for an explicit action is the 0.9 MB
+Silero VAD model, fetched at launch because every recording uses it.
 
 This file records the terms of every model TapTalk can download, so they live somewhere
 auditable rather than only in prose. `README.md` carries the user-facing attribution.
@@ -14,6 +15,7 @@ auditable rather than only in prose. `README.md` carries the user-facing attribu
 | Orukeet r3 (Core ML greedy) | `oruk/orukeet` @ `coreml-taptalk-preview-20260915` (Parakeet TDT 0.6B v3 fine-tune) | CC-BY-SA-4.0 | Default engine - English + European |
 | Nemotron 3.5 ASR Streaming Multilingual 0.6B | `FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML` (NVIDIA upstream) | OpenMDW-1.1 | Multilingual engine - Hindi and beyond |
 | Parakeet Realtime EOU 120M | `FluidInference/parakeet-realtime-eou-120m-coreml` (NVIDIA upstream) | NVIDIA Open Model License | Optional live-typing add-on |
+| Silero VAD v6 (Core ML, 32 ms) | `FluidInference/silero-vad-coreml` @ `b419383c` (Silero Team upstream) | MIT | Silence trimming |
 | Qwen 2.5 1.5B Instruct (GGUF) | `Qwen/Qwen2.5-1.5B-Instruct-GGUF` | Apache-2.0 | Smart Mode rewrite |
 
 Runtime code: FluidAudio (Apache-2.0), llama.cpp (MIT), TapTalk itself (MIT).
@@ -67,6 +69,7 @@ a LICENSE file, so those texts would have to be sourced separately.
 FluidAudio constructs download URLs as `<base>/<repo>/resolve/main/<file>`
 (`ModelRegistry.resolveModel`). The registry base URL is overridable, but **the revision is
 hardcoded to `main`** - there is no way to pin a commit SHA without forking the dependency.
+Silero is the exception: TapTalk downloads it itself, pinned to a revision with per-file SHA-256.
 
 Two consequences, both accepted deliberately:
 

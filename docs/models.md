@@ -1,9 +1,10 @@
 # Models and inference engines
 
 TapTalk ships **no model weights**. Everything is downloaded on explicit user action, from the
-publisher, to `~/Library/Application Support/`. Nothing model-shaped is in the app bundle, the DMG
-or this repository - see [`../MODEL-LICENSES.md`](../MODEL-LICENSES.md) for why that boundary
-matters legally.
+publisher, to `~/Library/Application Support/` - except the 0.9 MB Silero VAD model, a pipeline
+component rather than a user-chosen model, which downloads at launch from a pinned revision with
+per-file SHA-256 checks. Nothing model-shaped is in the app bundle, the DMG or this repository -
+see [`../MODEL-LICENSES.md`](../MODEL-LICENSES.md) for why that boundary matters legally.
 
 Orukeet downloads read `coreml/manifest.json` from the same immutable Hugging Face
 revision as the archive. The installer verifies the selected filename, the
@@ -19,6 +20,7 @@ download accounting. Cached model loads and transcription make no such requests.
 | **Orukeet r3** | Default ASR for new installs - English + 24 European | ~467 MB | Core ML / ANE, 6-bit LUT/FP16 greedy, compiled on device | CC-BY-SA-4.0 |
 | **NVIDIA Nemotron 3.5 ASR Multilingual 0.6B** | ASR - Hindi + 100 languages | ~640 MB | Core ML / ANE via FluidAudio | OpenMDW-1.1 |
 | **NVIDIA Parakeet Realtime EOU 120M** | Live typing (optional) | ~440 MB | Core ML / ANE via FluidAudio | NVIDIA Open Model License |
+| **Silero VAD v6 (32 ms Core ML)** | Silence trimming before recognition | ~0.9 MB | Core ML, CPU (Core ML places no Silero op on the ANE) | MIT |
 | **Qwen 2.5 1.5B Instruct (GGUF q4_k_m)** | Smart Mode rewrite | 1.06 GB | llama.cpp, pinned release `b10107` | Apache-2.0 |
 | OpenAI Whisper (cloud) | Optional, opt-in, off by default | - | OpenAI API | - |
 
@@ -75,6 +77,15 @@ earlier benchmark at temperature 0.3 appeared to show a 20% win; that was variab
 not speed.
 
 **Larger VAD windows** - 3x faster and *clipped up to 2976 ms of speech* on real audio.
+
+**FluidAudio's 256 ms Silero model** (`VadManager`'s default) - 2.7x cheaper per second than the
+32 ms model, but it merges 8 frames with noisy-OR, which scored background noise at 0.56 to 0.73.
+At thresholds up to 0.7 it left leading silence untrimmed on 2 of 3 real clips; trimming needs
+~0.85, which drops murmured speech. The 32 ms model matches the old trim within one window.
+
+**Running Silero on the Neural Engine** - `MLComputePlan` places all of its ops on the CPU under
+every compute-unit setting, and timings are identical. The speedup over ONNX Runtime comes from
+Core ML's CPU path and from moving VAD off the key-up path, not from the ANE.
 
 **Rule-based transliteration (ICU)** for Hinglish - deterministic, and produces `kaiphe` for cafe
 and `mitinga` for meeting. It destroys exactly the English loanwords that make code-switched text

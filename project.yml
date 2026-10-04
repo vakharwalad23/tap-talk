@@ -8,10 +8,12 @@ options:
 packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    exactVersion: "0.15.8"
+    exactVersion: "0.17.5"
     traits: []
   OrukeetCoreML:
     path: TapTalk/Vendor/OrukeetCoreML
+  TapTalkAudio:
+    path: TapTalk/Audio
 
 targets:
   TapTalk:
@@ -21,38 +23,27 @@ targets:
       - package: FluidAudio
       - package: OrukeetCoreML
         product: OrukeetCoreML
+      - package: TapTalkAudio
     sources:
       - path: TapTalk
         excludes:
           - "Generated/TapTalkCoreFFI.h"
           - "Generated/TapTalkCoreFFI.modulemap"
-          # Local package compiled via the packages: dependency below; exclude its dir so
-          # SwiftPM .build output inside it is not swept into the app target (duplicate tasks).
+          # Local packages compiled via the packages: dependencies above; exclude their dirs so
+          # SwiftPM .build output inside them is not swept into the app target (duplicate tasks).
           - "Vendor/OrukeetCoreML"
+          - "Audio"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: talk.tap.app
-        MARKETING_VERSION: "0.4.1"
-        CURRENT_PROJECT_VERSION: "5"
+        MARKETING_VERSION: "0.5.0"
+        CURRENT_PROJECT_VERSION: "6"
         LIBRARY_SEARCH_PATHS:
           - "$(PROJECT_DIR)/core/target/release"
         HEADER_SEARCH_PATHS:
           - "$(PROJECT_DIR)/TapTalk/Generated"
         OTHER_LDFLAGS:
           - "-ltap_talk_core"
-          - "-lc++"
-          - "-framework"
-          - "Accelerate"
-          - "-framework"
-          - "CoreAudio"
-          - "-framework"
-          - "AudioToolbox"
-          - "-framework"
-          - "CoreML"
-          - "-framework"
-          - "Metal"
-          - "-framework"
-          - "MetalKit"
           - "-framework"
           - "Foundation"
           - "-framework"

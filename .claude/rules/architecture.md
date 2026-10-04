@@ -19,9 +19,10 @@ globs: "**/*.{rs,swift}"
 
 ## Dependency Direction
 ```
-SwiftUI Views -> Services -> Rust Core (via UniFFI)
-                              v
-                     audio / transcribe / models
+SwiftUI Views -> Services -> Audio (Swift package)
+                          -> Rust Core (via UniFFI)
+                                  v
+                          transcribe / models
 ```
 - Views depend on services. Services depend on core. Core depends on nothing app-specific.
 - Rust core is a standalone library - usable without Swift layer.
