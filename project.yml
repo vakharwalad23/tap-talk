@@ -12,6 +12,8 @@ packages:
     traits: []
   OrukeetCoreML:
     path: TapTalk/Vendor/OrukeetCoreML
+  TapTalkAudio:
+    path: TapTalk/Audio
 
 targets:
   TapTalk:
@@ -21,14 +23,16 @@ targets:
       - package: FluidAudio
       - package: OrukeetCoreML
         product: OrukeetCoreML
+      - package: TapTalkAudio
     sources:
       - path: TapTalk
         excludes:
           - "Generated/TapTalkCoreFFI.h"
           - "Generated/TapTalkCoreFFI.modulemap"
-          # Local package compiled via the packages: dependency below; exclude its dir so
-          # SwiftPM .build output inside it is not swept into the app target (duplicate tasks).
+          # Local packages compiled via the packages: dependencies above; exclude their dirs so
+          # SwiftPM .build output inside them is not swept into the app target (duplicate tasks).
           - "Vendor/OrukeetCoreML"
+          - "Audio"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: talk.tap.app
