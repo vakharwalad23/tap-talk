@@ -133,11 +133,14 @@ actor EouStreamingEngine: StreamingTranscriber {
 
     func finish() async throws -> String {
         guard let mgr = manager else { return "" }
+        // The recorder flushes its last buffers right before this call; ending the stream lets the
+        // consumer append them before the manager finalizes, instead of dropping them with the task.
+        inputContinuation.finish()
+        await consumerTask?.value
+        consumerTask = nil
         let final = try await mgr.finish()
         updateContinuation?.yield(StreamingUpdate(confirmed: final, volatile: "", isFinal: true))
         updateContinuation?.finish()
-        inputContinuation.finish()
-        consumerTask?.cancel(); consumerTask = nil
         await mgr.cleanup()
         manager = nil
         return final
