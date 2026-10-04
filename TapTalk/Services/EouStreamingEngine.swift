@@ -27,8 +27,8 @@ actor EouStreamingEngine: StreamingTranscriber {
     }
 
     init() {
-        // ~20s buffer at 100Hz cpal callbacks. Sized to absorb model load latency on cold
-        // start so the first words of an utterance aren't dropped before the consumer drains.
+        // ~64 s of buffers at the recorder's 32 ms cadence. Sized to absorb model load latency on
+        // cold start so the first words of an utterance aren't dropped before the consumer drains.
         let (stream, cont) = AsyncStream<AVAudioPCMBuffer>.makeStream(bufferingPolicy: .bufferingNewest(2000))
         self.inputStream = stream
         self.inputContinuation = cont
