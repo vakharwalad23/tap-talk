@@ -1,14 +1,12 @@
 # The Rust core
 
-`core/` builds a static library (`libtap_talk_core.a`) linked into the app. It owns the audio path
-and model downloads, and nothing else. Roughly 1,000 lines.
+`core/` builds a static library (`libtap_talk_core.a`) linked into the app. It owns the LLM model
+downloads and the optional OpenAI client, and nothing else. Roughly 500 lines. Audio moved to the
+Swift `TapTalkAudio` package; see [`swift-app.md`](swift-app.md).
 
 ```
 core/src/
   lib.rs              the entire FFI surface - no other file has uniffi attributes
-  audio/capture.rs    cpal stream, downmix, resample
-  audio/vad.rs        Silero silence trimming
-  audio/agc.rs        gain for quiet speech
   models/manager.rs   GGUF download, partial-file hygiene
   llm/catalog.rs      which LLM models exist
   transcribe/cloud.rs optional OpenAI path
@@ -27,58 +25,18 @@ Exported:
 
 | Item | Purpose |
 |---|---|
-| `Recorder` | `warm_up`, `start`, `stop`, level and chunk callbacks |
 | `ModelManager` | LLM download, path lookup, delete |
-| `RecordingResult` | samples, count, real speech duration |
 | `TranscriptionResult` | text, language, duration |
 | `transcribe_cloud`, `test_cloud_connection` | the optional OpenAI path |
-| `AudioLevelCallback`, `AudioChunkCallback`, `LlmDownloadProgressCallback` | Rust -> Swift callbacks |
+| `LlmDownloadProgressCallback` | Rust -> Swift download progress |
 
 `CoreError` is the only error type crossing the boundary. Internals use `String` errors and map at
 the `lib.rs` edge, so callers never see a foreign error type.
 
-## The audio path
-
-### Capture (`audio/capture.rs`)
-
-The stream is created once and **paused**, never destroyed, between recordings. Rebuilding it makes
-macOS re-validate the microphone permission each time, which is both slow and visible to the user.
-`warm_up()` exists so that creation - and the TCC prompt - happens at launch rather than inside the
-hotkey callback.
-
-Inside the callback, which runs on CoreAudio's real-time thread:
-
-- Downmix to mono **once**. Mono input is passed through with no copy at all.
-- `try_lock` on the buffer, never `lock` - blocking a real-time thread is not acceptable, and
-  dropping a callback is preferable to stalling one.
-- Append to a buffer pre-reserved for 30 s so the allocator is never called here.
-- Emit RMS every ~30 Hz, not every callback.
-
-`stop()` swaps the buffer out with `mem::replace` for a freshly reserved one, so the next recording
-does not grow-and-realloc on the audio thread.
-
-### Silence trimming (`audio/vad.rs`)
-
-Silero VAD via ONNX Runtime, 512-sample windows, threshold 0.35 - deliberately below Silero's
-default 0.5 to catch murmured dictation. Six chunks (~190 ms) of padding are kept either side so
-soft word onsets survive.
-
-**512 is not a tuning knob.** Silero v5 requires exactly 512 samples at 16 kHz. Larger windows were
-measured at 3x faster and *clipped up to 2976 ms of opening speech on 34 of 59 real clips*, while
-returning perfectly plausible probabilities. The crate accepts them without complaint. Do not
-change it without re-running that comparison on real speech.
-
-Cost is linear at ~2.4 ms per second of audio, and the first call of a process pays ~64 ms of ONNX
-Runtime initialisation.
-
-### Gain (`audio/agc.rs`)
-
-Lifts quiet speech toward -23 dBFS, bypasses anything already at conversational level, caps at
-+20 dB, and limits peaks. Two linear passes, effectively free.
-
 ## Model downloads (`models/manager.rs`)
 
-Only the LLM GGUF goes through here - ASR models are downloaded by FluidAudio on the Swift side.
+Only the LLM GGUF goes through here - the ASR models and the Silero VAD model are downloaded on the
+Swift side.
 
 - Streams to `<name>.partial`, then `fs::rename` to the final path, so a crashed download never
   leaves a file that looks complete.
@@ -91,8 +49,7 @@ Only the LLM GGUF goes through here - ASR models are downloaded by FluidAudio on
 ## Conventions
 
 - `Result<T, String>` internally, mapped to `CoreError` at the boundary. No `unwrap` outside tests.
-- `unsafe` only for the `Send`/`Sync` assertion on the cpal stream, with a `// SAFETY:` comment
-  naming the invariant.
+- No `unsafe`.
 - `cargo fmt` and `cargo clippy -- -D warnings` must both pass. Clippy is load-bearing - it is what
   catches code left orphaned by a removal.
 

@@ -5,7 +5,8 @@ Local speech-to-text for macOS. Native SwiftUI + Rust. No cloud, no web tech.
 ## Stack
 
 - **UI:** SwiftUI (macOS 14+, Apple Silicon)
-- **Core:** Rust static library (`core/`) - audio capture, VAD, model downloads
+- **Audio:** Swift package (`TapTalk/Audio`) - capture, 16 kHz conversion, Silero VAD (Core ML), gain
+- **Core:** Rust static library (`core/`) - LLM model downloads, optional cloud transcription
 - **Bridge:** UniFFI proc macros -> auto-generated Swift bindings
 - **Build:** `make run` (cargo -> uniffi-bindgen -> xcodegen -> xcodebuild)
 
@@ -16,13 +17,15 @@ make run          # full build + launch
 make build        # build without launching
 make rust         # rebuild Rust only
 make bindings     # regenerate Swift bindings
+make test         # Rust and TapTalkAudio tests
 make clean        # remove all build artifacts
 ```
 
 ## Project Layout
 
-- `core/` - Rust static library (all compute-heavy work)
+- `core/` - Rust static library (LLM downloads, cloud transcription)
 - `TapTalk/` - SwiftUI app source
+- `TapTalk/Audio/` - TapTalkAudio Swift package: capture, VAD, gain (`make test`)
 - `TapTalk/Generated/` - UniFFI-generated bindings (rebuild with `make bindings`)
 - `project.yml` - xcodegen spec (generates `.xcodeproj`)
 - `scripts/` - build helper scripts
@@ -31,8 +34,9 @@ make clean        # remove all build artifacts
 ## Documentation
 
 - `docs/architecture.md` - layer split and the dictation path end to end
-- `docs/rust-core.md` - audio path, FFI surface, VAD constants that must not be tuned blindly
-- `docs/swift-app.md` - services, engine actor contract, prompt-clause precedence
+- `docs/rust-core.md` - LLM downloads, cloud client, FFI surface
+- `docs/swift-app.md` - services, audio package and the VAD constants that must not be tuned blindly,
+  engine actor contract, prompt-clause precedence
 - `docs/models.md` - model choices with their measurements, and rejected alternatives with reasons
 - `docs/branching.md` - branch flow: dev-first, main release-only, experiment branches never merge
 - `MODEL-LICENSES.md` - model terms; keep weights *and* tokenizer/config files out of the repo
