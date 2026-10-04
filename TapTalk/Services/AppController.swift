@@ -187,6 +187,14 @@ final class AppController: ObservableObject {
                 self?.refresh()
             }
             .store(in: &settingsCancellables)
+
+        // Launch only warms EOU when live typing was already on; turning it on later warms it now.
+        settings.$streamingEnabled
+            .dropFirst()
+            .removeDuplicates()
+            .filter { $0 }
+            .sink { _ in Task.detached { await EouStreamingEngine.warmUp() } }
+            .store(in: &settingsCancellables)
     }
 
     // Starts the local LLM while the user is still speaking, so a cold server does not land on
