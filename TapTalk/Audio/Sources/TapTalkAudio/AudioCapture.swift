@@ -1,4 +1,5 @@
 import AVFoundation
+import os
 
 /// A started capture: the ring the session's samples land in, and the first sample that is theirs.
 public struct CaptureSession: Sendable {
@@ -32,12 +33,11 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
     private static let ringSeconds = 4.0
 
     private let engine = AVAudioEngine()
-    // Recursive: AVAudioEngine may post its configuration change synchronously from inside start().
-    private let lock = NSRecursiveLock()
+    private let lock = NSLock()
+    private let rebuild = RebuildFlag()
     private var sink: AVAudioSinkNode?
     private var ring: SampleRing?
     private var sampleRate: Double = 0
-    private var needsRebuild = true
     private var configurationObserver: NSObjectProtocol?
 
     public init() {}
@@ -58,6 +58,8 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
             do {
                 try engine.start()
             } catch {
+                // A start that fails on a stale graph must not fail forever; the next start rebuilds it.
+                rebuild.markStale()
                 throw AudioCaptureError.engineStart(error.localizedDescription)
             }
             return CaptureSession(ring: ring, sampleRate: sampleRate, startMark: mark)
@@ -73,16 +75,36 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
             engine.stop()
             if let configurationObserver { NotificationCenter.default.removeObserver(configurationObserver) }
             configurationObserver = nil
-            needsRebuild = true
+            rebuild.markStale()
+        }
+    }
+
+    // Marks only the flag, never `lock`: AVAudioEngine can post this while start() or pause() hold it.
+    static func observeConfigurationChanges(of engine: AVAudioEngine, marking flag: RebuildFlag) -> NSObjectProtocol {
+        NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
+        ) { _ in
+            flag.markStale()
         }
     }
 
     private func buildIfNeeded() throws {
-        guard needsRebuild else { return }
+        guard rebuild.claim() else { return }
+        do {
+            try build()
+        } catch {
+            rebuild.markStale()
+            throw error
+        }
+    }
+
+    private func build() throws {
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw AudioCaptureError.permissionDenied
         }
         if let sink {
+            // Rewiring a running or half-reset engine raises an Objective-C exception; stop it first.
+            engine.stop()
             engine.disconnectNodeInput(sink)
             engine.detach(sink)
             self.sink = nil
@@ -99,21 +121,28 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
         engine.attach(node)
         engine.connect(input, to: node, format: format)
         engine.prepare()
-        observeConfigurationChanges()
+        if configurationObserver == nil {
+            configurationObserver = Self.observeConfigurationChanges(of: engine, marking: rebuild)
+        }
         sink = node
         self.ring = ring
         sampleRate = format.sampleRate
-        needsRebuild = false
+    }
+}
+
+/// Whether the audio graph must be rebuilt before the next start; any thread may mark it.
+struct RebuildFlag: Sendable {
+    private let state = OSAllocatedUnfairLock(initialState: true)
+
+    /// True when a rebuild is due; clears the mark so a change during the rebuild marks it again.
+    func claim() -> Bool {
+        state.withLock { due in
+            defer { due = false }
+            return due
+        }
     }
 
-    // A device change stops the engine; the next start rebuilds the graph for the new format.
-    private func observeConfigurationChanges() {
-        guard configurationObserver == nil else { return }
-        configurationObserver = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
-        ) { [weak self] _ in
-            guard let self else { return }
-            self.lock.withLock { self.needsRebuild = true }
-        }
+    func markStale() {
+        state.withLock { $0 = true }
     }
 }
