@@ -1,4 +1,5 @@
 import AVFoundation
+import ObjCExceptions
 import os
 
 /// A started capture: the ring the session's samples land in, and the first sample that is theirs.
@@ -120,9 +121,15 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
             writer.writeDownmix(list, frames: Int(frames))
             return noErr
         }
-        engine.attach(node)
-        engine.connect(input, to: node, format: format)
-        engine.prepare()
+        let refused = tt_catch_exception {
+            engine.attach(node)
+            engine.connect(input, to: node, format: format)
+            engine.prepare()
+        }
+        if let refused {
+            if node.engine != nil { engine.detach(node) }
+            throw AudioCaptureError.engineStart(refused.reason ?? refused.name.rawValue)
+        }
         if configurationObserver == nil {
             configurationObserver = Self.observeConfigurationChanges(of: engine, marking: rebuild)
         }
