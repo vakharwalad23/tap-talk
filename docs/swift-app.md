@@ -41,7 +41,10 @@ before crossing into it - never read `settings` from inside the task.
 - `MicrophoneCapture` - `AVAudioEngine` input into an `AVAudioSinkNode`. The sink block runs on
   Core Audio's real-time thread and only downmixes into `SampleRing`: no locks, no allocation, no
   reference counting. The engine is paused, never torn down, between dictations; a device change
-  marks the graph for rebuild on the next start.
+  marks the graph for rebuild on the next start. The rebuild wires the input node with its hardware
+  format (`inputFormat`): after a device change its output format still describes the old device,
+  and connecting with that raises an Objective-C exception (#22). Graph wiring runs inside
+  `tt_catch_exception`, so any such exception becomes an error instead of quitting the app.
 - `RecordingPipeline` (actor) drains the ring every 32 ms: RMS for the pill, `AVAudioConverter`
   to 16 kHz, Silero on each complete 512-sample window, or the live sink for EOU instead.
 - `DictationRecorder.stop` pauses the engine and finishes only the last ~32 ms. Measured on an M3
