@@ -110,8 +110,10 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
             self.sink = nil
         }
         let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
+        // The hardware side: after a device change the output side keeps the old device's format, and connecting with it throws.
+        let format = input.inputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else { throw AudioCaptureError.noInputDevice }
+        guard format.isStandard else { throw AudioCaptureError.unsupportedFormat(format.sampleRate) }
         let ring = SampleRing(capacity: Int(format.sampleRate * Self.ringSeconds))
         let writer = ring.writer
         let node = AVAudioSinkNode { _, frames, list in
