@@ -101,7 +101,7 @@ struct SettingsView: View {
             Text("Settings")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppTheme.primary)
-            Text("Engine, hotkey, and startup")
+            Text("Engine, microphone, hotkey, and startup")
                 .font(.caption)
                 .foregroundStyle(AppTheme.tertiary)
         }
