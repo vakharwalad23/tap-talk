@@ -80,6 +80,11 @@ export const faq: readonly FaqItem[] = [
 			"Because TapTalk is not notarized or signed with a stable identity yet, a new version can look like a different app to macOS, so it may ask for Microphone and Accessibility again. If the push-to-talk hotkey does not fire after an update, open System Settings, go to Privacy and Security then Accessibility, remove the old TapTalk entry from the list, relaunch TapTalk, and grant Accessibility again when asked. Do the same under Privacy and Security then Microphone if dictation cannot hear you.",
 	},
 	{
+		question: "Why do my Bluetooth headphones sound worse while I dictate?",
+		answer:
+			"While an app records from Bluetooth headphones, macOS switches them to a lower-quality headset mode. Turn on Use the built-in microphone in TapTalk Settings, under Microphone, and TapTalk records with your Mac's own microphone instead. Macs without one, such as Mac mini, Mac Studio and Mac Pro, do not show the option.",
+	},
+	{
 		question: "How do I install it?",
 		answer:
 			"Run brew install --cask vakharwalad23/tap/taptalk, or download the .dmg from GitHub Releases.",

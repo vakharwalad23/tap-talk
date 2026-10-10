@@ -33,6 +33,12 @@ export const setupSteps: readonly SetupStep[] = [
 		body: "Put your cursor anywhere you can type, hold Right Cmd, speak, and release. Your words are transcribed on the Neural Engine and pasted in. Watch the pill: red while listening, then green Pasted when it is done.",
 	},
 	{
+		title: "Keep Bluetooth headphones sounding right",
+		optional: true,
+		body: "While any app records from Bluetooth headphones, macOS switches them to a lower-quality headset mode, so music and calls sound muffled while you dictate. To avoid it, open Settings and turn on Use the built-in microphone under Microphone. TapTalk then records with your Mac's own microphone, and only while you hold the key.",
+		note: "The Microphone section only appears on Macs with a built-in microphone, such as a MacBook or iMac. Mac mini, Mac Studio and Mac Pro have none, so the option is hidden there and TapTalk records from the input selected in System Settings, Sound.",
+	},
+	{
 		title: "Turn on Intelligence",
 		optional: true,
 		body: "Open Intelligence, enable AI rewriting, pick Local, and Download the on-device model (Qwen 2.5, about 1.06 GB, plus a small llama.cpp server fetched on first use). Turn on the modes you want and enable the Smart hotkey (default Left Option). Now hold the Smart key to transcribe and rewrite. Prefer your own model? Choose Custom Endpoint and point it at Ollama, LM Studio, or OpenAI.",
