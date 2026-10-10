@@ -28,6 +28,10 @@ export const featureGroups: readonly FeatureGroup[] = [
 				title: "Too short? It says so",
 				body: "Tap the key by accident and TapTalk tells you to hold longer. It never invents a transcript from silence.",
 			},
+			{
+				title: "Headphones keep their sound",
+				body: "Optionally record with your Mac's built-in microphone, so Bluetooth headphones never drop to headset quality while you dictate.",
+			},
 		],
 	},
 	{

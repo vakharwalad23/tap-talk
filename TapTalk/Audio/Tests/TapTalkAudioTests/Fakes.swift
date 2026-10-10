@@ -7,6 +7,7 @@ final class FakeCapture: AudioCapture, @unchecked Sendable {
     let ring: SampleRing
     let sampleRate: Double
     private(set) var pauses = 0
+    private(set) var preference: InputPreference = .systemDefault
 
     init(sampleRate: Double = 16_000, ringSeconds: Double = 4) {
         self.sampleRate = sampleRate
@@ -17,6 +18,7 @@ final class FakeCapture: AudioCapture, @unchecked Sendable {
     func start() throws -> CaptureSession { CaptureSession(ring: ring, sampleRate: sampleRate, startMark: ring.writtenCount) }
     func pause() { pauses += 1 }
     func shutdown() {}
+    func setInputPreference(_ preference: InputPreference) { self.preference = preference }
 
     func feed(_ value: Float, count: Int, chunk: Int = 1_536) {
         var remaining = count
