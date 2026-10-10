@@ -93,6 +93,11 @@ public final class DictationRecorder: Sendable {
         return try await pipeline.finish(generation: generation, mode: mode)
     }
 
+    /// Chooses the microphone the next recording uses.
+    public func setInputPreference(_ preference: InputPreference) {
+        capture.setInputPreference(preference)
+    }
+
     /// Releases the audio hardware; call on app quit.
     public func shutdown() {
         capture.shutdown()
