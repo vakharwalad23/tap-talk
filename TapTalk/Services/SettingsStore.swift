@@ -147,6 +147,11 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(streamingEnabled, forKey: "streamingEnabled") }
     }
 
+    // Records from the Mac's own microphone so Bluetooth headphones keep their high-quality mode.
+    @Published var useBuiltInMicrophone: Bool {
+        didSet { UserDefaults.standard.set(useBuiltInMicrophone, forKey: "useBuiltInMicrophone") }
+    }
+
     @Published var cloudModel: String {
         didSet { UserDefaults.standard.set(cloudModel, forKey: "cloudModel") }
     }
@@ -212,6 +217,7 @@ final class SettingsStore: ObservableObject {
         localEngine = LocalEngine(rawValue: rawLocalEngine) ?? .parakeet
 
         streamingEnabled = UserDefaults.standard.bool(forKey: "streamingEnabled")
+        useBuiltInMicrophone = UserDefaults.standard.bool(forKey: "useBuiltInMicrophone")
 
         cloudModel = UserDefaults.standard.string(forKey: "cloudModel") ?? "whisper-1"
 
