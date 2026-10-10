@@ -30,7 +30,7 @@ export function SettingsPage() {
 		<div>
 			<div className={app.header}>
 				<h3 className={app.h1}>Settings</h3>
-				<p className={app.sub}>Engine, hotkey, and startup</p>
+				<p className={app.sub}>Engine, microphone, hotkey, and startup</p>
 			</div>
 
 			<section className={app.section}>
@@ -57,6 +57,21 @@ export function SettingsPage() {
 					<p className={app.hint}>
 						Types words live into the focused app as Parakeet recognizes them.
 						Uses the Parakeet Realtime (EOU) model. Off in Smart Mode.
+					</p>
+				</div>
+			</section>
+
+			<section className={app.section}>
+				<div className={app.sectionLabel}>Microphone</div>
+				<div className={app.card}>
+					<div className={app.row}>
+						<span className={app.rowLabel}>Use the built-in microphone</span>
+						<Checkbox on={false} />
+					</div>
+					<p className={app.hint}>
+						Records with the Mac's own microphone even when headphones are
+						connected, so Bluetooth headphones keep their high-quality sound
+						while you dictate.
 					</p>
 				</div>
 			</section>
