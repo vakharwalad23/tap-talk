@@ -38,9 +38,10 @@ triggers the rewrite. `AppController.startRecording` begins capture; on the smar
 prewarms the LLM server, because starting it later would land on the paste path.
 
 **2. Recording** - `DictationRecorder.start()` resumes a prepared `AVAudioEngine` whose sink node
-is paused rather than torn down between dictations. The real-time callback only downmixes into the
-ring. The pipeline actor converts to 16 kHz, scores each 512-sample window with Silero, and emits
-the RMS level (~30 Hz) that drives the floating pill.
+is paused rather than torn down between dictations. It records from the system default input, or
+from the built-in microphone when Settings asks for it. The real-time callback only downmixes into
+the ring. The pipeline actor converts to 16 kHz, scores each 512-sample window with Silero, and
+emits the RMS level (~30 Hz) that drives the floating pill.
 
 If live typing is on, the pipeline sends 16 kHz buffers to the EOU engine instead of running Silero,
 and a separate Parakeet EOU model types words into the focused app as you speak. Live typing and
