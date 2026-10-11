@@ -45,6 +45,11 @@ before crossing into it - never read `settings` from inside the task.
   format (`inputFormat`): after a device change its output format still describes the old device,
   and connecting with that raises an Objective-C exception (#22). Graph wiring runs inside
   `tt_catch_exception`, so any such exception becomes an error instead of quitting the app.
+- `MicrophoneSelection` - the "Use the built-in microphone" setting. Each graph build points the input
+  node at the chosen Core Audio device (`kAudioOutputUnitProperty_CurrentDevice`): the built-in
+  microphone when preferred and present, else the system default. Changing it marks the graph for
+  rebuild, so it applies on the next key press; Bluetooth headphones then stay in their high-quality
+  mode because nothing records from their microphone.
 - `RecordingPipeline` (actor) drains the ring every 32 ms: RMS for the pill, `AVAudioConverter`
   to 16 kHz, Silero on each complete 512-sample window, or the live sink for EOU instead.
 - `DictationRecorder.stop` pauses the engine and finishes only the last ~32 ms. Measured on an M3

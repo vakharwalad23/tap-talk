@@ -25,6 +25,8 @@ public protocol AudioCapture: AnyObject, Sendable {
     func pause()
     /// Stops for good; used on app quit.
     func shutdown()
+    /// Chooses the microphone the next recording uses.
+    func setInputPreference(_ preference: InputPreference)
 }
 
 /// AVAudioEngine input into an AVAudioSinkNode whose real-time block only downmixes into the ring.
@@ -35,7 +37,9 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
 
     private let engine = AVAudioEngine()
     private let lock = NSLock()
-    private let rebuild = RebuildFlag()
+    private let logger = Logger(subsystem: "talk.tap.app", category: "audio")
+    let rebuild = RebuildFlag()
+    private var preference: InputPreference = .systemDefault
     private var sink: AVAudioSinkNode?
     private var ring: SampleRing?
     private var sampleRate: Double = 0
@@ -80,6 +84,14 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
         }
     }
 
+    public func setInputPreference(_ preference: InputPreference) {
+        lock.withLock {
+            guard preference != self.preference else { return }
+            self.preference = preference
+            rebuild.markStale()
+        }
+    }
+
     // Marks only the flag, never `lock`: AVAudioEngine can post this while start() or pause() hold it.
     static func observeConfigurationChanges(of engine: AVAudioEngine, marking flag: RebuildFlag) -> NSObjectProtocol {
         NotificationCenter.default.addObserver(
@@ -111,6 +123,12 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
             self.sink = nil
         }
         let input = engine.inputNode
+        let device = MicrophoneSelection.device(
+            for: preference, among: MicrophoneSelection.inputDevices(),
+            systemDefault: MicrophoneSelection.systemDefaultInput())
+        if let device {
+            select(device, on: input)
+        }
         // The hardware side: after a device change the output side keeps the old device's format, and connecting with it throws.
         let format = input.inputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else { throw AudioCaptureError.noInputDevice }
@@ -136,6 +154,18 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
         sink = node
         self.ring = ring
         sampleRate = format.sampleRate
+    }
+
+    // The input node records from one Core Audio device; pointing it at the chosen one is what selects the microphone.
+    private func select(_ device: AudioDeviceID, on input: AVAudioInputNode) {
+        guard let unit = input.audioUnit else { return }
+        var id = device
+        let status = AudioUnitSetProperty(
+            unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &id,
+            UInt32(MemoryLayout<AudioDeviceID>.size))
+        if status != noErr {
+            logger.error("could not select input device \(device, privacy: .public): OSStatus \(status, privacy: .public)")
+        }
     }
 }
 

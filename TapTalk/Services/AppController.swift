@@ -195,6 +195,13 @@ final class AppController: ObservableObject {
             .filter { $0 }
             .sink { _ in Task.detached { await EouStreamingEngine.warmUp() } }
             .store(in: &settingsCancellables)
+
+        // Applies on the next key press; nothing opens the microphone here.
+        settings.$useBuiltInMicrophone
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] builtIn in self?.recorder.setInputPreference(builtIn ? .builtIn : .systemDefault) }
+            .store(in: &settingsCancellables)
     }
 
     // Starts the local LLM while the user is still speaking, so a cold server does not land on
@@ -260,6 +267,7 @@ final class AppController: ObservableObject {
     // it is installed, recordings are transcribed untrimmed.
     private func warmUpAudioStream() {
         let rec = recorder
+        rec.setInputPreference(settings.useBuiltInMicrophone ? .builtIn : .systemDefault)
         rec.setLevelHandler { rms in
             DispatchQueue.main.async { FloatingPillController.shared.setLevel(rms) }
         }
