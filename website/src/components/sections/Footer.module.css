@@ -29,6 +29,31 @@
 	border-radius: 8px;
 }
 
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	align-self: flex-start;
+	padding: 8px 14px;
+	border: 1px solid var(--divider);
+	border-radius: 10px;
+	color: var(--ink);
+	text-decoration: none;
+	line-height: 1.2;
+}
+
+.badge:hover {
+	border-color: var(--ink-40);
+}
+
+.badgeLabel {
+	display: block;
+	font-size: 0.68rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-40);
+}
+
 .col h3 {
 	font-size: 0.78rem;
 	font-weight: 600;
