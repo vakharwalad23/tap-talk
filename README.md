@@ -195,7 +195,7 @@ Start with [`docs/architecture.md`](docs/architecture.md) - it walks one dictati
 3. Commit your changes using [conventional commits](https://www.conventionalcommits.org/)
 4. Open a pull request against `dev`; the maintainer moves `dev` to `main` for releases
 
-`main` is release-only and protected: it accepts pull requests from `dev` alone. Experiments (model conversions, benchmarks, research notes) live on `experiments/<topic>` branches that are never merged; see [`docs/branching.md`](docs/branching.md).
+`main` is the default branch, release-only and protected: it accepts pull requests from `dev` alone. Experiments (model conversions, benchmarks, research notes) live on `experiments/<topic>` branches that are never merged; see [`docs/branching.md`](docs/branching.md).
 
 ## License
 
