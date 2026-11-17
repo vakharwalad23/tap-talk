@@ -15,6 +15,7 @@
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-only-000?logo=apple&logoColor=white)](#requirements)
 [![Privacy](https://img.shields.io/badge/privacy-on--device-2ea44f)](#privacy--data-safety)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Featured on Dodo Index](https://img.shields.io/badge/featured%20on-Dodo%20Index-000?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyLjVsMi45IDYgNi42LjktNC44IDQuNiAxLjIgNi42TDEyIDE3LjVsLTUuOSAzLjEgMS4yLTYuNi00LjgtNC42IDYuNi0uOXoiLz48L3N2Zz4=)](https://index.dodopayments.com)
 
 </div>
 

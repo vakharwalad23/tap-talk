@@ -1,7 +1,8 @@
 import { type CSSVars, cx } from "#/components/ui/cx";
+import { Icon } from "#/components/ui/Icon";
 import { Logo } from "#/components/ui/Logo";
 import { models, siteBuiltWith } from "#/content/logos";
-import { site } from "#/content/site";
+import { featuredOn, site } from "#/content/site";
 import styles from "./Footer.module.css";
 
 const links = [
@@ -41,6 +42,21 @@ export function Footer() {
 					<p className="muted">
 						Free, open-source, on-device dictation for Mac.
 					</p>
+					{featuredOn.map((entry) => (
+						<a
+							key={entry.url}
+							href={entry.url}
+							target="_blank"
+							rel="noopener"
+							className={styles.badge}
+						>
+							<Icon name="star" size={16} />
+							<span>
+								<span className={styles.badgeLabel}>Featured on</span>
+								<strong>{entry.name}</strong>
+							</span>
+						</a>
+					))}
 				</div>
 				<nav className={styles.col} aria-label="Footer">
 					<h3>Project</h3>
