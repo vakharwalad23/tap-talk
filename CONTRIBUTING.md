@@ -13,8 +13,9 @@ long version.
 
 ## Branches
 
-`dev` is the default branch and the only target for pull requests. `main` is release-only and takes
-nothing but `dev`, merged by the maintainer. Details in [`docs/branching.md`](docs/branching.md).
+`main` is the default branch and holds releases. `dev` is where work happens and the only target for
+pull requests, so switch the base from `main` to `dev` when you open one. `main` takes nothing but
+`dev`, merged by the maintainer. Details in [`docs/branching.md`](docs/branching.md).
 
 1. Fork, then branch from `dev`: `git checkout -b <type>/<what-it-does> dev`.
 2. Commit with conventional commits: `feat:`, `fix:`, `perf:`, `build:`, `docs:`, `refactor:`,
@@ -45,5 +46,5 @@ only and link the experiment branch.
 ## Review and merge
 
 The maintainer reviews and rebase-merges into `dev`. Releases are `dev` to `main` pull requests
-opened and merged by the maintainer. Licensed under the [MIT License](LICENSE); by contributing you
+opened by the maintainer and merged with a merge commit. Licensed under the [MIT License](LICENSE); by contributing you
 agree your work is licensed the same way.
