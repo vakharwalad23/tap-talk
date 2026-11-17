@@ -30,6 +30,10 @@ export const site = {
 	ogImagePath: "/og.png",
 } as const;
 
+export const featuredOn = [
+	{ name: "Dodo Index", url: "https://index.dodopayments.com" },
+] as const;
+
 export const hero = {
 	eyebrow: "Free. Open source. 100 percent on-device.",
 	headline: "Don't type. Just talk.",
