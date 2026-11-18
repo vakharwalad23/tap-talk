@@ -38,21 +38,26 @@ before crossing into it - never read `settings` from inside the task.
 
 `TapTalk/Audio` is a local Swift package (`TapTalkAudio`) with its own tests (`make test`).
 
-- `MicrophoneCapture` - `AVAudioEngine` input into an `AVAudioSinkNode`. The sink block runs on
-  Core Audio's real-time thread and only downmixes into `SampleRing`: no locks, no allocation, no
-  reference counting. The engine is paused, never torn down, between dictations; a device change
-  marks the graph for rebuild on the next start. The rebuild wires the input node with its hardware
-  format (`inputFormat`): after a device change its output format still describes the old device,
-  and connecting with that raises an Objective-C exception (#22). Graph wiring runs inside
-  `tt_catch_exception`, so any such exception becomes an error instead of quitting the app.
-- `MicrophoneSelection` - the "Use the built-in microphone" setting. Each graph build points the input
-  node at the chosen Core Audio device (`kAudioOutputUnitProperty_CurrentDevice`): the built-in
-  microphone when preferred and present, else the system default. Changing it marks the graph for
-  rebuild, so it applies on the next key press; Bluetooth headphones then stay in their high-quality
-  mode because nothing records from their microphone.
+- `MicrophoneCapture` - a Core Audio IOProc (`AudioDeviceCreateIOProcIDWithBlock`) on one chosen
+  input device. The block runs on Core Audio's real-time thread and only downmixes into
+  `SampleRing`: no locks, no allocation, no reference counting. The IOProc is created at launch,
+  started on key-down and stopped on key-up, never torn down between dictations. Every start
+  re-resolves the device and recreates the IOProc only when the device or its rate changed, so a
+  new default input, a closed lid or a vanished device applies on the next press without device
+  notifications.
+- **Why not `AVAudioEngine`.** Its input node records through a per-process aggregate of the default
+  input and output (`CADefaultDeviceAggregate`). Building that aggregate pulls Bluetooth headphones
+  into headset mode at launch, before any recording, and AVAudioEngine re-points the input unit at
+  the aggregate about 300 ms after `kAudioOutputUnitProperty_CurrentDevice` selects another device.
+  Measured on an M3 Pro with a Bluetooth headset as default input: the old capture recorded from the
+  headset with the built-in microphone selected; the IOProc keeps the headset in stereo 44.1 kHz.
+- `MicrophoneSelection` - the system default input, except a Bluetooth default is replaced by the
+  built-in microphone while the lid is open (`AppleClamshellState` in `IOPMrootDomain`). A closed
+  lid disconnects the built-in microphone in hardware, so docked use keeps the headset; wired USB
+  microphones are always respected. There is no setting.
 - `RecordingPipeline` (actor) drains the ring every 32 ms: RMS for the pill, `AVAudioConverter`
   to 16 kHz, Silero on each complete 512-sample window, or the live sink for EOU instead.
-- `DictationRecorder.stop` pauses the engine and finishes only the last ~32 ms. Measured on an M3
+- `DictationRecorder.stop` stops the IOProc and finishes only the last ~32 ms. Measured on an M3
   Pro with 17 to 21 s clips: 0.7 to 1.2 ms, against 53 to 66 ms for the Rust stage it replaced
   (ONNX Silero at ~2.5 ms per second of audio plus a full-clip resample, and ~100 ms more on the
   first dictation of a process).
@@ -143,7 +148,7 @@ a list already missed a browser installed on the development machine.
 
 - `@Published` + `didSet` writing to `UserDefaults` for every setting; Keychain for secrets.
 - Actors for engines, `@MainActor` for UI state. No `@unchecked Sendable`, except the three audio
-  types that share raw memory or `AVAudioEngine` with the real-time thread (`SampleRing`, its
+  types that share raw memory or a Core Audio IOProc with the real-time thread (`SampleRing`, its
   `Writer`, `MicrophoneCapture`); each names its invariant in a comment.
 - No force-unwrapping outside previews.
 - Warnings are treated as errors in review even though the build does not enforce it - the Swift 6

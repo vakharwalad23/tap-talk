@@ -1,6 +1,5 @@
 import AVFoundation
-import ObjCExceptions
-import os
+import CoreAudio
 
 /// A started capture: the ring the session's samples land in, and the first sample that is theirs.
 public struct CaptureSession: Sendable {
@@ -17,33 +16,30 @@ public struct CaptureSession: Sendable {
 
 /// Source of mono microphone samples for a dictation.
 public protocol AudioCapture: AnyObject, Sendable {
-    /// Builds the graph ahead of the first recording so device setup happens at launch.
+    /// Attaches to the microphone ahead of the first recording so device setup happens at launch.
     func prepare() throws
     /// Starts delivering samples and returns where they land.
     func start() throws -> CaptureSession
-    /// Stops delivery and releases the device; the graph stays built for the next start.
+    /// Stops delivery and releases the device; stays attached for the next start.
     func pause()
     /// Stops for good; used on app quit.
     func shutdown()
-    /// Chooses the microphone the next recording uses.
-    func setInputPreference(_ preference: InputPreference)
 }
 
-/// AVAudioEngine input into an AVAudioSinkNode whose real-time block only downmixes into the ring.
-// Unchecked: every engine, graph and ring access below holds `lock`.
+/// Core Audio IOProc on the chosen input device; the real-time block only downmixes into the ring.
+// AVAudioEngine is not used: its input node records through a per-process aggregate of the default
+// input and output, which pulls Bluetooth headphones into headset mode at launch and overrides
+// kAudioOutputUnitProperty_CurrentDevice about 300 ms after it is set.
+// Unchecked: every device, IOProc and ring access below holds `lock`.
 public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
     // 4 s at the device rate; the pump drains every 32 ms, so this only fills if it stalls for seconds.
     private static let ringSeconds = 4.0
 
-    private let engine = AVAudioEngine()
     private let lock = NSLock()
-    private let logger = Logger(subsystem: "talk.tap.app", category: "audio")
-    let rebuild = RebuildFlag()
-    private var preference: InputPreference = .systemDefault
-    private var sink: AVAudioSinkNode?
+    private var device = kAudioObjectUnknown
+    private var procID: AudioDeviceIOProcID?
     private var ring: SampleRing?
     private var sampleRate: Double = 0
-    private var configurationObserver: NSObjectProtocol?
 
     public init() {}
 
@@ -52,136 +48,73 @@ public final class MicrophoneCapture: AudioCapture, @unchecked Sendable {
     }
 
     public func prepare() throws {
-        try lock.withLock { try buildIfNeeded() }
+        try lock.withLock { try attach() }
     }
 
     public func start() throws -> CaptureSession {
         try lock.withLock {
-            try buildIfNeeded()
-            guard let ring else { throw AudioCaptureError.noInputDevice }
+            try attach()
+            guard let procID, let ring else { throw AudioCaptureError.noInputDevice }
             let mark = ring.writtenCount
-            do {
-                try engine.start()
-            } catch {
-                // A start that fails on a stale graph must not fail forever; the next start rebuilds it.
-                rebuild.markStale()
-                throw AudioCaptureError.engineStart(error.localizedDescription)
+            let status = AudioDeviceStart(device, procID)
+            guard status == noErr else {
+                // A device that refuses to start is reattached from scratch on the next press.
+                detach()
+                throw AudioCaptureError.engineStart("OSStatus \(status)")
             }
             return CaptureSession(ring: ring, sampleRate: sampleRate, startMark: mark)
         }
     }
 
     public func pause() {
-        lock.withLock { engine.pause() }
+        lock.withLock {
+            if let procID { AudioDeviceStop(device, procID) }
+        }
     }
 
     public func shutdown() {
-        lock.withLock {
-            engine.stop()
-            if let configurationObserver { NotificationCenter.default.removeObserver(configurationObserver) }
-            configurationObserver = nil
-            rebuild.markStale()
-        }
+        lock.withLock { detach() }
     }
 
-    public func setInputPreference(_ preference: InputPreference) {
-        lock.withLock {
-            guard preference != self.preference else { return }
-            self.preference = preference
-            rebuild.markStale()
-        }
-    }
-
-    // Marks only the flag, never `lock`: AVAudioEngine can post this while start() or pause() hold it.
-    static func observeConfigurationChanges(of engine: AVAudioEngine, marking flag: RebuildFlag) -> NSObjectProtocol {
-        NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
-        ) { _ in
-            flag.markStale()
-        }
-    }
-
-    private func buildIfNeeded() throws {
-        guard rebuild.claim() else { return }
-        do {
-            try build()
-        } catch {
-            rebuild.markStale()
-            throw error
-        }
-    }
-
-    private func build() throws {
+    // Re-resolved on every start, so a changed default input, a closed lid or a vanished device
+    // takes effect on the next press without listening for device notifications.
+    private func attach() throws {
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
             throw AudioCaptureError.permissionDenied
         }
-        if let sink {
-            // Rewiring a running or half-reset engine raises an Objective-C exception; stop it first.
-            engine.stop()
-            engine.disconnectNodeInput(sink)
-            engine.detach(sink)
-            self.sink = nil
+        guard let target = MicrophoneSelection.currentDevice(),
+              let format = MicrophoneSelection.inputFormat(of: target) else {
+            detach()
+            throw AudioCaptureError.noInputDevice
         }
-        let input = engine.inputNode
-        let device = MicrophoneSelection.device(
-            for: preference, among: MicrophoneSelection.inputDevices(),
-            systemDefault: MicrophoneSelection.systemDefaultInput())
-        if let device {
-            select(device, on: input)
+        if target == device, procID != nil, format.mSampleRate == sampleRate { return }
+        detach()
+        guard format.mFormatID == kAudioFormatLinearPCM, format.mFormatFlags & kAudioFormatFlagIsFloat != 0,
+              format.mBitsPerChannel == 32, format.mSampleRate > 0 else {
+            throw AudioCaptureError.unsupportedFormat(format.mSampleRate)
         }
-        // The hardware side: after a device change the output side keeps the old device's format, and connecting with it throws.
-        let format = input.inputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else { throw AudioCaptureError.noInputDevice }
-        guard format.isStandard else { throw AudioCaptureError.unsupportedFormat(format.sampleRate) }
-        let ring = SampleRing(capacity: Int(format.sampleRate * Self.ringSeconds))
+        let ring = SampleRing(capacity: Int(format.mSampleRate * Self.ringSeconds))
         let writer = ring.writer
-        let node = AVAudioSinkNode { _, frames, list in
-            writer.writeDownmix(list, frames: Int(frames))
-            return noErr
+        var id: AudioDeviceIOProcID?
+        let status = AudioDeviceCreateIOProcIDWithBlock(&id, target, nil) { _, input, _, _, _ in
+            let first = input.pointee.mBuffers
+            let frames = Int(first.mDataByteSize) / (MemoryLayout<Float>.size * max(1, Int(first.mNumberChannels)))
+            writer.writeDownmix(input, frames: frames)
         }
-        let refused = tt_catch_exception {
-            engine.attach(node)
-            engine.connect(input, to: node, format: format)
-            engine.prepare()
-        }
-        if let refused {
-            if node.engine != nil { engine.detach(node) }
-            throw AudioCaptureError.engineStart(refused.reason ?? refused.name.rawValue)
-        }
-        if configurationObserver == nil {
-            configurationObserver = Self.observeConfigurationChanges(of: engine, marking: rebuild)
-        }
-        sink = node
+        guard status == noErr, let id else { throw AudioCaptureError.engineStart("OSStatus \(status)") }
+        device = target
+        procID = id
         self.ring = ring
-        sampleRate = format.sampleRate
+        sampleRate = format.mSampleRate
     }
 
-    // The input node records from one Core Audio device; pointing it at the chosen one is what selects the microphone.
-    private func select(_ device: AudioDeviceID, on input: AVAudioInputNode) {
-        guard let unit = input.audioUnit else { return }
-        var id = device
-        let status = AudioUnitSetProperty(
-            unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &id,
-            UInt32(MemoryLayout<AudioDeviceID>.size))
-        if status != noErr {
-            logger.error("could not select input device \(device, privacy: .public): OSStatus \(status, privacy: .public)")
+    // Stop before destroy: the ring the IOProc writes into must outlive its last callback.
+    private func detach() {
+        if let procID {
+            AudioDeviceStop(device, procID)
+            AudioDeviceDestroyIOProcID(device, procID)
         }
-    }
-}
-
-/// Whether the audio graph must be rebuilt before the next start; any thread may mark it.
-struct RebuildFlag: Sendable {
-    private let state = OSAllocatedUnfairLock(initialState: true)
-
-    /// True when a rebuild is due; clears the mark so a change during the rebuild marks it again.
-    func claim() -> Bool {
-        state.withLock { due in
-            defer { due = false }
-            return due
-        }
-    }
-
-    func markStale() {
-        state.withLock { $0 = true }
+        procID = nil
+        device = kAudioObjectUnknown
     }
 }

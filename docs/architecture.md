@@ -37,17 +37,17 @@ modifier keys. Two are registered independently: a plain one and a "smart" one t
 triggers the rewrite. `AppController.startRecording` begins capture; on the smart hotkey it also
 prewarms the LLM server, because starting it later would land on the paste path.
 
-**2. Recording** - `DictationRecorder.start()` resumes a prepared `AVAudioEngine` whose sink node
-is paused rather than torn down between dictations. It records from the system default input, or
-from the built-in microphone when Settings asks for it. The real-time callback only downmixes into
-the ring. The pipeline actor converts to 16 kHz, scores each 512-sample window with Silero, and
+**2. Recording** - `DictationRecorder.start()` starts a Core Audio IOProc on the input device,
+attached at launch and stopped rather than torn down between dictations. It records from the system
+default input, except that a Bluetooth default is replaced by the built-in microphone while the lid
+is open. The real-time callback only downmixes into the ring. The pipeline actor converts to 16 kHz, scores each 512-sample window with Silero, and
 emits the RMS level (~30 Hz) that drives the floating pill.
 
 If live typing is on, the pipeline sends 16 kHz buffers to the EOU engine instead of running Silero,
 and a separate Parakeet EOU model types words into the focused app as you speak. Live typing and
 Smart Mode are mutually exclusive - a rewrite needs the whole transcript.
 
-**3. Key up** - `DictationRecorder.stop()` pauses the engine, finishes the last ~32 ms of conversion
+**3. Key up** - `DictationRecorder.stop()` stops the IOProc, finishes the last ~32 ms of conversion
 and voice activity, trims to the speech span with six windows of padding, and applies gain to quiet
 speech. Everything else already happened while recording.
 

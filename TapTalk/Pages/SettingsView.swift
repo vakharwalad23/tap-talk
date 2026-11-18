@@ -25,8 +25,6 @@ struct SettingsView: View {
     @State private var apiKeySaveError: String?
     @State private var testStatus: TestStatus = .idle
     @State private var testTask: Task<Void, Never>?
-    // Looked up once; Mac mini, Studio and Pro have no built-in microphone to offer.
-    @State private var hasBuiltInMicrophone = MicrophoneSelection.hasBuiltInMicrophone
 
     enum TestStatus: Equatable {
         case idle
@@ -57,12 +55,6 @@ struct SettingsView: View {
                         cloudModelGrid
                         Divider().background(AppTheme.divider)
                         apiKeyRow
-                    }
-                }
-
-                if hasBuiltInMicrophone {
-                    SettingsSection("Microphone") {
-                        builtInMicrophoneToggle
                     }
                 }
 
@@ -138,20 +130,6 @@ struct SettingsView: View {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: Microphone
-
-    private var builtInMicrophoneToggle: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            SettingRow("Use the built-in microphone") {
-                Toggle("", isOn: $settings.useBuiltInMicrophone).labelsHidden()
-            }
-            Text("Records with the Mac's own microphone even when headphones are connected, so Bluetooth headphones keep their high-quality sound while you dictate.")
-                .font(.system(size: 11))
-                .foregroundStyle(AppTheme.tertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
     }
 
     // MARK: Streaming toggle (only for engines that can do live partial transcription)
