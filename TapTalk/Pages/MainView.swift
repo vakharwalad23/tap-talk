@@ -37,7 +37,8 @@ final class RecordingState: ObservableObject {
     var rewriting: Bool { phase == .rewriting }
     var modelReady: Bool { modelStatus == .ready }
     var loadingModel: Bool { modelStatus == .loading }
-    var canRecord: Bool { modelStatus == .ready && phase == .idle }
+    // A loading engine still records: transcribe waits for the load to land.
+    var canRecord: Bool { modelStatus != .none && phase == .idle }
 
     func beginRecording(hotkey: Bool, smart: Bool) {
         phase = .recording

@@ -29,6 +29,12 @@ final class AppController: ObservableObject {
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var hasRequestedAccessibilityPermission = false
     private var recordingWatchdog: DispatchWorkItem?
+    // Core Audio start can block for seconds while a Bluetooth device changes mode, and a blocked
+    // main thread makes macOS disable the hotkey tap, losing the key release. Starts run here in
+    // press order; every stop waits behind them. recordingGeneration lets a late start failure
+    // tell whether the recording it belonged to is still the current one.
+    private let captureQueue = DispatchQueue(label: "talk.tap.capture", qos: .userInteractive)
+    private var recordingGeneration = 0
 
     // Bumped on every engine (re)load so a superseded async load/unload can no-op instead
     // of racing the newer one. All engine load/unload runs serialized through engineTask.
@@ -468,25 +474,49 @@ final class AppController: ObservableObject {
     }
 
     func startRecording(hotkey: Bool, smart: Bool) {
+        // A new press supersedes a dictation that is still transcribing or rewriting.
+        if state.transcribing || state.rewriting { cancelTranscription() }
         guard state.canRecord else { return }
         cancelIdleRelease()
-        if state.transcribing { cancelTranscription() }
         let liveSink = shouldStream(smart: smart) ? beginStreamingSession() : nil
-        do {
-            try recorder.start(liveSink: liveSink)
-            state.beginRecording(hotkey: hotkey, smart: smart)
-            state.status = "Recording..."
-            AppRecordingState.shared.isRecording = true
-            FloatingPillController.shared.show(state: .recording)
-            startRecordingWatchdog()
-        } catch {
+        recordingGeneration &+= 1
+        let generation = recordingGeneration
+        state.beginRecording(hotkey: hotkey, smart: smart)
+        state.status = "Recording..."
+        AppRecordingState.shared.isRecording = true
+        FloatingPillController.shared.show(state: .recording)
+        startRecordingWatchdog()
+        captureQueue.async { [weak self, recorder] in
+            do {
+                try recorder.start(liveSink: liveSink)
+            } catch {
+                DispatchQueue.main.async { self?.captureFailed(error, generation: generation) }
+            }
+        }
+    }
+
+    // Unwinds a recording whose microphone never started. A key release that already moved it on
+    // to transcribing finds nothing recorded and finishes quietly, so the reason shown is this one.
+    private func captureFailed(_ error: Error, generation: Int) {
+        guard generation == recordingGeneration else { return }
+        if state.recording {
+            cancelRecordingWatchdog()
+            state.cancel()
+            AppRecordingState.shared.isRecording = false
+            FloatingPillController.shared.hide()
             if let engine = streamingEngine {
                 liveInserter.cancel()
                 tearDownStreamingSession()
                 Task.detached { await engine.cancel() }
             }
-            state.status = "Error: \(error.localizedDescription)"
         }
+        state.status = "Error: \(error.localizedDescription)"
+    }
+
+    // Waits behind any start still queued, so a fast release never stops a capture before it began.
+    private func stopCapture(_ mode: DictationRecorder.StopMode) async throws -> RecordedAudio {
+        await withCheckedContinuation { continuation in captureQueue.async { continuation.resume() } }
+        return try await recorder.stop(mode)
     }
 
     // Whether the current recording should stream live text. Smart Mode opts out - the LLM
@@ -603,8 +633,8 @@ final class AppController: ObservableObject {
             liveInserter.cancel()
             tearDownStreamingSession()
         }
-        Task.detached { [recorder, activeStreamingEngine] in
-            _ = try? await recorder.stop(.discard)
+        Task.detached { [self, activeStreamingEngine] in
+            _ = try? await stopCapture(.discard)
             if let engine = activeStreamingEngine { await engine.cancel() }
         }
     }
@@ -640,7 +670,7 @@ final class AppController: ObservableObject {
             transcribeTask = Task.detached { [weak self] in
                 guard let self else { return }
                 // Discard still flushes the final audio into the EOU FIFO before finish() drains it.
-                _ = try? await self.recorder.stop(.discard)
+                _ = try? await self.stopCapture(.discard)
                 do {
                     let final = try await engine.finish()
                     let processed = PostProcessingService.applyDictionary(final, segments: segments)
@@ -707,13 +737,18 @@ final class AppController: ObservableObject {
         let rewriteOptions = smartMode ? settings.rewriteOptions : []
         let hindiScript = settings.hindiScript
 
+        // Recording is allowed while the engine loads; transcribe waits for that load to land
+        // rather than starting a second one beside it.
+        let pendingLoad = engineTask
+
         var trace = LatencyTrace()
 
         transcribeTask = Task.detached { [weak self] in
             guard let self = self else { return }
             do {
-                let audio = try await self.recorder.stop(.transcribe)
+                let audio = try await self.stopCapture(.transcribe)
                 trace.mark("audio")
+                await pendingLoad?.value
 
                 if Task.isCancelled {
                     await MainActor.run {
@@ -819,10 +854,12 @@ final class AppController: ObservableObject {
                     self.scheduleIdleRelease()
                 }
             } catch {
+                // notRecording: the microphone never started and captureFailed already said why.
+                let captureNeverStarted = (error as? AudioCaptureError) == .notRecording
                 await MainActor.run {
                     guard !Task.isCancelled else { return }
                     self.state.finish()
-                    self.state.status = "Error: \(error.localizedDescription)"
+                    if !captureNeverStarted { self.state.status = "Error: \(error.localizedDescription)" }
                     FloatingPillController.shared.hide()
                     self.scheduleIdleRelease()
                 }
@@ -852,7 +889,6 @@ final class AppController: ObservableObject {
         HotkeyService.shared.register(
             keyDown: { [weak self] in
                 guard let self else { return }
-                if state.transcribing { cancelTranscription() }
                 startRecording(hotkey: true, smart: false)
             },
             keyUp: { [weak self] in
@@ -866,7 +902,6 @@ final class AppController: ObservableObject {
             HotkeyService.shared.registerSmart(
                 keyDown: { [weak self] in
                     guard let self else { return }
-                    if state.transcribing { cancelTranscription() }
                     startRecording(hotkey: true, smart: true)
                     prewarmRewrite()
                 },
