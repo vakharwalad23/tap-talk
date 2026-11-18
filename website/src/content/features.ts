@@ -30,7 +30,7 @@ export const featureGroups: readonly FeatureGroup[] = [
 			},
 			{
 				title: "Headphones keep their sound",
-				body: "Optionally record with your Mac's built-in microphone, so Bluetooth headphones never drop to headset quality while you dictate.",
+				body: "With Bluetooth headphones connected, TapTalk records with your Mac's built-in microphone while the lid is open, so they never drop to headset quality while you dictate.",
 			},
 		],
 	},

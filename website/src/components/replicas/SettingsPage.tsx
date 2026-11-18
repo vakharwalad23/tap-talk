@@ -62,21 +62,6 @@ export function SettingsPage() {
 			</section>
 
 			<section className={app.section}>
-				<div className={app.sectionLabel}>Microphone</div>
-				<div className={app.card}>
-					<div className={app.row}>
-						<span className={app.rowLabel}>Use the built-in microphone</span>
-						<Checkbox on={false} />
-					</div>
-					<p className={app.hint}>
-						Records with the Mac's own microphone even when headphones are
-						connected, so Bluetooth headphones keep their high-quality sound
-						while you dictate.
-					</p>
-				</div>
-			</section>
-
-			<section className={app.section}>
 				<div className={app.sectionLabel}>Startup</div>
 				<div className={app.card}>
 					<div className={app.row}>
