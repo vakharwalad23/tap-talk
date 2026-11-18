@@ -31,7 +31,7 @@ export const site = {
 } as const;
 
 export const featuredOn = [
-	{ name: "Dodo Index", url: "https://index.dodopayments.com" },
+	{ name: "Dodo Index", url: "https://index.dodopayments.com/taptalk" },
 ] as const;
 
 export const hero = {
