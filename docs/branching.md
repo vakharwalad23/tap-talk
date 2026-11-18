@@ -6,8 +6,8 @@ How changes move through this repository, and which branches never meet.
 
 | Branch | Purpose | Who writes to it |
 |---|---|---|
-| `main` | Release history. Every commit is a state that was shipped or is ready to ship. | Only the maintainer, only by merging a pull request from `dev`. |
-| `dev` | Integration. The default branch; pull requests target it. | Anyone, through a pull request from a feature branch. |
+| `main` | Release history and the default branch. Every commit is a state that was shipped or is ready to ship. | Only the maintainer, only by merging a pull request from `dev` with a merge commit. |
+| `dev` | Integration. Pull requests target it (pick `dev` as the base; the default is `main`). | Anyone, through a pull request from a feature branch. |
 | `<type>/<what-it-does>` | One change: `feat/live-typing-eou`, `fix/paste-race`, `build/fluidaudio-0.15.8`. Branch from `dev`. | Its author. |
 | `experiments/<topic>` | Measurement suites, conversion labs, research notes. Branch from `main`. | Its author. Never merged anywhere. |
 
@@ -24,19 +24,28 @@ experiments/<topic>  (from main; kept, pushed, never merged)
    measurements the performance standard asks for.
 3. Rebase-merge into `dev` so its history stays linear.
 4. The maintainer opens a pull request from `dev` into `main` when `dev` is a release candidate, and
-   merges it once the checks pass.
+   merges it with "Create a merge commit" once the checks pass.
+
+Squash and rebase are not allowed into `main`. Both write copies of `dev`'s commits, so `main` never
+contains `dev`'s own commits and every later release pull request lists the whole history again. A
+merge commit keeps `dev`'s commits on `main`, so each release lists only what changed since the last
+one, and `dev` needs no merge-back afterwards.
 
 ## What protects main
 
-Branch protection on `main`, enforced for administrators as well:
+Branch protection on `main` and the `protect-main` ruleset, enforced for administrators as well:
 
 - a pull request is required; nothing is pushed to `main` directly, no force pushes, no deletion;
+- merge commits only; squash and rebase merges are disabled;
+- `dev` does not have to be up to date with `main` before merging, since the only commits `main` has
+  that `dev` lacks are release merge commits;
 - the `head-is-dev` check fails any pull request into `main` whose source branch is not `dev`;
 - the `no-experiment-paths` check fails any pull request into `dev` or `main` that touches
   `orukeet-coreml/`;
 - review conversations must be resolved before merging.
 
-Both checks live in `.github/workflows/branch-policy.yml`.
+Both checks live in `.github/workflows/branch-policy.yml`. The `protect-dev` ruleset blocks force
+pushes to `dev` and its deletion, including the "Delete branch" button after a release merge.
 
 ## Experiments
 
