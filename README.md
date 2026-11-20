@@ -112,7 +112,7 @@ The cask downloads the DMG and clears the Gatekeeper quarantine flag for you, so
 
 Download the pre-built DMG from the [Releases](https://github.com/vakharwalad23/tap-talk/releases) page and drag `TapTalk.app` to `/Applications`.
 
-> **Note:** TapTalk is not yet notarized. If macOS blocks the app on first launch, clear the quarantine flag (see [Troubleshooting](#troubleshooting)) or right-click -> Open to bypass it. Notarization is coming in a future release.
+> **Note:** TapTalk is not yet notarized. If macOS blocks the app on first launch, clear the quarantine flag (see [Troubleshooting](#troubleshooting)) or right-click -> Open to bypass it. Notarization is coming in a future release. Releases are signed with a stable self-signed certificate, so Microphone and Accessibility stay granted across updates.
 
 ## Troubleshooting
 
@@ -126,13 +126,12 @@ xattr -dr com.apple.quarantine "/Applications/TapTalk.app"
 
 **Hotkey stopped working after updating**
 
-TapTalk is not notarized or signed with a stable identity yet, so a new version can look like a different app to macOS. After an update it may ask for Microphone and Accessibility again, and sometimes a stale entry blocks the hotkey. If push-to-talk does not fire after updating:
+Releases are signed with the same certificate, so updates keep their permissions. Versions from before the switch to stable signing were not, so the first update from one of them asks once more. Open TapTalk: the setup card on the Record page shows what is missing.
 
-1. Open **System Settings -> Privacy & Security -> Accessibility**.
-2. Select the old **TapTalk** entry and remove it with the minus button.
-3. Relaunch TapTalk and grant Accessibility again when prompted.
+- **Accessibility:** click **Allow**. TapTalk clears the entry left by the old version and asks again; switch TapTalk on in the list that opens. If the card then shows **Restart TapTalk**, click it.
+- **Microphone:** click **Allow**, or **Open Settings** if it was turned off.
 
-Do the same under **Privacy & Security -> Microphone** if dictation cannot hear you.
+If the card does not help, remove the old **TapTalk** entry under **System Settings -> Privacy & Security -> Accessibility** with the minus button and relaunch.
 
 **Bluetooth headphones sound muffled while dictating**
 
