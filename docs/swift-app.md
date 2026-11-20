@@ -167,9 +167,9 @@ a list already missed a browser installed on the development machine.
 ```bash
 make run      # rust -> bindings -> xcodegen -> xcodebuild -> launch
 make kill     # stop a running instance first; two instances fight over the event tap
-make test     # Rust tests and the TapTalkAudio package tests
+make test     # Rust tests and the TapTalkAudio and TapTalkUpdates package tests
 ```
 
-`make test` runs the Rust tests and the `TapTalkAudio` package tests. The rest of the app has no
+`make test` runs the Rust tests and the `TapTalkAudio` and `TapTalkUpdates` package tests. The rest of the app has no
 test target: its logic is prompt composition and enum dispatch, where exhaustive `switch` breakage
 at compile time is a stronger check than a test would be. `make build` failing is the signal.

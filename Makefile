@@ -34,6 +34,7 @@ run: build
 test:
 	cd core && cargo test
 	cd TapTalk/Audio && swift test
+	cd TapTalk/Updates && swift test
 
 # Builds an optimized app and installs it to /Applications as a STATIC binary.
 # Because it isn't rebuilt on every launch, macOS keeps the mic + accessibility
