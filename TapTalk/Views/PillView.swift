@@ -1,4 +1,5 @@
 import SwiftUI
+import TapTalkLearning
 
 enum PillState: Equatable {
     case idle
@@ -7,6 +8,8 @@ enum PillState: Equatable {
     case transcribing
     case rewriting
     case done
+    /// Pasted, plus a word fix just learned or stopped, with Undo.
+    case notice(LearningEvent)
 }
 
 final class PillStateHolder: ObservableObject {
@@ -40,6 +43,7 @@ struct PillView: View {
         case .recording, .transcribing: return 96
         case .rewriting:                return 124
         case .done:                     return 104
+        case .notice:                   return 0
         case .idle, .hidden:            return 0
         }
     }
@@ -57,6 +61,19 @@ struct PillView: View {
                     .frame(width: 54, height: 4)
                     .transition(.opacity)
 
+            case .notice:
+                // Sized to its text; the panel widens for it (FloatingPillController.panelSize).
+                activeContent
+                    .padding(.horizontal, 14)
+                    .frame(height: capsuleHeight)
+                    .background(
+                        Capsule()
+                            .fill(Color(red: 0.09, green: 0.09, blue: 0.10))
+                            .overlay(Capsule().strokeBorder(borderColor, lineWidth: 1))
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .shadow(color: Color.black.opacity(0.28), radius: 6, x: 0, y: 2)
+
             default:
                 ZStack {
                     Capsule()
@@ -69,7 +86,7 @@ struct PillView: View {
                 .shadow(color: Color.black.opacity(0.28), radius: 6, x: 0, y: 2)
             }
         }
-        .frame(width: 156, height: 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.spring(response: 0.3, dampingFraction: 0.74), value: pillState)
         .onAppear { syncTimer(pillState) }
         .onDisappear { stopTimer() }
@@ -110,6 +127,9 @@ struct PillView: View {
                     .foregroundStyle(.white)
             }
 
+        case .notice(let event):
+            noticeContent(event)
+
         case .idle, .hidden:
             EmptyView()
         }
@@ -121,8 +141,41 @@ struct PillView: View {
         case .transcribing: return Color.white.opacity(0.14)
         case .rewriting:    return smartColor.opacity(0.4)
         case .done:         return AppTheme.success.opacity(0.55)
+        case .notice(.learned): return AppTheme.success.opacity(0.55)
+        case .notice(.stopped): return Color.white.opacity(0.3)
         case .idle, .hidden: return .clear
         }
+    }
+
+    private func noticeContent(_ event: LearningEvent) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(AppTheme.success)
+            Text(Self.noticeText(event))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+            Button("Undo") {
+                CorrectionLearner.shared.undoNotice(event)
+                FloatingPillController.shared.hide()
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(smartColor)
+        }
+    }
+
+    static func noticeText(_ event: LearningEvent) -> String {
+        switch event {
+        case .learned(let rule): return "Pasted - Learned: \(shortened(rule.from)) -> \(shortened(rule.to))"
+        case .stopped(let rule): return "Pasted - Stopped: \(shortened(rule.from)) -> \(shortened(rule.to))"
+        }
+    }
+
+    // Keeps a long fix from stretching the pill across the screen.
+    private static func shortened(_ text: String) -> String {
+        text.count > 24 ? text.prefix(24) + "..." : text
     }
 
     // Phase advances faster while processing to read as "working".

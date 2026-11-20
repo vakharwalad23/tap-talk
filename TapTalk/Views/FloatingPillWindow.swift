@@ -18,17 +18,37 @@ final class FloatingPillController {
 
         if window == nil { createWindow() }
 
-        holder.state = state
+        apply(state)
         window?.orderFrontRegardless()
 
-        if state == .done {
-            let work = DispatchWorkItem { [weak self] in
-                self?.autoHideWork = nil
-                self?.holder.state = .idle
-            }
-            autoHideWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
+        let visibleFor: Double
+        switch state {
+        case .done: visibleFor = 1.5
+        case .notice: visibleFor = 4.0  // long enough to reach Undo
+        default: return
         }
+        let work = DispatchWorkItem { [weak self] in
+            self?.autoHideWork = nil
+            self?.apply(.idle)
+        }
+        autoHideWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + visibleFor, execute: work)
+    }
+
+    // A notice needs room for its text; every other state fits the small panel, which keeps the
+    // click-catching area at the bottom of the screen as small as it was.
+    private static func panelSize(for state: PillState) -> NSSize {
+        if case .notice = state { return NSSize(width: 420, height: 56) }
+        return NSSize(width: 186, height: 56)
+    }
+
+    private func apply(_ state: PillState) {
+        let size = Self.panelSize(for: state)
+        if let panel = window, panel.frame.size != size {
+            positionWindow(panel, size: size)
+            hostingView?.frame = NSRect(origin: .zero, size: size)
+        }
+        holder.state = state
     }
 
     // Live mic RMS for the recording waveform. Cheap - read by the pill's render timer.
@@ -42,7 +62,7 @@ final class FloatingPillController {
         autoHideWork = nil
 
         if window == nil { createWindow() }
-        holder.state = .idle
+        apply(.idle)
         window?.orderFrontRegardless()
     }
 

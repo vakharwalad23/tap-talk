@@ -724,7 +724,9 @@ final class AppController: ObservableObject {
                             }
                             CorrectionLearner.shared.didPaste(processed)
                             if hotkeyTriggeredLocal {
-                                FloatingPillController.shared.show(state: .done)
+                                FloatingPillController.shared.show(
+                                    state: CorrectionLearner.shared.takeNotice(generation: self.recordingGeneration).map(PillState.notice) ?? .done
+                                )
                             } else {
                                 FloatingPillController.shared.hide()
                             }
@@ -877,7 +879,9 @@ final class AppController: ObservableObject {
                             PasteService.paste(finalText)
                             CorrectionLearner.shared.didPaste(finalText)
                             finalTrace.finish("paste")
-                            FloatingPillController.shared.show(state: .done)
+                            FloatingPillController.shared.show(
+                                    state: CorrectionLearner.shared.takeNotice(generation: self.recordingGeneration).map(PillState.notice) ?? .done
+                                )
                         } else {
                             FloatingPillController.shared.hide()
                         }
