@@ -1,5 +1,6 @@
 import Foundation
 import ServiceManagement
+import TapTalkLearning
 
 enum TranscriptionEngine: String {
     case local
@@ -197,8 +198,14 @@ final class SettingsStore: ObservableObject {
     }
 
     @Published var dictionarySegments: [DictionarySegment] {
-        didSet { persistDictionarySegments(dictionarySegments) }
+        didSet {
+            persistDictionarySegments(dictionarySegments)
+            dictionaryRules = Self.rules(for: dictionarySegments)
+        }
     }
+
+    // Compiled when the dictionary changes, so a dictation never rebuilds it.
+    private(set) var dictionaryRules: TextRules = .empty
 
     @Published var updateCheckConsent: UpdateCheckConsent {
         didSet { UserDefaults.standard.set(updateCheckConsent.rawValue, forKey: "updateCheckConsent") }
@@ -257,6 +264,12 @@ final class SettingsStore: ObservableObject {
         } else {
             dictionarySegments = []
         }
+        dictionaryRules = Self.rules(for: dictionarySegments)
+    }
+
+    private static func rules(for segments: [DictionarySegment]) -> TextRules {
+        let pairs = segments.filter(\.isEnabled).flatMap(\.entries).map { RulePair(from: $0.from, to: $0.to) }
+        return TextRules(pairs, matching: .caseInsensitive)
     }
 
     private func applyLaunchAtLogin(_ enable: Bool) {

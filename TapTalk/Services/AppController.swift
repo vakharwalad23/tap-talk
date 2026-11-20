@@ -3,6 +3,7 @@ import Carbon.HIToolbox
 import AVFoundation
 import Combine
 import TapTalkAudio
+import TapTalkLearning
 import os
 
 /// App-level singleton. Owns recorder, engines, state, and hotkey registration.
@@ -685,7 +686,7 @@ final class AppController: ObservableObject {
             // Clear instance var immediately so a concurrent cancelRecording can't re-touch
             // this engine while the detached finish() is in flight.
             self.streamingEngine = nil
-            let segments = settings.dictionarySegments
+            let dictionaryRules = settings.dictionaryRules
             let hotkeyTriggeredLocal = hotkeyTriggered
             transcribeTask = Task.detached { [weak self] in
                 guard let self else { return }
@@ -693,7 +694,7 @@ final class AppController: ObservableObject {
                 _ = try? await self.stopCapture(.discard)
                 do {
                     let final = try await engine.finish()
-                    let processed = PostProcessingService.applyDictionary(final, segments: segments)
+                    let processed = dictionaryRules.apply(final)
                     await MainActor.run {
                         guard !Task.isCancelled else { return }
                         let typed = self.liveInserter.commit(processed)
@@ -746,7 +747,7 @@ final class AppController: ObservableObject {
         let localEngine = settings.localEngine
         let cloudModel  = settings.cloudModel
         let apiKey     = settings.apiKey
-        let segments   = settings.dictionarySegments
+        let dictionaryRules = settings.dictionaryRules
         let llmEnabled = settings.llmEnabled
         let llmBackend = settings.llmBackend
         let llmClient  = makeLLMClient(settings: settings)
@@ -803,7 +804,7 @@ final class AppController: ObservableObject {
                 if Task.isCancelled { return }
                 trace.mark("asr")
 
-                var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
+                var processed = dictionaryRules.apply(result.text)
 
                 // Script conversion is its own reason to call the model - a user who picked Roman
                 // should get Roman without also having to enable a rewrite mode.

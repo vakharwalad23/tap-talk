@@ -16,6 +16,8 @@ packages:
     path: TapTalk/Audio
   TapTalkUpdates:
     path: TapTalk/Updates
+  TapTalkLearning:
+    path: TapTalk/Learning
 
 targets:
   TapTalk:
@@ -27,6 +29,7 @@ targets:
         product: OrukeetCoreML
       - package: TapTalkAudio
       - package: TapTalkUpdates
+      - package: TapTalkLearning
     sources:
       - path: TapTalk
         excludes:
@@ -37,6 +40,7 @@ targets:
           - "Vendor/OrukeetCoreML"
           - "Audio"
           - "Updates"
+          - "Learning"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: talk.tap.app
