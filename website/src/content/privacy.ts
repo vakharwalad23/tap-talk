@@ -64,6 +64,10 @@ export const privacyStatements = [
 		body: "TapTalk briefly writes transcribed text to the clipboard to paste it into the focused app, then restores the previous clipboard contents. No clipboard data is retained beyond this operation.",
 	},
 	{
+		title: "Learning from corrections",
+		body: "After TapTalk pastes, it reads that text field once, on your next dictation, to see whether you fixed a word it typed. Only the fixed words are kept, on this Mac. Password fields are never read. Turn it off on the Words page.",
+	},
+	{
 		title: "Update checks",
 		body: "Off until you say yes. When on, TapTalk asks GitHub once a day for the latest release version. Nothing about you or your Mac is sent beyond what any web request carries.",
 	},

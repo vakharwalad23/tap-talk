@@ -17,6 +17,20 @@ export function WordsPage() {
 			</div>
 
 			<section className={app.section}>
+				<div className={app.sectionLabel}>Learning</div>
+				<div className={app.card}>
+					<div className={app.row}>
+						<span className={app.rowLabel}>Learn from my corrections</span>
+						<Checkbox on />
+					</div>
+					<p className={app.hint}>
+						When you fix a word TapTalk typed, it learns the fix after you make
+						it twice.
+					</p>
+				</div>
+			</section>
+
+			<section className={app.section}>
 				<div className={app.sectionLabel}>Word Dictionary</div>
 				<div className={app.card}>
 					{segments.map((segment, index) => (
