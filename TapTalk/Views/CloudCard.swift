@@ -124,6 +124,8 @@ struct CloudCard: View {
     }
 
 
+    private var removesKey: Bool { apiKeyInput.isEmpty && !settings.apiKey.isEmpty }
+
     private var apiKeyRow: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("OpenAI API key")
@@ -142,7 +144,13 @@ struct CloudCard: View {
                             .stroke(AppTheme.divider, lineWidth: 1)
                     )
 
-                Button(apiKeySaved ? "Saved" : "Save") {
+                Button(apiKeySaved ? "Saved" : (removesKey ? "Remove" : "Save")) {
+                    // Emptying the field and confirming deletes the key from the Keychain.
+                    if removesKey {
+                        settings.apiKey = ""
+                        testStatus = .idle
+                        return
+                    }
                     do {
                         try KeychainService.save(key: apiKeyInput, account: "openai-api-key")
                         settings.apiKey = apiKeyInput
@@ -155,9 +163,9 @@ struct CloudCard: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(apiKeySaved ? AppTheme.success : AppTheme.accent)
+                .tint(apiKeySaved ? AppTheme.success : (removesKey ? AppTheme.danger : AppTheme.accent))
                 .controlSize(.small)
-                .disabled(apiKeyInput == settings.apiKey || apiKeyInput.isEmpty)
+                .disabled(apiKeyInput == settings.apiKey)
             }
 
             if let err = apiKeySaveError {
