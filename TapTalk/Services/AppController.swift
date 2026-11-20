@@ -27,7 +27,6 @@ final class AppController: ObservableObject {
     private var appNapToken: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
     private var didBecomeActiveObserver: NSObjectProtocol?
-    private var hasRequestedAccessibilityPermission = false
     private var recordingWatchdog: DispatchWorkItem?
     // Core Audio start can block for seconds while a Bluetooth device changes mode, and a blocked
     // main thread makes macOS disable the hotkey tap, losing the key release. Starts run here in
@@ -91,10 +90,11 @@ final class AppController: ObservableObject {
         }
         refresh()
         FloatingPillController.shared.hide()
-        resolveMicThenSetupHotkey()
+        setupAudioAndHotkey()
         observeBackendChanges()
         observeSystemEvents()
         observeMemoryPressure()
+        state.markLaunchResolved()
     }
 
     // Holding a model resident is a bet that RAM is free. Let the system settle that bet rather
@@ -156,6 +156,8 @@ final class AppController: ObservableObject {
             guard let self = self else { return }
             guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                   app.bundleIdentifier == Bundle.main.bundleIdentifier else { return }
+            // Returning from System Settings is when a microphone grant or denial changes.
+            MainActor.assumeIsolated { PermissionService.shared.refresh() }
             self.setupHotkey()
         }
     }
@@ -240,31 +242,19 @@ final class AppController: ObservableObject {
         state.audioDuration = 0
     }
 
-    // Ensures mic permission is resolved before the hotkey goes live, so the permission dialog
-    // can never interrupt a key press and leave a recording stuck waiting for key-up.
-    private func resolveMicThenSetupHotkey() {
-        switch AVCaptureDevice.authorizationStatus(for: .audio) {
-        case .authorized:
+    // Launch never prompts: the setup card asks for each permission when the user clicks it. A key
+    // press without the microphone fails with a status line, never a dialog mid-press.
+    private func setupAudioAndHotkey() {
+        if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
             warmUpAudioStream()
-            setupHotkey()
-        case .denied, .restricted:
-            setupHotkey()
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
-                DispatchQueue.main.async {
-                    if granted { self?.warmUpAudioStream() }
-                    self?.setupHotkey()
-                }
-            }
-        @unknown default:
-            setupHotkey()
         }
+        setupHotkey()
     }
 
     // Builds the audio graph off the main thread once permission is granted, so device setup never
     // lands inside the hotkey callback. Silero downloads here when missing (~0.9 MB, pinned); until
     // it is installed, recordings are transcribed untrimmed.
-    private func warmUpAudioStream() {
+    func warmUpAudioStream() {
         let rec = recorder
         rec.setLevelHandler { rms in
             DispatchQueue.main.async { FloatingPillController.shared.setLevel(rms) }
@@ -510,7 +500,13 @@ final class AppController: ObservableObject {
                 Task.detached { await engine.cancel() }
             }
         }
-        state.status = "Error: \(error.localizedDescription)"
+        // Before the first grant there is no TapTalk entry in System Settings to switch on yet.
+        if case .permissionDenied? = error as? AudioCaptureError,
+           AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+            state.status = "Microphone not allowed yet - click Allow on the Record page"
+        } else {
+            state.status = "Error: \(error.localizedDescription)"
+        }
     }
 
     // Waits behind any start still queued, so a fast release never stops a capture before it began.
@@ -873,13 +869,9 @@ final class AppController: ObservableObject {
     /// must not block because the tap may need re-creation after invalidation.
     func setupHotkey() {
         guard !state.recording else { return }
-        guard AccessibilityService.hasPermission else {
+        guard PermissionService.isAccessibilityTrusted else {
             state.hotkeyActive = false
-            if !hasRequestedAccessibilityPermission {
-                hasRequestedAccessibilityPermission = true
-                AccessibilityService.requestPermission()
-                startPermissionPoller()
-            }
+            startPermissionPoller()
             return
         }
 
@@ -913,6 +905,9 @@ final class AppController: ObservableObject {
         }
 
         state.hotkeyActive = HotkeyService.shared.isTapAlive
+        // tapCreate can keep failing after a grant until the process restarts. A grant the tap cannot
+        // use yet is offered a relaunch on the setup card, never another reset of a valid grant.
+        state.hotkeyNeedsRestart = !state.hotkeyActive
         permissionPoller?.invalidate()
         permissionPoller = nil
     }
@@ -920,34 +915,14 @@ final class AppController: ObservableObject {
     private func startPermissionPoller() {
         guard permissionPoller == nil else { return }
         let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
-            guard AccessibilityService.hasPermission else { return }
+            guard PermissionService.isAccessibilityTrusted else { return }
             DispatchQueue.main.async {
-                self?.hasRequestedAccessibilityPermission = false
-                self?.setupHotkey()
-                // tapCreate fails for unsigned apps until the process restarts after
-                // the first-ever accessibility grant - prompt restart if tap is still dead
-                if self?.state.hotkeyActive == false {
-                    self?.promptRestartForAccessibility()
-                }
+                // setupHotkey skips during a recording; retry on the next tick instead of reading that as dead.
+                guard let self, !self.state.recording else { return }
+                self.setupHotkey()
             }
         }
         RunLoop.main.add(timer, forMode: .common)
         permissionPoller = timer
-    }
-
-    private func promptRestartForAccessibility() {
-        permissionPoller?.invalidate()
-        permissionPoller = nil
-        let alert = NSAlert()
-        alert.messageText = "Restart Required"
-        alert.informativeText = "TapTalk needs to restart to activate the global hotkey after accessibility permission is granted."
-        alert.addButton(withTitle: "Restart Now")
-        alert.addButton(withTitle: "Later")
-        if alert.runModal() == .alertFirstButtonReturn {
-            let url = URL(fileURLWithPath: Bundle.main.bundlePath)
-            let config = NSWorkspace.OpenConfiguration()
-            NSWorkspace.shared.openApplication(at: url, configuration: config)
-            NSApp.terminate(nil)
-        }
     }
 }

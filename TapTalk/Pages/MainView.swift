@@ -17,6 +17,10 @@ final class RecordingState: ObservableObject {
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var modelStatus: ModelStatus = .none
     @Published var hotkeyActive = false
+    // Accessibility is granted but the tap still cannot be created until TapTalk relaunches.
+    @Published var hotkeyNeedsRestart = false
+    // False until launch has resolved the engine and the hotkey, so nothing renders a guess.
+    @Published private(set) var launchResolved = false
     @Published var status = ""
 
     @Published private(set) var hotkeyTriggered = false
@@ -73,5 +77,9 @@ final class RecordingState: ObservableObject {
 
     func setModel(_ status: ModelStatus) {
         modelStatus = status
+    }
+
+    func markLaunchResolved() {
+        launchResolved = true
     }
 }
