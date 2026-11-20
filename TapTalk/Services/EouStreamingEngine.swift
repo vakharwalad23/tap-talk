@@ -118,6 +118,12 @@ actor EouStreamingEngine: StreamingTranscriber {
             Task { await self?.emitPartial(partial) }
         }
 
+        // After a confirmed end of utterance the decoder stays silent until its state is rebuilt, so
+        // words after a pause were lost. Rearm replays the audio since the pause and keeps the transcript.
+        await mgr.setEouCallback { [weak self] _ in
+            Task { await self?.rearmAfterPause() }
+        }
+
         // Drain FIFO input -> manager.appendAudio + processBufferedAudio in arrival order.
         consumerTask = Task { [inputStream = self.inputStream, mgr] in
             for await buffer in inputStream {
@@ -158,5 +164,10 @@ actor EouStreamingEngine: StreamingTranscriber {
 
     private func emitPartial(_ partial: String) {
         updateContinuation?.yield(StreamingUpdate(confirmed: partial, volatile: "", isFinal: false))
+    }
+
+    // A rearm after finish() or cancel() finds no manager or an emptied one and does nothing.
+    private func rearmAfterPause() async {
+        try? await manager?.rearm(keepTranscript: true)
     }
 }
