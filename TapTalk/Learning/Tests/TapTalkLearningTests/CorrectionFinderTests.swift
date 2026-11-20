@@ -54,6 +54,28 @@ final class CorrectionFinderTests: XCTestCase {
         XCTAssertEqual(fix("Ask Drew now.", "Ask Dhruv now. Ask Dhruv now."), [])
     }
 
+    // The same sentence repeated in one field: the paste position picks the copy that was pasted.
+    func testRepeatedSentenceUsesPastePosition() {
+        let field = "I use tap talk every day.\nI use Tap Talk every day."
+        XCTAssertEqual(
+            CorrectionFinder.fixes(pasted: "I use tap talk every day.", fieldText: field, near: field.utf16.count),
+            [.init(from: "tap talk", to: "Tap Talk")]
+        )
+    }
+
+    func testRepeatedFixedSentencesUsePastePosition() {
+        let field = "My name is Dhruv.\nMy name is Dhruv."
+        XCTAssertEqual(
+            CorrectionFinder.fixes(pasted: "My name is Drew.", fieldText: field, near: field.utf16.count),
+            [.init(from: "Drew", to: "Dhruv")]
+        )
+    }
+
+    func testPastePositionAtAnUnchangedCopyLearnsNothing() {
+        let field = "I use tap talk every day.\nI use Tap Talk every day."
+        XCTAssertEqual(CorrectionFinder.fixes(pasted: "I use tap talk every day.", fieldText: field, near: 0), [])
+    }
+
     func testOrdinaryWordCheck() {
         XCTAssertTrue(CorrectionFinder.needsOrdinaryWordCheck(.init(from: "drew", to: "Dhruv")))
         XCTAssertFalse(CorrectionFinder.needsOrdinaryWordCheck(.init(from: "Drew", to: "Dhruv")))

@@ -13,12 +13,20 @@ public enum CorrectionFinder {
 
     /// Replacements from the pasted form to the field's form; empty when the pasted text cannot be
     /// located with confidence. The ordinary-word rule is left to the caller (it needs a dictionary).
-    public static func fixes(pasted: String, fieldText: String) -> [RulePair] {
+    /// `near` is where the paste landed, as a UTF-16 offset into `fieldText` (the caret when it was
+    /// pasted). With it, the copy nearest the paste is chosen, so a sentence repeated elsewhere in the
+    /// field neither hides the fix nor makes it ambiguous.
+    public static func fixes(pasted: String, fieldText: String, near: Int? = nil) -> [RulePair] {
         let typed = words(in: pasted)
         let field = words(in: fieldText)
-        guard !typed.isEmpty, !field.isEmpty,
-              let match = locate(typed.map(\.text), in: field.map(\.text))
-        else { return [] }
+        guard !typed.isEmpty, !field.isEmpty else { return [] }
+        let found: Match?
+        if let near {
+            found = locate(typed.map(\.text), in: field.map(\.text), near: near, offsets: utf16Ranges(field, in: fieldText))
+        } else {
+            found = locate(typed.map(\.text), in: field.map(\.text))
+        }
+        guard let match = found else { return [] }
 
         var fixes: [RulePair] = []
         for block in replacedBlocks(match, typedCount: typed.count, fieldCount: field.count) {
@@ -103,6 +111,54 @@ public enum CorrectionFinder {
         }
         guard groups == 1 else { return nil }
         return aligned.first?.match
+    }
+
+    /// Picks the candidate nearest the paste position among those that fit well enough; a closer
+    /// distance wins, then a better fit. Two separate places equally near and equally good are
+    /// ambiguous.
+    static func locate(_ typed: [String], in field: [String], near: Int, offsets: [Range<Int>]) -> Match? {
+        let typedWords = Set(typed)
+        var best: (distance: Int, score: Int, span: Range<Int>, match: Match)?
+        var tied = false
+        for start in field.indices where typedWords.contains(field[start]) {
+            let window = Array(field[start..<min(field.count, start + typed.count + windowSlack)])
+            let (score, length) = longestPrefixMatch(typed, window)
+            guard score > 0, Double(score) / Double(typed.count) >= minimumScore else { continue }
+            let pairs = alignment(typed, Array(field[start..<(start + length)]))
+            guard let first = pairs.first, let last = pairs.last else { continue }
+            let span = (start + first.field)..<(start + last.field + 1)
+            let lower = offsets[span.lowerBound].lowerBound
+            let upper = offsets[span.upperBound - 1].upperBound
+            let distance = near < lower ? lower - near : max(0, near - upper)
+            let match = pairs.map { (typed: $0.typed, field: start + $0.field) }
+            guard let current = best else {
+                best = (distance, score, span, match)
+                continue
+            }
+            if distance < current.distance || (distance == current.distance && score > current.score) {
+                best = (distance, score, span, match)
+                tied = false
+            } else if distance == current.distance, score == current.score, !span.overlaps(current.span) {
+                tied = true
+            }
+        }
+        guard let best, !tied else { return nil }
+        return best.match
+    }
+
+    /// UTF-16 offsets of each word, the unit Accessibility reports the caret in. Walked once, in order.
+    static func utf16Ranges(_ words: [Word], in text: String) -> [Range<Int>] {
+        var ranges: [Range<Int>] = []
+        var index = text.startIndex
+        var offset = 0
+        for word in words {
+            offset += text.utf16.distance(from: index, to: word.range.lowerBound)
+            let length = text.utf16.distance(from: word.range.lowerBound, to: word.range.upperBound)
+            ranges.append(offset..<(offset + length))
+            offset += length
+            index = word.range.upperBound
+        }
+        return ranges
     }
 
     /// The longest common subsequence of `typed` with any prefix of `window`, and the shortest

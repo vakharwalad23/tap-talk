@@ -11,7 +11,7 @@ final class CorrectionLearner {
     static let shared = CorrectionLearner()
 
     private struct Pending {
-        let field: AXUIElement
+        let field: FocusedField
         let text: String
     }
 
@@ -54,10 +54,10 @@ final class CorrectionLearner {
         let userFroms = Set(settings.dictionarySegments.flatMap(\.entries).map { $0.from.lowercased() })
         let started = DispatchTime.now().uptimeNanoseconds
         queue.async {
-            let read = FieldReader.text(of: taken.field)
+            let read = FieldReader.text(of: taken.field.element)
             var fixes: [RulePair] = []
             if case .text(let fieldText) = read {
-                fixes = CorrectionFinder.fixes(pasted: taken.text, fieldText: fieldText)
+                fixes = CorrectionFinder.fixes(pasted: taken.text, fieldText: fieldText, near: taken.field.caret)
             }
             let ms = Double(DispatchTime.now().uptimeNanoseconds - started) / 1_000_000
             Task { @MainActor in
