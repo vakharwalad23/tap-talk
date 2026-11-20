@@ -299,3 +299,22 @@ final class SettingsStore: ObservableObject {
         }
     }
 }
+
+// Speech engine choice as the Models page offers it. Each assignment is skipped when unchanged:
+// @Published emits on every set, and every emission reloads the engine.
+extension SettingsStore {
+    func isInUse(_ engine: LocalEngine) -> Bool {
+        transcriptionEngine == .local && localEngine == engine
+    }
+
+    var isCloudInUse: Bool { transcriptionEngine == .cloud }
+
+    func use(_ engine: LocalEngine) {
+        if localEngine != engine { localEngine = engine }
+        if transcriptionEngine != .local { transcriptionEngine = .local }
+    }
+
+    func useCloud() {
+        if transcriptionEngine != .cloud { transcriptionEngine = .cloud }
+    }
+}

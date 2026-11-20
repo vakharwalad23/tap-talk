@@ -48,6 +48,7 @@ final class NemotronDownloadManager: ObservableObject {
 // Catalog card for the multilingual engine. Download is user-initiated (never auto).
 struct NemotronCard: View {
     @ObservedObject private var model = NemotronDownloadManager.shared
+    @ObservedObject private var settings = SettingsStore.shared
     @State private var pendingRemoval = false
 
     var body: some View {
@@ -80,14 +81,7 @@ struct NemotronCard: View {
                     }
                 } else if model.installed {
                     HStack(spacing: 10) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(AppTheme.success)
-                                .font(.system(size: 13))
-                            Text("Installed")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(AppTheme.success)
-                        }
+                        UseEngineControl(isInUse: settings.isInUse(.nemotron)) { settings.use(.nemotron) }
                         Button { pendingRemoval = true } label: {
                             Image(systemName: "trash")
                                 .font(.system(size: 11))
@@ -117,6 +111,12 @@ struct NemotronCard: View {
                         .monospacedDigit()
                 }
             }
+
+            // Only Nemotron produces Devanagari, so the choice belongs to its card.
+            if settings.isInUse(.nemotron) {
+                Divider().background(AppTheme.divider)
+                hindiScriptPicker
+            }
         }
         .padding(14)
         .background(AppTheme.sectionBg)
@@ -132,5 +132,49 @@ struct NemotronCard: View {
             Text("Frees ~640 MB and switches back to Parakeet. You can re-download it anytime.")
         }
         .onAppear { model.refreshInstalled() }
+    }
+
+    private var hindiScriptPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Hindi script")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(AppTheme.secondary)
+            HStack(spacing: 8) {
+                ForEach(HindiScript.allCases, id: \.self) { script in
+                    scriptButton(script)
+                }
+            }
+            Text(scriptHint)
+                .font(.system(size: 10))
+                .foregroundStyle(AppTheme.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Roman script needs Hindi selected and Smart Mode; say which is missing rather than leaving a
+    // control that quietly does nothing.
+    private var scriptHint: String {
+        guard settings.hindiScript == .roman else {
+            return "Devanagari is what the model produces. Roman writes it the way people type in chat."
+        }
+        if settings.selectedLanguage != AppContextService.hindiLanguageCode {
+            return "Roman applies to Hindi only - pick Hindi in the Record tab. Other languages are pasted as the model produces them."
+        }
+        return "Roman writes Hindi the way people type it in chat: main kal aaunga. Produced by the rewrite model, so it needs Smart Mode."
+    }
+
+    private func scriptButton(_ script: HindiScript) -> some View {
+        let active = settings.hindiScript == script
+        return Button(action: { settings.hindiScript = script }) {
+            Text(script.label)
+                .font(.system(size: 12, weight: .medium))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(active ? AppTheme.accent : AppTheme.windowBg)
+                .foregroundStyle(active ? AppTheme.windowBg : AppTheme.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppTheme.divider, lineWidth: active ? 0 : 1))
+        }
+        .buttonStyle(.plain)
     }
 }

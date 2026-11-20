@@ -29,7 +29,7 @@ struct ContentView: View {
     private var content: some View {
         switch nav.selection {
         case .record:       RecordView()
-        case .models:       ModelsPage()
+        case .models:       ModelsView()
         case .settings:     SettingsView()
         case .intelligence: IntelligenceView()
         case .privacy:      PrivacyView()
@@ -74,28 +74,5 @@ struct SidebarView: View {
                 )
         }
         .buttonStyle(.plain)
-    }
-}
-
-struct ModelsPage: View {
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Models")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(AppTheme.primary)
-                    Text("Run entirely on your device - no internet required.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppTheme.tertiary)
-                }
-
-                ModelDownloader()
-
-                Spacer()
-            }
-            .padding(24)
-        }
-        .background(AppTheme.windowBg)
     }
 }
