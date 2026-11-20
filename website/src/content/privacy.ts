@@ -41,8 +41,8 @@ export const permissions = [
 export const permissionsNote =
 	"That is it. No full-disk access. No network entitlement needed for on-device engines.";
 
-// Reproduced from the app's Privacy page, with punctuation kept ASCII for the web.
-export const privacyPageSections = [
+// Reproduced from the Privacy section of the app's Settings page, with punctuation kept ASCII for the web.
+export const privacyStatements = [
 	{
 		title: "Data collected",
 		body: "None. TapTalk does not collect, store, or transmit any personal data, usage metrics, or crash reports.",

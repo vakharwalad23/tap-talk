@@ -21,8 +21,8 @@ export const featureGroups: readonly FeatureGroup[] = [
 				body: "Slack, Mail, Notion, Xcode, the terminal, your browser. Text lands where the cursor is, with a flicker-free accessibility path and a universal paste fallback that works in Electron apps too.",
 			},
 			{
-				title: "Live typing (coming soon)",
-				body: "Watch words appear in the field as you speak, under a second, with a confirmed plus volatile preview. Streams locally.",
+				title: "Live typing (optional)",
+				body: "Watch words appear in the field as you speak, under a second, with a confirmed plus volatile preview. Streams locally. Live typing is not available with every model: it works with Parakeet only, while Orukeet, Nemotron and Cloud type the text after you release the key.",
 			},
 			{
 				title: "Too short? It says so",
