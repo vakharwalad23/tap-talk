@@ -15,8 +15,10 @@ final class CorrectionLearner {
         let text: String
     }
 
-    // Accessibility messages block their thread until the other app answers, so they run here.
-    private let queue = DispatchQueue(label: "talk.tap.learning", qos: .utility)
+    // Accessibility messages block their thread until the other app answers, so they run here. The
+    // capture after a paste has its own queue so it never waits behind a comparison still running.
+    private let captureQueue = DispatchQueue(label: "talk.tap.learning.capture", qos: .utility)
+    private let readQueue = DispatchQueue(label: "talk.tap.learning.read", qos: .utility)
     private let logger = Logger(subsystem: "talk.tap.app", category: "learning")
     private let settings = SettingsStore.shared
     private var pending: Pending?
@@ -29,10 +31,14 @@ final class CorrectionLearner {
     func didPaste(_ text: String) {
         pending = nil
         guard settings.learnCorrections, !text.isEmpty else { return }
+        // TapTalk's own window (a dictation started from the Record button) is never learned from.
+        guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              pid != ProcessInfo.processInfo.processIdentifier
+        else { return }
         pasteGeneration &+= 1
         let generation = pasteGeneration
-        queue.async {
-            let field = FieldReader.focusedTextField()
+        captureQueue.async {
+            let field = FieldReader.focusedTextField(in: pid)
             Task { @MainActor in
                 guard generation == self.pasteGeneration else { return }
                 guard let field else {
@@ -53,9 +59,9 @@ final class CorrectionLearner {
         guard settings.learnCorrections else { return }
         let userFroms = Set(settings.dictionarySegments.flatMap(\.entries).map { $0.from.lowercased() })
         let started = DispatchTime.now().uptimeNanoseconds
-        queue.async {
+        readQueue.async {
             let read = FieldReader.text(of: taken.field.element)
-            var fixes: [RulePair] = []
+            var fixes: [FoundFix] = []
             if case .text(let fieldText) = read {
                 fixes = CorrectionFinder.fixes(pasted: taken.text, fieldText: fieldText, near: taken.field.caret)
             }
@@ -77,12 +83,14 @@ final class CorrectionLearner {
         LearnedCorrections.shared.undo(event)
     }
 
-    private func finish(read: FieldRead, fixes: [RulePair], ms: Double, generation: Int, userFroms: Set<String>) {
-        // A user dictionary entry always wins, and an ordinary word ("drew") is never replaced.
+    private func finish(read: FieldRead, fixes: [FoundFix], ms: Double, generation: Int, userFroms: Set<String>) {
+        // A user dictionary entry always wins, and ordinary words ("drew", "He", "may be") are never
+        // replaced everywhere.
         let learnable = fixes.filter { fix in
-            !userFroms.contains(fix.from.lowercased())
-                && !(CorrectionFinder.needsOrdinaryWordCheck(fix) && Self.isOrdinaryWord(fix.from))
-        }
+            guard !userFroms.contains(fix.pair.from.lowercased()) else { return false }
+            guard let words = CorrectionFinder.dictionaryWords(for: fix) else { return true }
+            return !words.allSatisfy(Self.isOrdinaryWord)
+        }.map(\.pair)
         let events = LearnedCorrections.shared.record(learnable, dictation: UUID())
         if let last = events.last { notice = (last, generation) }
         logger.notice("""

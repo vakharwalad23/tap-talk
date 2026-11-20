@@ -25,13 +25,15 @@ enum FieldReader {
     /// Longer fields (whole documents) are skipped rather than read.
     static let maxCharacters = 20_000
 
-    /// The focused element when it is a readable, non-secure text field, with its caret position.
-    static func focusedTextField() -> FocusedField? {
+    /// The focused element of the app with `pid` when it is a readable, non-secure text field, with its
+    /// caret position. The timeout is set on that app's elements only: set on the system-wide element
+    /// it would apply to every Accessibility call TapTalk makes, live typing included.
+    static func focusedTextField(in pid: pid_t) -> FocusedField? {
         guard !IsSecureEventInputEnabled() else { return nil }
-        let systemWide = AXUIElementCreateSystemWide()
-        AXUIElementSetMessagingTimeout(systemWide, messagingTimeout)
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, messagingTimeout)
         var focused: AnyObject?
-        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+        guard AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
               let candidate = focused,
               CFGetTypeID(candidate) == AXUIElementGetTypeID()
         else { return nil }

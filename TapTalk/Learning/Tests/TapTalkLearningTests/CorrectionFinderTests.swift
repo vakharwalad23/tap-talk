@@ -3,7 +3,7 @@ import XCTest
 
 final class CorrectionFinderTests: XCTestCase {
     private func fix(_ pasted: String, _ field: String) -> [RulePair] {
-        CorrectionFinder.fixes(pasted: pasted, fieldText: field)
+        CorrectionFinder.fixes(pasted: pasted, fieldText: field).map(\.pair)
     }
 
     func testSpacingAndCaseFix() {
@@ -58,7 +58,7 @@ final class CorrectionFinderTests: XCTestCase {
     func testRepeatedSentenceUsesPastePosition() {
         let field = "I use tap talk every day.\nI use Tap Talk every day."
         XCTAssertEqual(
-            CorrectionFinder.fixes(pasted: "I use tap talk every day.", fieldText: field, near: field.utf16.count),
+            CorrectionFinder.fixes(pasted: "I use tap talk every day.", fieldText: field, near: field.utf16.count).map(\.pair),
             [.init(from: "tap talk", to: "Tap Talk")]
         )
     }
@@ -66,19 +66,54 @@ final class CorrectionFinderTests: XCTestCase {
     func testRepeatedFixedSentencesUsePastePosition() {
         let field = "My name is Dhruv.\nMy name is Dhruv."
         XCTAssertEqual(
-            CorrectionFinder.fixes(pasted: "My name is Drew.", fieldText: field, near: field.utf16.count),
+            CorrectionFinder.fixes(pasted: "My name is Drew.", fieldText: field, near: field.utf16.count).map(\.pair),
             [.init(from: "Drew", to: "Dhruv")]
         )
     }
 
     func testPastePositionAtAnUnchangedCopyLearnsNothing() {
         let field = "I use tap talk every day.\nI use Tap Talk every day."
-        XCTAssertEqual(CorrectionFinder.fixes(pasted: "I use tap talk every day.", fieldText: field, near: 0), [])
+        XCTAssertEqual(CorrectionFinder.fixes(pasted: "I use tap talk every day.", fieldText: field, near: 0).map(\.pair), [])
     }
 
-    func testOrdinaryWordCheck() {
-        XCTAssertTrue(CorrectionFinder.needsOrdinaryWordCheck(.init(from: "drew", to: "Dhruv")))
-        XCTAssertFalse(CorrectionFinder.needsOrdinaryWordCheck(.init(from: "Drew", to: "Dhruv")))
-        XCTAssertFalse(CorrectionFinder.needsOrdinaryWordCheck(.init(from: "tap talk", to: "TapTalk")))
+    // The first word of a sentence is capitalized by the recognizer, so it is checked like a lowercase word.
+    func testSentenceStartIsMarked() {
+        XCTAssertEqual(CorrectionFinder.fixes(pasted: "Drew asked for it.", fieldText: "Dhruv asked for it.").map(\.startsSentence), [true])
+        XCTAssertEqual(CorrectionFinder.fixes(pasted: "Done. Drew asked.", fieldText: "Done. Dhruv asked.").map(\.startsSentence), [true])
+        XCTAssertEqual(CorrectionFinder.fixes(pasted: "Ask Drew to review it.", fieldText: "Ask Dhruv to review it.").map(\.startsSentence), [false])
+    }
+
+    func testDictionaryWordsToCheck() {
+        func words(_ from: String, _ to: String, startsSentence: Bool = false) -> [String]? {
+            CorrectionFinder.dictionaryWords(for: FoundFix(pair: .init(from: from, to: to), startsSentence: startsSentence))
+        }
+        XCTAssertEqual(words("drew", "Dhruv"), ["drew"])
+        XCTAssertNil(words("Drew", "Dhruv"))
+        XCTAssertEqual(words("He", "She", startsSentence: true), ["he"])
+        XCTAssertEqual(words("may be", "maybe"), ["may", "be", "maybe"])
+        XCTAssertEqual(words("tap talk", "TapTalk"), ["tap", "talk", "tapTalk"])
+        XCTAssertNil(words("tap talk", "Tap Talk"))
+    }
+
+    // Words typed inside the pasted sentence are an insertion, never a fix of a neighbouring word.
+    func testInsertedWordsInsideThePasteAreNotAFix() {
+        let pasted = "I will send the draft to the team today."
+        let field = "I will send the draft and the slide deck to the team today."
+        XCTAssertEqual(CorrectionFinder.fixes(pasted: pasted, fieldText: field, near: field.utf16.count).map(\.pair), [])
+        XCTAssertEqual(fix(pasted, field), [])
+    }
+
+    func testLongPasteIsSkipped() {
+        let pasted = Array(repeating: "word", count: 81).joined(separator: " ") + " Drew"
+        let field = Array(repeating: "word", count: 81).joined(separator: " ") + " Dhruv"
+        XCTAssertEqual(fix(pasted, field), [])
+    }
+
+    func testLongFieldIsReadAroundThePaste() {
+        let field = String(repeating: "Some earlier notes about the week. ", count: 500) + "Ask Dhruv to review it."
+        XCTAssertEqual(
+            CorrectionFinder.fixes(pasted: "Ask Drew to review it.", fieldText: field, near: field.utf16.count).map(\.pair),
+            [.init(from: "Drew", to: "Dhruv")]
+        )
     }
 }

@@ -1,5 +1,17 @@
 import Foundation
 
+/// A word fix found in a field, and whether its first word starts a sentence (where the recognizer
+/// capitalizes any word, so a capital there says nothing about it being a name).
+public struct FoundFix: Equatable, Sendable {
+    public let pair: RulePair
+    public let startsSentence: Bool
+
+    public init(pair: RulePair, startsSentence: Bool) {
+        self.pair = pair
+        self.startsSentence = startsSentence
+    }
+}
+
 /// Finds the words a person fixed in text TapTalk pasted, by comparing it with what the field holds
 /// now. Only short replacements that look or sound like what was typed count; anything else is
 /// treated as an ordinary edit and ignored.
@@ -10,41 +22,93 @@ public enum CorrectionFinder {
     static let maxSpan = 3
     /// Extra field words a candidate location may span beyond the pasted word count.
     static let windowSlack = 3
+    /// Longer pastes are not compared: the comparison grows with their length, and fixes of names
+    /// and terms arrive in ordinary-length dictations.
+    static let maxPastedWords = 80
+    /// Field text kept on each side of the paste position, beyond twice the pasted length.
+    static let contextSlack = 200
 
     /// Replacements from the pasted form to the field's form; empty when the pasted text cannot be
     /// located with confidence. The ordinary-word rule is left to the caller (it needs a dictionary).
     /// `near` is where the paste landed, as a UTF-16 offset into `fieldText` (the caret when it was
     /// pasted). With it, the copy nearest the paste is chosen, so a sentence repeated elsewhere in the
     /// field neither hides the fix nor makes it ambiguous.
-    public static func fixes(pasted: String, fieldText: String, near: Int? = nil) -> [RulePair] {
+    public static func fixes(pasted: String, fieldText fullText: String, near caret: Int? = nil) -> [FoundFix] {
         let typed = words(in: pasted)
+        guard !typed.isEmpty, typed.count <= maxPastedWords else { return [] }
+        // Only the text around the paste is compared, so a long document costs no more than a short one.
+        var fieldText = fullText
+        var near = caret
+        if let caret {
+            (fieldText, near) = window(fullText, around: caret, radius: 2 * pasted.utf16.count + contextSlack)
+        }
         let field = words(in: fieldText)
-        guard !typed.isEmpty, !field.isEmpty else { return [] }
+        guard !field.isEmpty else { return [] }
         let found: Match?
         if let near {
             found = locate(typed.map(\.text), in: field.map(\.text), near: near, offsets: utf16Ranges(field, in: fieldText))
         } else {
             found = locate(typed.map(\.text), in: field.map(\.text))
         }
-        guard let match = found else { return [] }
+        guard let located = found else { return [] }
+        let match = realigned(located, typed.map(\.text), field.map(\.text))
 
-        var fixes: [RulePair] = []
+        var fixes: [FoundFix] = []
         for block in replacedBlocks(match, typedCount: typed.count, fieldCount: field.count) {
             guard block.typed.count <= maxSpan, block.field.count <= maxSpan else { continue }
             let from = String(pasted[typed[block.typed.lowerBound].range.lowerBound..<typed[block.typed.upperBound - 1].range.upperBound])
             let to = String(fieldText[field[block.field.lowerBound].range.lowerBound..<field[block.field.upperBound - 1].range.upperBound])
-            guard !from.contains(where: \.isNumber), !to.contains(where: \.isNumber),
+            guard from != to, !from.contains(where: \.isNumber), !to.contains(where: \.isNumber),
                   Similarity.isMishearing(from: from, to: to)
             else { continue }
-            fixes.append(RulePair(from: from, to: to))
+            let opens = startsSentence(at: typed[block.typed.lowerBound].range.lowerBound, in: pasted)
+            fixes.append(FoundFix(pair: RulePair(from: from, to: to), startsSentence: opens))
         }
         return fixes
     }
 
-    /// True when "from" is a single word with no capital letter: the case where an ordinary
-    /// dictionary word ("drew") would be replaced everywhere it is used.
-    public static func needsOrdinaryWordCheck(_ pair: RulePair) -> Bool {
-        words(in: pair.from).count == 1 && !pair.from.contains(where: \.isUppercase)
+    /// The words that, when every one is an ordinary dictionary word, mean the fix must not be learned;
+    /// nil when no check is needed. A lowercase or sentence-start word ("drew", "He") would be replaced
+    /// everywhere it is used; a join or split of ordinary words ("may be" -> "maybe") is grammar, not
+    /// a mishearing. A capitalized word mid-sentence is taken as a name.
+    public static func dictionaryWords(for fix: FoundFix) -> [String]? {
+        let fromWords = words(in: fix.pair.from).map(\.text)
+        let toWords = words(in: fix.pair.to).map(\.text)
+        if fromWords.count == 1, toWords.count == 1 {
+            guard fix.startsSentence || !fix.pair.from.contains(where: \.isUppercase) else { return nil }
+            return fromWords.map(lowercasingFirst)
+        }
+        guard fromWords.count != toWords.count else { return nil }
+        return (fromWords + toWords).map(lowercasingFirst)
+    }
+
+    static func lowercasingFirst(_ word: String) -> String {
+        word.prefix(1).lowercased() + word.dropFirst()
+    }
+
+    /// True when only spaces, quotes or brackets stand between the word and the start of the text or
+    /// a sentence end.
+    static func startsSentence(at index: String.Index, in text: String) -> Bool {
+        var cursor = index
+        while cursor > text.startIndex {
+            cursor = text.index(before: cursor)
+            let character = text[cursor]
+            if character == " " || character == "\t" || character == "\"" || character == "(" { continue }
+            return character == "." || character == "!" || character == "?" || character.isNewline
+        }
+        return true
+    }
+
+    /// The field text within `radius` UTF-16 units of `caret`, and the caret offset within it.
+    static func window(_ text: String, around caret: Int, radius: Int) -> (String, Int) {
+        let utf16 = text.utf16
+        guard utf16.count > 2 * radius else { return (text, caret) }
+        let center = min(max(0, caret), utf16.count)
+        let lowIndex = utf16.index(utf16.startIndex, offsetBy: max(0, center - radius))
+        let highIndex = utf16.index(utf16.startIndex, offsetBy: min(utf16.count, center + radius))
+        let low = lowIndex == text.endIndex ? text.endIndex : text.rangeOfComposedCharacterSequence(at: lowIndex).lowerBound
+        let high = highIndex == text.endIndex ? text.endIndex : text.rangeOfComposedCharacterSequence(at: highIndex).lowerBound
+        return (String(text[low..<high]), center - utf16.distance(from: utf16.startIndex, to: low))
     }
 
     struct Word {
@@ -202,6 +266,16 @@ public enum CorrectionFinder {
             }
         }
         return pairs.reversed()
+    }
+
+    /// Aligns the pasted words again over the located span widened by the unmatched words on each
+    /// side, so words typed inside the paste line up as an insertion instead of pairing a pasted word
+    /// with an identical neighbour.
+    static func realigned(_ match: Match, _ typed: [String], _ field: [String]) -> Match {
+        guard let first = match.first, let last = match.last else { return match }
+        let lower = max(0, first.field - first.typed - maxSpan)
+        let upper = min(field.count, last.field + 1 + (typed.count - last.typed - 1) + maxSpan)
+        return alignment(typed, Array(field[lower..<upper])).map { (typed: $0.typed, field: lower + $0.field) }
     }
 
     /// Stretches of typed words and field words between matched words, including a stretch before

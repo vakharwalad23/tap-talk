@@ -14,11 +14,27 @@ enum Similarity {
         let b = letters(to)
         guard !a.isEmpty, !b.isEmpty else { return false }
         if a == b { return true }
+        guard !isInflection(from, to), sameFirstSound(a, b) else { return false }
         if distanceRatio(a, b) <= maxSpellingDistance { return true }
         let keyA = soundKey(a)
         let keyB = soundKey(b)
         guard max(keyA.count, keyB.count) >= 2 else { return false }
         return distanceRatio(keyA, keyB) <= maxSoundDistance
+    }
+
+    // A different first sound means a different word ("Tuesday" -> "Thursday", "He" -> "She"), even
+    // when the rest of the spelling is close.
+    static func sameFirstSound(_ a: [Character], _ b: [Character]) -> Bool {
+        soundKey(a).first == soundKey(b).first
+    }
+
+    /// Endings that change grammar rather than spelling: "Mac" -> "Macs", "Can" -> "Can't".
+    static let inflections = ["s", "es", "d", "ed", "ing", "'s", "'t", "n't", "'d", "'m", "'re", "'ll", "'ve"]
+
+    static func isInflection(_ a: String, _ b: String) -> Bool {
+        let x = a.lowercased().replacingOccurrences(of: "\u{2019}", with: "'")
+        let y = b.lowercased().replacingOccurrences(of: "\u{2019}", with: "'")
+        return inflections.contains { y == x + $0 || x == y + $0 }
     }
 
     /// Lowercased letters only, so spacing, hyphens and case do not count as differences.
@@ -44,8 +60,8 @@ enum Similarity {
         return previous[b.count]
     }
 
-    // ponytail: a simplified Metaphone-style consonant key, enough to tell sound-alikes from other
-    // words in short names and terms; a full Double Metaphone is the upgrade if tests demand it.
+    // A simplified Metaphone-style consonant key: enough to tell sound-alikes apart from other words
+    // in short names and terms.
     static func soundKey(_ letters: [Character]) -> [Character] {
         var text = String(letters)
         for prefix in ["kn", "gn", "wr", "ps"] where text.hasPrefix(prefix) {
