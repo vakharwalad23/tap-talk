@@ -1,12 +1,11 @@
 import SwiftUI
 
 enum NavItem: String, CaseIterable {
-    case record       = "Record"
-    case models       = "Models"
-    case settings     = "Settings"
-    case intelligence = "Intelligence"
-    case privacy      = "Privacy"
-    case about        = "About"
+    case record   = "Record"
+    case models   = "Models"
+    case words    = "Words"
+    case settings = "Settings"
+    case about    = "About"
 }
 
 struct ContentView: View {
@@ -28,12 +27,11 @@ struct ContentView: View {
     @ViewBuilder
     private var content: some View {
         switch nav.selection {
-        case .record:       RecordView()
-        case .models:       ModelsView()
-        case .settings:     SettingsView()
-        case .intelligence: IntelligenceView()
-        case .privacy:      PrivacyView()
-        case .about:        AboutView()
+        case .record:   RecordView()
+        case .models:   ModelsView()
+        case .words:    WordsView()
+        case .settings: SettingsView()
+        case .about:    AboutView()
         }
     }
 

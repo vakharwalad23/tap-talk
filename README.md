@@ -60,7 +60,7 @@ That's it. No full-disk access, no network entitlement is required for the on-de
 
 ## Transcription engines
 
-TapTalk lets you pick the engine per your needs. All on-device engines run locally. Downloading a model from the Models page selects it as your engine automatically - you only need **Settings -> Local model** to switch between installed engines.
+TapTalk lets you pick the engine per your needs. All on-device engines run locally. Downloading a model from the Models page selects it as your engine automatically; to switch later, click **Use** on another installed model there.
 
 | Engine | Best for | Languages | Download | Runs on |
 |---|---|---|---|---|
@@ -72,7 +72,7 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 - **Orukeet** is the default English/European engine: a Parakeet fine-tune (with fitted Gabor filters) that is measurably more accurate - independently benchmarked at about 15 percent fewer word errors than Parakeet across 25 FLEURS languages, and it is as fast as Parakeet on Apple M3 Pro (a touch faster on the recognition step). It auto-detects the language and runs batch (no live typing). New installs default to it; existing Parakeet users get a one-time in-app upgrade prompt, and Parakeet is always kept as a fallback and for live typing.
 - **Parakeet** auto-detects the spoken language, so it shows an "Auto" indicator instead of a language picker. It remains the base for the optional Live typing add-on.
 - **Multilingual** lets you pick a language in the Record tab. The list is restricted to what the model can actually produce - measured from its own vocabulary, so it never offers a language it would emit as garbage.
-- **Live typing** - install the optional Realtime EOU add-on from the Models page and enable the toggle in Settings. Words appear in the focused text field as you speak, with sub-second latency on the Neural Engine. Streaming runs locally and is mutually exclusive with Smart Mode (which needs the whole transcript).
+- **Live typing** - install the optional Realtime EOU add-on on the Parakeet card in Models, then turn on the Live typing switch that appears on that card while Parakeet is in use. Words appear in the focused text field as you speak, with sub-second latency on the Neural Engine. Streaming runs locally and is mutually exclusive with Smart Mode (which needs the whole transcript).
 
 ## Features
 

@@ -1,10 +1,8 @@
 import SwiftUI
-import Carbon.HIToolbox
 
-struct IntelligenceView: View {
+struct WordsView: View {
     @ObservedObject private var settings = SettingsStore.shared
 
-    // Dictionary editing
     @State private var addingSegment = false
     @State private var newSegmentName = ""
     @State private var expandedSegments: Set<String> = []
@@ -21,21 +19,17 @@ struct IntelligenceView: View {
         .background(AppTheme.windowBg)
     }
 
-    // MARK: Page header
-
     private var pageHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Intelligence")
+            Text("Words")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppTheme.primary)
-            Text("Dictionary, AI rewriting, and smart hotkey")
+            Text("Words TapTalk replaces after transcribing")
                 .font(.caption)
                 .foregroundStyle(AppTheme.tertiary)
         }
         .padding(.bottom, 20)
     }
-
-    // MARK: Dictionary
 
     private var dictionarySection: some View {
         SettingsSection("Word Dictionary") {
@@ -108,7 +102,7 @@ struct IntelligenceView: View {
             }
 
             if isExpanded {
-                VStack(alignment: .leading, spacing: 6) {
+                LazyVStack(alignment: .leading, spacing: 6) {
                     ForEach(settings.dictionarySegments[idx].entries.indices, id: \.self) { eIdx in
                         entryRow(segIdx: idx, entryIdx: eIdx)
                     }

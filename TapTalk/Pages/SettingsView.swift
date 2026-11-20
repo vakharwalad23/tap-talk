@@ -22,6 +22,8 @@ struct SettingsView: View {
                             .labelsHidden()
                     }
                 }
+
+                PrivacySettingsSection()
             }
             .padding(24)
         }

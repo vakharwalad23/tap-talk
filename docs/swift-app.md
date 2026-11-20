@@ -7,7 +7,8 @@ audio, recognition, the rewrite, the hotkey, the paste, the interface.
 TapTalk/
   Audio/      TapTalkAudio package: capture, 16 kHz conversion, Silero VAD, trim, gain
   Services/   system interaction and orchestration
-  Pages/      full screens (Record, Settings, Intelligence, Privacy, About)
+  Pages/      full screens (Record, Models, Words, Settings, About). Models is where a speech
+              engine is chosen and Smart Mode is set up; Settings holds both hotkeys
   Views/      reusable components and the floating pill
   Models/     plain data types
   Theme/      colours and key labels
