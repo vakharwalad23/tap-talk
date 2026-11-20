@@ -88,7 +88,7 @@ actor EouStreamingEngine: StreamingTranscriber {
     nonisolated static func warmUp() async {
         guard isInstalled() else { return }
         let mgr = StreamingEouAsrManager(chunkSize: .ms320)
-        _ = try? await mgr.loadModels()
+        _ = try? await mgr.loadModels(from: variantDirectory())
         await mgr.cleanup()
     }
 
@@ -105,7 +105,9 @@ actor EouStreamingEngine: StreamingTranscriber {
         guard Self.isInstalled() else { throw EngineError.notInstalled }
 
         let mgr = StreamingEouAsrManager(chunkSize: .ms320)
-        try await mgr.loadModels()
+        // loadModels(from:) reads only this folder; the parameterless form re-downloads missing or
+        // broken files, which must only happen inside a user-started download.
+        try await mgr.loadModels(from: Self.variantDirectory())
         self.manager = mgr
 
         let (out, outCont) = AsyncStream<StreamingUpdate>.makeStream()
