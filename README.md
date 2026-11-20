@@ -51,8 +51,10 @@ Privacy isn't a feature bolted on - it's the default behavior.
 
 | Permission | Why | When |
 |---|---|---|
-| **Microphone** | To capture the audio you dictate | First recording |
-| **Accessibility** | To detect the global push-to-talk hotkey and paste into the focused app | First launch |
+| **Microphone** | To capture the audio you dictate | When you click Allow on the setup card |
+| **Accessibility** | To detect the global push-to-talk hotkey and paste into the focused app | When you click Allow on the setup card |
+
+Nothing is requested at launch. Until all three are in place (a speech model and both permissions), the Record page shows a setup card with one button per step.
 
 That's it. No full-disk access, no network entitlement is required for the on-device engines.
 
@@ -144,7 +146,7 @@ cd tap-talk
 make run
 ```
 
-This single command compiles the Rust core, generates Swift bindings via UniFFI, builds the Xcode project, and launches the app. No model is bundled - download the one you want from the **Models** page on first use. Models are stored in `~/Library/Application Support/talk.tap.app/models/`.
+This single command compiles the Rust core, generates Swift bindings via UniFFI, builds the Xcode project, and launches the app. No model is bundled - the setup card on the Record page downloads Orukeet in one click, and the **Models** page has the others. Models are stored in `~/Library/Application Support/talk.tap.app/models/`.
 
 ### Build Targets
 

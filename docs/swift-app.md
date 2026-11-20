@@ -140,6 +140,14 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
 - `AppContextService` - reads the frontmost app and its window title for rewrite context. The
   Accessibility read carries a 250 ms timeout because an AX request to a hung app otherwise blocks
   forever, on the paste path.
+- `PermissionService` - microphone state and the Accessibility repair. Nothing prompts at launch:
+  every prompt follows a click on the setup card. "Allow" for Accessibility first runs `tccutil reset
+  Accessibility talk.tap.app`, so an entry left by an earlier build cannot sit switched on while the
+  hotkey stays dead. When the grant is present but the tap still cannot be created, `AppController`
+  sets `hotkeyNeedsRestart` and the card offers a relaunch instead of a modal alert.
+- `SetupCard` - the Record page empty state: speech model, microphone, accessibility. Every row reads
+  live state (engine status, mic status, a live hotkey tap), so it reappears if a model is deleted or
+  a permission is lost. There is no stored "setup done" flag to disagree with reality.
 
 Browsers are detected by asking Launch Services which apps handle `https`, never a hardcoded list -
 a list already missed a browser installed on the development machine.
