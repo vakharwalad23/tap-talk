@@ -57,6 +57,11 @@ struct SetupCard: View {
             SetupRow(icon: "keyboard", title: "Accessibility",
                      subtitle: accessibilitySubtitle,
                      done: checklist.accessibility) { accessibilityControl }
+            // Asked here, but optional: it never holds the card open.
+            if settings.updateCheckConsent == .notAsked {
+                Divider()
+                UpdateConsentRow()
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -111,13 +116,13 @@ struct SetupCard: View {
             case .compiling:
                 spinner("Preparing (one time)")
             case .failed:
-                SetupButton(title: "Retry", prominent: false) { orukeet.retry() }
+                CardButton(title: "Retry", prominent: false) { orukeet.retry() }
             case .ready:
-                SetupButton(title: "Use Orukeet", prominent: true) {
+                CardButton(title: "Use Orukeet", prominent: true) {
                     AppController.shared.adoptDownloadedEngine(.orukeet)
                 }
             case .idle:
-                SetupButton(title: "Download (467 MB)", prominent: true) { orukeet.install() }
+                CardButton(title: "Download (467 MB)", prominent: true) { orukeet.install() }
             }
         }
     }
@@ -178,9 +183,9 @@ struct SetupCard: View {
     private var microphoneControl: some View {
         switch permissions.microphone {
         case .notDetermined:
-            SetupButton(title: "Allow", prominent: true) { permissions.requestMicrophone() }
+            CardButton(title: "Allow", prominent: true) { permissions.requestMicrophone() }
         case .denied:
-            SetupButton(title: "Open Settings", prominent: false) { permissions.openMicrophoneSettings() }
+            CardButton(title: "Open Settings", prominent: false) { permissions.openMicrophoneSettings() }
         case .granted:
             EmptyView()
         }
@@ -200,11 +205,11 @@ struct SetupCard: View {
                 .font(.system(size: 11))
                 .foregroundStyle(AppTheme.secondary)
         } else if state.hotkeyNeedsRestart {
-            SetupButton(title: "Restart TapTalk", prominent: true) { permissions.restartApp() }
+            CardButton(title: "Restart TapTalk", prominent: true) { permissions.restartApp() }
         } else if permissions.isRepairingAccessibility {
             spinner("Opening")
         } else {
-            SetupButton(title: "Allow", prominent: true) { permissions.repairAccessibility() }
+            CardButton(title: "Allow", prominent: true) { permissions.repairAccessibility() }
         }
     }
 
@@ -250,7 +255,7 @@ private struct SetupRow<Control: View>: View {
     }
 }
 
-private struct SetupButton: View {
+struct CardButton: View {
     let title: String
     let prominent: Bool
     let action: () -> Void

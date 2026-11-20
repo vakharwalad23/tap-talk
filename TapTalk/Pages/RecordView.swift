@@ -9,11 +9,22 @@ struct RecordView: View {
     @ObservedObject private var migration = OrukeetMigration.shared
     @ObservedObject private var permissions = PermissionService.shared
     @ObservedObject private var setupSession = SetupSession.shared
+    @ObservedObject private var updates = UpdateService.shared
 
     var body: some View {
         VStack(spacing: 0) {
             if showsSetupCard {
                 SetupCard(checklist: checklist)
+                    .padding(.bottom, 16)
+            }
+            if let notice = updates.notice {
+                UpdateBanner(notice: notice)
+                    .padding(.bottom, 16)
+            }
+            // Users past setup are asked once here; during setup the card asks instead.
+            if settings.updateCheckConsent == .notAsked && state.launchResolved && checklist.isComplete {
+                UpdateConsentRow()
+                    .bannerStyle()
                     .padding(.bottom, 16)
             }
             if migration.showBanner && checklist.isComplete {

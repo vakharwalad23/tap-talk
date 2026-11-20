@@ -94,6 +94,13 @@ enum OrukeetMigrationState: String {
     case notApplicable    // new user, or live-typing user we do not push off Parakeet
 }
 
+// The daily update check. Nothing is requested until the user answers yes.
+enum UpdateCheckConsent: String {
+    case notAsked
+    case on
+    case off
+}
+
 enum LLMBackend: String {
     case custom
     case local
@@ -197,6 +204,10 @@ final class SettingsStore: ObservableObject {
         didSet { persistDictionarySegments(dictionarySegments) }
     }
 
+    @Published var updateCheckConsent: UpdateCheckConsent {
+        didSet { UserDefaults.standard.set(updateCheckConsent.rawValue, forKey: "updateCheckConsent") }
+    }
+
     private init() {
         selectedLanguage = UserDefaults.standard.string(forKey: "selectedLanguage")
 
@@ -239,6 +250,9 @@ final class SettingsStore: ObservableObject {
 
         let rawSmartCode = UserDefaults.standard.integer(forKey: "smartHotkeyCode")
         smartHotkeyCode = rawSmartCode > 0 ? UInt16(rawSmartCode) : UInt16(0x3A) // kVK_Option
+
+        let rawConsent = UserDefaults.standard.string(forKey: "updateCheckConsent") ?? "notAsked"
+        updateCheckConsent = UpdateCheckConsent(rawValue: rawConsent) ?? .notAsked
 
         let rawMigration = UserDefaults.standard.string(forKey: "orukeetMigrationState") ?? "unevaluated"
         orukeetMigrationState = OrukeetMigrationState(rawValue: rawMigration) ?? .unevaluated

@@ -87,6 +87,7 @@ final class AppController: ObservableObject {
         MainActor.assumeIsolated {
             OrukeetMigration.shared.evaluate()
             self.reconcileEngineSelection()
+            UpdateService.shared.start()
         }
         refresh()
         FloatingPillController.shared.hide()

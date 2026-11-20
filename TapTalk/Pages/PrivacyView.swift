@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct PrivacyView: View {
+    @ObservedObject private var settings = SettingsStore.shared
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -13,6 +15,9 @@ struct PrivacyView: View {
                         .foregroundStyle(AppTheme.tertiary)
                 }
                 .padding(.bottom, 20)
+
+                updateCheckToggle
+                    .padding(.bottom, 20)
 
                 privacySection("Data collected", body: "None. TapTalk does not collect, store, or transmit any personal data, usage metrics, or crash reports.")
 
@@ -29,6 +34,22 @@ struct PrivacyView: View {
             .padding(24)
         }
         .background(AppTheme.windowBg)
+    }
+
+    private var updateCheckToggle: some View {
+        Toggle(isOn: Binding(
+            get: { settings.updateCheckConsent == .on },
+            set: { settings.updateCheckConsent = $0 ? .on : .off }
+        )) {
+            Text("Check for updates once a day")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(AppTheme.primary)
+        }
+        .toggleStyle(.switch)
+        .controlSize(.small)
+        .padding(12)
+        .background(AppTheme.sectionBg)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func privacySection(_ title: String, body: String) -> some View {
