@@ -34,6 +34,9 @@ final class AppController: ObservableObject {
     // tell whether the recording it belonged to is still the current one.
     private let captureQueue = DispatchQueue(label: "talk.tap.capture", qos: .userInteractive)
     private var recordingGeneration = 0
+    // A hotkey change made while recording (Smart Mode switched, a key rebound) waits here and is
+    // applied the moment the recording ends, so it never touches the tap mid-press.
+    private var hotkeySetupPending = false
 
     // Bumped on every engine (re)load so a superseded async load/unload can no-op instead
     // of racing the newer one. All engine load/unload runs serialized through engineTask.
@@ -183,6 +186,15 @@ final class AppController: ObservableObject {
                     LlamaServerManager.shared.stop()
                 }
             }
+            .store(in: &settingsCancellables)
+
+        // Smart Mode on or off arms or disarms the Smart key at once. Delivered after the property
+        // changes; @Published emits before its new value is stored, and setupHotkey reads it.
+        settings.$llmEnabled
+            .dropFirst()
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.setupHotkey() }
             .store(in: &settingsCancellables)
 
         // Reload the active engine when the user switches transcription engine or local model.
@@ -493,6 +505,7 @@ final class AppController: ObservableObject {
         if state.recording {
             cancelRecordingWatchdog()
             state.cancel()
+            applyPendingHotkeySetup()
             AppRecordingState.shared.isRecording = false
             FloatingPillController.shared.hide()
             if let engine = streamingEngine {
@@ -605,6 +618,10 @@ final class AppController: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + maxRecordingSeconds, execute: work)
     }
 
+    private func applyPendingHotkeySetup() {
+        if hotkeySetupPending { setupHotkey() }
+    }
+
     private func cancelRecordingWatchdog() {
         recordingWatchdog?.cancel()
         recordingWatchdog = nil
@@ -619,6 +636,7 @@ final class AppController: ObservableObject {
         state.cancel()
         state.status = "Cancelled"
         AppRecordingState.shared.isRecording = false
+        applyPendingHotkeySetup()
         FloatingPillController.shared.hide()
         scheduleIdleRelease()
 
@@ -655,6 +673,7 @@ final class AppController: ObservableObject {
         state.beginTranscribing()
         state.status = "Transcribing..."
         AppRecordingState.shared.isRecording = false
+        applyPendingHotkeySetup()
         FloatingPillController.shared.show(state: .transcribing)
 
         // Streaming session: text was typed live; just finalize, reconcile, and clean up.
@@ -866,10 +885,11 @@ final class AppController: ObservableObject {
 
     /// Registers (or re-registers) the global hotkey with the current key code.
     /// Safe to call multiple times - unregisters first.
-    /// Only blocked during active recording (user holding key); transcribing/rewriting
-    /// must not block because the tap may need re-creation after invalidation.
+    /// Deferred during active recording (user holding key) and applied when it ends;
+    /// transcribing/rewriting must not block because the tap may need re-creation after invalidation.
     func setupHotkey() {
-        guard !state.recording else { return }
+        guard !state.recording else { hotkeySetupPending = true; return }
+        hotkeySetupPending = false
         guard PermissionService.isAccessibilityTrusted else {
             state.hotkeyActive = false
             startPermissionPoller()
@@ -890,7 +910,10 @@ final class AppController: ObservableObject {
             }
         )
 
-        if settings.smartHotkeyEnabled {
+        // Smart Mode's one switch arms its key, so setting Smart Mode up needs no second trip. A Smart key
+        // equal to the dictation key would never fire (the tap matches the dictation key first); Settings
+        // flags that pair instead.
+        if settings.llmEnabled && settings.smartHotkeyCode != settings.hotkeyCode {
             HotkeyService.shared.setSmartKeyCode(settings.smartHotkeyCode)
             HotkeyService.shared.registerSmart(
                 keyDown: { [weak self] in

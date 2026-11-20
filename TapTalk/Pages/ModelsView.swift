@@ -20,6 +20,9 @@ struct ModelsView: View {
                 ParakeetCard()
                 NemotronCard()
                 CloudCard()
+
+                groupLabel("Smart Mode")
+                SmartModeCard()
             }
             .padding(24)
         }

@@ -192,10 +192,6 @@ final class SettingsStore: ObservableObject {
         didSet { persistLLMApiKey(llmApiKey) }
     }
 
-    @Published var smartHotkeyEnabled: Bool {
-        didSet { UserDefaults.standard.set(smartHotkeyEnabled, forKey: "smartHotkeyEnabled") }
-    }
-
     @Published var smartHotkeyCode: UInt16 {
         didSet { UserDefaults.standard.set(Int(smartHotkeyCode), forKey: "smartHotkeyCode") }
     }
@@ -245,8 +241,6 @@ final class SettingsStore: ObservableObject {
         llmModel = UserDefaults.standard.string(forKey: "llmModel") ?? "llama3.2"
 
         llmApiKey = KeychainService.load(account: Self.llmApiKeyAccount) ?? ""
-
-        smartHotkeyEnabled = UserDefaults.standard.bool(forKey: "smartHotkeyEnabled")
 
         let rawSmartCode = UserDefaults.standard.integer(forKey: "smartHotkeyCode")
         smartHotkeyCode = rawSmartCode > 0 ? UInt16(rawSmartCode) : UInt16(0x3A) // kVK_Option
