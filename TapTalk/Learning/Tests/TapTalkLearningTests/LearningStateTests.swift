@@ -101,6 +101,14 @@ final class LearningStateTests: XCTestCase {
         XCTAssertEqual(pairs(s), [RulePair(from: "tap talk", to: "TapTalk app")])
     }
 
+    func testSentenceStartAndMidSentenceSightingsAreOneFix() {
+        var s = LearningState()
+        _ = s.record([RulePair(from: "Tap talk", to: "TapTalk")], dictation: d1)
+        let events = s.record([RulePair(from: "tap talk", to: "TapTalk")], dictation: d2)
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(pairs(s), [RulePair(from: "tap talk", to: "TapTalk")])
+    }
+
     func testCodableRoundTrip() throws {
         let s = learned(tt)
         let decoded = try JSONDecoder().decode(LearningState.self, from: JSONEncoder().encode(s))

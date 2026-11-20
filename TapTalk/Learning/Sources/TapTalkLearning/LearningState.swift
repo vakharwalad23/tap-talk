@@ -46,10 +46,10 @@ public struct LearningState: Codable, Equatable, Sendable {
     /// Records the fixes found after one dictation. Repeats within the same dictation count once.
     public mutating func record(_ fixes: [RulePair], dictation: UUID) -> [LearningEvent] {
         var events: [LearningEvent] = []
-        for fix in fixes where !blocked.contains(fix) {
+        for fix in fixes where !blocked.contains(where: { Self.sameFix($0, fix) }) {
             // Changing a rule's output back is evidence against the rule, never a new rule.
-            if let index = rules.firstIndex(where: { $0.from == fix.to && $0.to == fix.from }) {
-                if sighted(fix, in: dictation) {
+            if let index = rules.firstIndex(where: { Self.sameText($0.from, fix.to) && Self.sameText($0.to, fix.from) }) {
+                if sighted(fix, in: dictation) != nil {
                     let rule = rules.remove(at: index)
                     forget(fix)
                     blocked.insert(RulePair(from: rule.from, to: rule.to))
@@ -58,10 +58,10 @@ public struct LearningState: Codable, Equatable, Sendable {
                 }
                 continue
             }
-            guard !rules.contains(where: { $0.from == fix.from }) else { continue }
-            if sighted(fix, in: dictation) {
+            guard !rules.contains(where: { Self.sameText($0.from, fix.from) }) else { continue }
+            if let learned = sighted(fix, in: dictation) {
                 forget(fix)
-                let rule = LearnedRule(from: fix.from, to: fix.to)
+                let rule = LearnedRule(from: learned.from, to: learned.to)
                 rules.append(rule)
                 events.append(.learned(rule))
             }
@@ -95,20 +95,32 @@ public struct LearningState: Codable, Equatable, Sendable {
         rules[index].to = to
     }
 
-    /// Adds a sighting; true once the fix has been seen in enough different dictations.
-    private mutating func sighted(_ fix: RulePair, in dictation: UUID) -> Bool {
-        if let index = candidates.firstIndex(where: { $0.pair == fix }) {
+    /// Adds a sighting; returns the fix to learn once it has been seen in enough different dictations.
+    /// The mid-sentence form is kept when both were seen, so the rule also matches at sentence start.
+    private mutating func sighted(_ fix: RulePair, in dictation: UUID) -> RulePair? {
+        if let index = candidates.firstIndex(where: { Self.sameFix($0.pair, fix) }) {
             candidates[index].dictations.insert(dictation)
-            return candidates[index].dictations.count >= Self.sightingsNeeded
+            if fix.from.first?.isLowercase == true { candidates[index].pair.from = fix.from }
+            let pair = candidates[index].pair
+            return candidates[index].dictations.count >= Self.sightingsNeeded ? pair : nil
         }
         candidates.append(Candidate(pair: fix, dictations: [dictation]))
         if candidates.count > Self.candidateCap {
             candidates.removeFirst(candidates.count - Self.candidateCap)
         }
-        return false
+        return nil
     }
 
     private mutating func forget(_ fix: RulePair) {
-        candidates.removeAll { $0.pair == fix }
+        candidates.removeAll { Self.sameFix($0.pair, fix) }
+    }
+
+    // A capital first letter is how speech recognition starts a sentence, not a different word.
+    private static func sameText(_ a: String, _ b: String) -> Bool {
+        a == b || (a.prefix(1).lowercased() == b.prefix(1).lowercased() && a.dropFirst() == b.dropFirst())
+    }
+
+    private static func sameFix(_ a: RulePair, _ b: RulePair) -> Bool {
+        sameText(a.from, b.from) && a.to == b.to
     }
 }
