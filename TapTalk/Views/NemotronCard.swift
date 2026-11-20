@@ -9,6 +9,7 @@ final class NemotronDownloadManager: ObservableObject {
     @Published var installed = NemotronEngine.isInstalled()
     @Published var downloading = false
     @Published var progress: Double = 0
+    @Published var errorMessage: String?
 
     private init() {}
 
@@ -20,6 +21,7 @@ final class NemotronDownloadManager: ObservableObject {
         guard !downloading else { return }   // already in flight - don't start a second
         downloading = true
         progress = 0
+        errorMessage = nil
         Task {
             do {
                 try await NemotronEngine.download { p in
@@ -31,6 +33,7 @@ final class NemotronDownloadManager: ObservableObject {
             } catch {
                 self.downloading = false
                 self.installed = NemotronEngine.isInstalled()
+                self.errorMessage = error.localizedDescription
             }
         }
     }
@@ -90,7 +93,7 @@ struct NemotronCard: View {
                         .buttonStyle(.plain)
                     }
                 } else {
-                    Button("Download") { model.download() }
+                    Button(model.errorMessage == nil ? "Download" : "Retry") { model.download() }
                         .buttonStyle(.plain)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(AppTheme.primary)
@@ -110,6 +113,13 @@ struct NemotronCard: View {
                         .foregroundStyle(AppTheme.secondary)
                         .monospacedDigit()
                 }
+            }
+
+            if !model.downloading, !model.installed, let message = model.errorMessage {
+                Text(message)
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.danger)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             // Only Nemotron produces Devanagari, so the choice belongs to its card.
