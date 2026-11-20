@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WordsView: View {
     @ObservedObject private var settings = SettingsStore.shared
+    @ObservedObject private var learned = LearnedCorrections.shared
 
     @State private var addingSegment = false
     @State private var newSegmentName = ""
@@ -11,6 +12,8 @@ struct WordsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 pageHeader
+
+                learningSection
 
                 dictionarySection
             }
@@ -31,9 +34,30 @@ struct WordsView: View {
         .padding(.bottom, 20)
     }
 
+    private var learningSection: some View {
+        SettingsSection("Learning") {
+            SettingRow("Learn from my corrections") {
+                Toggle("", isOn: $settings.learnCorrections)
+                    .labelsHidden()
+            }
+            Text("When you fix a word TapTalk typed, it learns the fix after you make it twice.")
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var dictionarySection: some View {
         SettingsSection("Word Dictionary") {
-            if settings.dictionarySegments.isEmpty && !addingSegment {
+            // Shown only once something is learned; no placeholder before that.
+            if !learned.state.rules.isEmpty {
+                LearnedGroupRow()
+                if !settings.dictionarySegments.isEmpty || addingSegment {
+                    Divider().background(AppTheme.divider)
+                }
+            }
+
+            if settings.dictionarySegments.isEmpty && !addingSegment && learned.state.rules.isEmpty {
                 Text("No segments yet. Add one to replace words in every transcription.")
                     .font(.system(size: 12))
                     .foregroundStyle(AppTheme.tertiary)

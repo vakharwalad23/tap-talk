@@ -6,6 +6,7 @@ audio, recognition, the rewrite, the hotkey, the paste, the interface.
 ```
 TapTalk/
   Audio/      TapTalkAudio package: capture, 16 kHz conversion, Silero VAD, trim, gain
+  Learning/   TapTalkLearning package: compiled word rules, finding fixes, the learning state
   Services/   system interaction and orchestration
   Pages/      full screens (Record, Models, Words, Settings, About). Models is where a speech
               engine is chosen and Smart Mode is set up; Settings holds both hotkeys
@@ -138,6 +139,13 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
   entry, then Cmd-V, then restore.
 - `LiveInserter` - live typing. Prefers an Accessibility range-replace, falls back to pasteboard,
   and permanently disables the AX path after a first failure rather than retrying per keystroke.
+- `FieldReader` - Accessibility reads of the focused text field for correction learning. A 250 ms
+  messaging timeout, no secure fields or secure input, and fields over 20,000 characters are skipped.
+- `CorrectionLearner` - remembers the field and text of the last paste and reads that field once when
+  the next dictation has started, off the main actor; fixes go to `LearnedCorrections`, and a notice
+  is shown only at the paste of the dictation that produced it.
+- `LearnedCorrections` - the learned rules, candidates and blocked fixes in UserDefaults, with the
+  rules compiled once per change and applied to the final text right before it is pasted.
 - `AppContextService` - reads the frontmost app and its window title for rewrite context. The
   Accessibility read carries a 250 ms timeout because an AX request to a hung app otherwise blocks
   forever, on the paste path.
@@ -173,9 +181,9 @@ a list already missed a browser installed on the development machine.
 ```bash
 make run      # rust -> bindings -> xcodegen -> xcodebuild -> launch
 make kill     # stop a running instance first; two instances fight over the event tap
-make test     # Rust tests and the TapTalkAudio and TapTalkUpdates package tests
+make test     # Rust tests and the TapTalkAudio, TapTalkUpdates and TapTalkLearning package tests
 ```
 
-`make test` runs the Rust tests and the `TapTalkAudio` and `TapTalkUpdates` package tests. The rest of the app has no
+`make test` runs the Rust tests and the `TapTalkAudio`, `TapTalkUpdates` and `TapTalkLearning` package tests. The rest of the app has no
 test target: its logic is prompt composition and enum dispatch, where exhaustive `switch` breakage
 at compile time is a stronger check than a test would be. `make build` failing is the signal.

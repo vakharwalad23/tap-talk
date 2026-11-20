@@ -39,6 +39,7 @@ Privacy isn't a feature bolted on - it's the default behavior.
 
 - **On-device by default.** Audio is captured, voice-activity-trimmed, and transcribed entirely on your Mac. No analytics, no telemetry, no accounts, and no network requests unless you turn on cloud transcription or update checks.
 - **Audio is never persisted.** Recordings are processed in memory and discarded.
+- **Learning reads one field, once.** To learn from your corrections, TapTalk reads the text field it pasted into once, on your next dictation, and keeps only the fixed words. Password fields are never read, and learning can be turned off on the **Words** page.
 - **No automatic downloads - ever.** No model is fetched until *you* tap **Download**. Selecting an engine whose model isn't installed simply prompts you to download it; it never pulls data silently.
 - **You choose what stays on disk.** Models live in `~/Library/Application Support/talk.tap.app/models/`. Each is removable from the **Models** page, and TapTalk cleans up partial/interrupted downloads automatically so nothing is left orphaned.
 - **Secrets stay in the Keychain.** If you opt into the cloud engine or a custom LLM endpoint, the API key is stored in the macOS Keychain - never in plaintext, never in a config file.
@@ -83,6 +84,7 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 - **Headphones keep their sound** - when Bluetooth headphones are the default input, TapTalk records with the Mac's own microphone while the lid is open, so they never drop to headset quality while you dictate.
 - **Auto-paste** - transcribed text is inserted into the focused text field (or typed live, when streaming is on).
 - **Word dictionary** - custom replacement rules (technical jargon, proper nouns, shorthand) applied as post-processing.
+- **Learns your fixes** - fix a word TapTalk typed in two dictations and it gets it right from then on; the pill says so with Undo, and learned fixes are listed on the Words page.
 - **Smart Mode** - TapTalk reads the context of where you're typing and rewrites your words to fit. Dropping a message in Slack? Casual. Writing in Notion? Clean prose. Powered by a local LLM by default.
 - **Resource-conscious** - switching engines releases the inactive model, and idle models are unloaded to free memory and the Neural Engine.
 - **Plain-language model catalog** - clear, non-technical descriptions so you can pick the right model, with downloads that persist across navigation.
