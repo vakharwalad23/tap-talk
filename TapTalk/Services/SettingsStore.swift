@@ -211,6 +211,11 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(updateCheckConsent.rawValue, forKey: "updateCheckConsent") }
     }
 
+    // On for everyone by default: learning reads a field only on the dictation after a paste.
+    @Published var learnCorrections: Bool {
+        didSet { UserDefaults.standard.set(learnCorrections, forKey: "learnCorrections") }
+    }
+
     private init() {
         selectedLanguage = UserDefaults.standard.string(forKey: "selectedLanguage")
 
@@ -254,6 +259,7 @@ final class SettingsStore: ObservableObject {
 
         let rawConsent = UserDefaults.standard.string(forKey: "updateCheckConsent") ?? "notAsked"
         updateCheckConsent = UpdateCheckConsent(rawValue: rawConsent) ?? .notAsked
+        learnCorrections = UserDefaults.standard.object(forKey: "learnCorrections") as? Bool ?? true
 
         let rawMigration = UserDefaults.standard.string(forKey: "orukeetMigrationState") ?? "unevaluated"
         orukeetMigrationState = OrukeetMigrationState(rawValue: rawMigration) ?? .unevaluated

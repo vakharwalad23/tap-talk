@@ -497,6 +497,9 @@ final class AppController: ObservableObject {
         captureQueue.async { [weak self, recorder] in
             do {
                 try recorder.start(liveSink: liveSink)
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { CorrectionLearner.shared.dictationStarted(generation: generation) }
+                }
             } catch {
                 DispatchQueue.main.async { self?.captureFailed(error, generation: generation) }
             }
@@ -687,6 +690,7 @@ final class AppController: ObservableObject {
             // this engine while the detached finish() is in flight.
             self.streamingEngine = nil
             let dictionaryRules = settings.dictionaryRules
+            let learnedRules = MainActor.assumeIsolated { LearnedCorrections.shared.rules }
             let hotkeyTriggeredLocal = hotkeyTriggered
             transcribeTask = Task.detached { [weak self] in
                 guard let self else { return }
@@ -694,7 +698,7 @@ final class AppController: ObservableObject {
                 _ = try? await self.stopCapture(.discard)
                 do {
                     let final = try await engine.finish()
-                    let processed = dictionaryRules.apply(final)
+                    let processed = learnedRules.apply(dictionaryRules.apply(final))
                     await MainActor.run {
                         guard !Task.isCancelled else { return }
                         let typed = self.liveInserter.commit(processed)
@@ -718,6 +722,7 @@ final class AppController: ObservableObject {
                             if !typed {
                                 PasteService.paste(processed)
                             }
+                            CorrectionLearner.shared.didPaste(processed)
                             if hotkeyTriggeredLocal {
                                 FloatingPillController.shared.show(state: .done)
                             } else {
@@ -748,6 +753,7 @@ final class AppController: ObservableObject {
         let cloudModel  = settings.cloudModel
         let apiKey     = settings.apiKey
         let dictionaryRules = settings.dictionaryRules
+        let learnedRules = MainActor.assumeIsolated { LearnedCorrections.shared.rules }
         let llmEnabled = settings.llmEnabled
         let llmBackend = settings.llmBackend
         let llmClient  = makeLLMClient(settings: settings)
@@ -836,6 +842,9 @@ final class AppController: ObservableObject {
                     trace.mark("llm")
                 }
 
+                // Learned fixes apply to exactly the kind of text they were learned from: what was pasted.
+                processed = learnedRules.apply(processed)
+
                 // Snapshot before crossing to the main actor - the closure must not capture
                 // the mutable locals it was still writing to a moment ago.
                 let finalTrace = trace
@@ -866,6 +875,7 @@ final class AppController: ObservableObject {
                         }
                         if hotkeyTriggered {
                             PasteService.paste(finalText)
+                            CorrectionLearner.shared.didPaste(finalText)
                             finalTrace.finish("paste")
                             FloatingPillController.shared.show(state: .done)
                         } else {
