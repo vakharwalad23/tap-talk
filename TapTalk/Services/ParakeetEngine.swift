@@ -56,7 +56,10 @@ actor ParakeetEngine {
     func ensureLoaded() async throws {
         guard manager == nil else { return }
         guard Self.isInstalled() else { throw EngineError.notInstalled }
-        let models = try await AsrModels.loadFromCache(version: Self.version)
+        // loadLocal reads only this folder; loadFromCache fetches a missing file and re-downloads
+        // a bundle that fails to load, which must only happen inside a user-started download.
+        let models = try AsrModels.loadLocal(
+            from: AsrModels.defaultCacheDirectory(for: Self.version), version: Self.version)
         let asr = AsrManager(config: .default)
         try await asr.loadModels(models)
         manager = asr
