@@ -9,7 +9,7 @@ export const privacyChecklist = [
 	},
 	{
 		title: "No account, no telemetry",
-		body: "No analytics. No crash reporting. No phone-home.",
+		body: "No analytics. No crash reporting. Update checks only if you turn them on.",
 	},
 	{
 		title: "No automatic downloads",
@@ -64,7 +64,11 @@ export const privacyPageSections = [
 		body: "TapTalk briefly writes transcribed text to the clipboard to paste it into the focused app, then restores the previous clipboard contents. No clipboard data is retained beyond this operation.",
 	},
 	{
+		title: "Update checks",
+		body: "Off until you say yes. When on, TapTalk asks GitHub once a day for the latest release version. Nothing about you or your Mac is sent beyond what any web request carries.",
+	},
+	{
 		title: "Telemetry",
-		body: "None. No analytics, no crash reporting, no network requests beyond cloud transcription when you explicitly enable it.",
+		body: "None. No analytics, no crash reporting, and no network requests unless you turn on cloud transcription or update checks.",
 	},
 ] as const;

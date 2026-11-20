@@ -37,7 +37,7 @@ It's also fast and frugal. On Apple Silicon the models run with low latency on t
 
 Privacy isn't a feature bolted on - it's the default behavior.
 
-- **On-device by default.** Audio is captured, voice-activity-trimmed, and transcribed entirely on your Mac. No analytics, no telemetry, no accounts, no background phone-home.
+- **On-device by default.** Audio is captured, voice-activity-trimmed, and transcribed entirely on your Mac. No analytics, no telemetry, no accounts, and no network requests unless you turn on cloud transcription or update checks.
 - **Audio is never persisted.** Recordings are processed in memory and discarded.
 - **No automatic downloads - ever.** No model is fetched until *you* tap **Download**. Selecting an engine whose model isn't installed simply prompts you to download it; it never pulls data silently.
 - **You choose what stays on disk.** Models live in `~/Library/Application Support/talk.tap.app/models/`. Each is removable from the **Models** page, and TapTalk cleans up partial/interrupted downloads automatically so nothing is left orphaned.

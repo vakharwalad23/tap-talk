@@ -148,6 +148,11 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
 - `SetupCard` - the Record page empty state: speech model, microphone, accessibility. Every row reads
   live state (engine status, mic status, a live hotkey tap), so it reappears if a model is deleted or
   a permission is lost. There is no stored "setup done" flag to disagree with reality.
+- `UpdateService` - the daily release check, behind a three-state consent (not asked, on, off) that
+  sends nothing until the user says yes. An hourly timer checks whether 24 h have passed since the
+  last attempt, which survives sleep; failures are silent and also wait a day. The decisions (GitHub
+  JSON, version order, Homebrew or DMG, pinned casks get nothing) live in the `TapTalkUpdates`
+  package with its own tests.
 
 Browsers are detected by asking Launch Services which apps handle `https`, never a hardcoded list -
 a list already missed a browser installed on the development machine.

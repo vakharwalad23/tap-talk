@@ -62,7 +62,7 @@ export const faq: readonly FaqItem[] = [
 	{
 		question: "Does it collect any telemetry?",
 		answer:
-			"None. No analytics, no crash reporting, no phone-home. There are no network requests beyond cloud transcription when you explicitly enable it.",
+			"None. No analytics, no crash reporting. There are no network requests unless you turn on cloud transcription or update checks.",
 	},
 	{
 		question: "Is there a word or time limit?",

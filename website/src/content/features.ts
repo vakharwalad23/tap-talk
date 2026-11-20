@@ -73,7 +73,7 @@ export const featureGroups: readonly FeatureGroup[] = [
 		items: [
 			{
 				title: "On-device by default",
-				body: "No account, no telemetry, no network calls unless you turn on cloud.",
+				body: "No account, no telemetry, no network requests unless you turn on cloud transcription or update checks.",
 			},
 			{
 				title: "Audio is never saved",
