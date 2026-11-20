@@ -363,9 +363,13 @@ final class AppController: ObservableObject {
 
         // Serialize all engine load/unload through one chain so a rapid switch can't run an
         // unload after the next load; stale plans no-op via the generation check.
+        // A dictation already transcribing loads and holds its own engine; switching after it lets
+        // releaseEngines free that engine too, instead of leaving both resident until idle release.
         let previous = engineTask
+        let inFlight = transcribeTask
         engineTask = Task { [weak self] in
             await previous?.value
+            await inFlight?.value
             guard let self, await self.isCurrentGeneration(gen) else { return }
             await self.applyEnginePlan(plan, generation: gen)
         }
