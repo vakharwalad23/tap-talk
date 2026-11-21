@@ -46,7 +46,8 @@ public struct LearningState: Codable, Equatable, Sendable {
     /// Records the fixes found after one dictation. Repeats within the same dictation count once.
     public mutating func record(_ fixes: [RulePair], dictation: UUID) -> [LearningEvent] {
         var events: [LearningEvent] = []
-        for fix in fixes where !blocked.contains(where: { Self.sameFix($0, fix) }) {
+        // A block covers both sentence-start forms, so a stopped rule's reverse cannot return as a new rule.
+        for fix in fixes where !blocked.contains(where: { Self.sameForm($0, fix) }) {
             // Changing a rule's output back is evidence against the rule, never a new rule.
             if let index = rules.firstIndex(where: { Self.sameText($0.from, fix.to) && Self.sameText($0.to, fix.from) }) {
                 if sighted(fix, in: dictation, same: Self.sameForm) != nil {

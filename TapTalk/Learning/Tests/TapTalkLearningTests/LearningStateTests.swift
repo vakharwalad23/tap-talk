@@ -79,6 +79,16 @@ final class LearningStateTests: XCTestCase {
         XCTAssertTrue(s.rules.isEmpty)
     }
 
+    func testStoppedRuleBlocksBothCapitalFormsOfItsReverse() {
+        var s = learned(tt)
+        _ = s.record([RulePair(from: "TapTalk", to: "Tap talk")], dictation: d3)
+        _ = s.record([RulePair(from: "TapTalk", to: "tap talk")], dictation: d4)
+        XCTAssertTrue(s.rules.isEmpty)
+        _ = s.record([RulePair(from: "TapTalk", to: "Tap talk")], dictation: UUID())
+        XCTAssertEqual(s.record([RulePair(from: "TapTalk", to: "Tap talk")], dictation: UUID()), [])
+        XCTAssertTrue(s.rules.isEmpty)
+    }
+
     func testUndoStoppedRestoresRule() {
         var s = learned(tt)
         let rule = s.rules[0]
