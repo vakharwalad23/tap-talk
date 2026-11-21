@@ -35,12 +35,23 @@ final class FloatingPillController {
         DispatchQueue.main.asyncAfter(deadline: .now() + visibleFor, execute: work)
     }
 
-    // A notice needs room for its text; every other state fits the small panel, which keeps the
+    // A notice is sized to its text; every other state fits the small panel, which keeps the
     // click-catching area at the bottom of the screen as small as it was.
     private static func panelSize(for state: PillState) -> NSSize {
-        if case .notice = state { return NSSize(width: 420, height: 56) }
-        return NSSize(width: 186, height: 56)
+        guard case .notice(let event) = state else { return NSSize(width: smallWidth, height: panelHeight) }
+        let font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        let text = (PillView.noticeText(event) as NSString).size(withAttributes: [.font: font]).width
+        let undo = ("Undo" as NSString).size(withAttributes: [.font: font]).width
+        let width = ceil(text + undo + noticeChrome)
+        return NSSize(width: min(max(width, smallWidth), maxNoticeWidth), height: panelHeight)
     }
+
+    private static let smallWidth: CGFloat = 186
+    private static let panelHeight: CGFloat = 56
+    // Checkmark 14, two 8 pt gaps, 14 pt capsule padding per side, 12 pt per side for the shadow.
+    private static let noticeChrome: CGFloat = 14 + 16 + 28 + 24
+    // Past this a notice truncates rather than spanning the screen.
+    private static let maxNoticeWidth: CGFloat = 640
 
     private func apply(_ state: PillState) {
         let size = Self.panelSize(for: state)
@@ -88,7 +99,7 @@ final class FloatingPillController {
         hv.wantsLayer = true
         hv.layer?.backgroundColor = NSColor.clear.cgColor
 
-        let size = NSSize(width: 186, height: 56)
+        let size = NSSize(width: Self.smallWidth, height: Self.panelHeight)
         hv.frame = NSRect(origin: .zero, size: size)
         panel.contentView = hv
         hostingView = hv
