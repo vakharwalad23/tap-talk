@@ -98,6 +98,8 @@ final class CorrectionLearner {
     }
 
     private func finish(read: FieldRead, fixes: [FoundFix], ms: Double, generation: Int, userFroms: Set<String>) {
+        // Learning may have been switched off while this comparison ran.
+        guard settings.learnCorrections else { return }
         // A user dictionary entry always wins, and ordinary words ("drew", "He", "may be") are never
         // replaced everywhere.
         let learnable = fixes.filter { fix in
