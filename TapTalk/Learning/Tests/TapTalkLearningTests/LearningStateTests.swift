@@ -59,6 +59,26 @@ final class LearningStateTests: XCTestCase {
         XCTAssertTrue(s.rules.isEmpty)
     }
 
+    func testReverseAcrossSentenceStartCapitalStops() {
+        var s = learned(tt)
+        let rule = s.rules[0]
+        XCTAssertEqual(s.record([RulePair(from: "TapTalk", to: "Tap talk")], dictation: d3), [])
+        XCTAssertEqual(s.record([RulePair(from: "TapTalk", to: "tap talk")], dictation: d4), [.stopped(rule)])
+        XCTAssertTrue(s.rules.isEmpty)
+    }
+
+    func testUndoStoppedAcrossCapitalsAllowsStoppingAgain() throws {
+        var s = learned(tt)
+        _ = s.record([RulePair(from: "TapTalk", to: "tap talk")], dictation: d3)
+        let stopped = s.record([RulePair(from: "TapTalk", to: "Tap talk")], dictation: d4)
+        s.undo(try XCTUnwrap(stopped.first))
+        XCTAssertEqual(pairs(s), [tt])
+        _ = s.record([RulePair(from: "TapTalk", to: "tap talk")], dictation: UUID())
+        let again = s.record([RulePair(from: "TapTalk", to: "tap talk")], dictation: UUID())
+        XCTAssertEqual(again.count, 1)
+        XCTAssertTrue(s.rules.isEmpty)
+    }
+
     func testUndoStoppedRestoresRule() {
         var s = learned(tt)
         let rule = s.rules[0]

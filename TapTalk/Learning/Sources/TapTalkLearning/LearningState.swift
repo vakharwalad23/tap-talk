@@ -49,9 +49,9 @@ public struct LearningState: Codable, Equatable, Sendable {
         for fix in fixes where !blocked.contains(where: { Self.sameFix($0, fix) }) {
             // Changing a rule's output back is evidence against the rule, never a new rule.
             if let index = rules.firstIndex(where: { Self.sameText($0.from, fix.to) && Self.sameText($0.to, fix.from) }) {
-                if sighted(fix, in: dictation) != nil {
+                if sighted(fix, in: dictation, same: Self.sameForm) != nil {
                     let rule = rules.remove(at: index)
-                    forget(fix)
+                    forget(fix, same: Self.sameForm)
                     blocked.insert(RulePair(from: rule.from, to: rule.to))
                     blocked.insert(fix)
                     events.append(.stopped(rule))
@@ -76,8 +76,9 @@ public struct LearningState: Codable, Equatable, Sendable {
             rules.removeAll { $0.id == rule.id }
             blocked.insert(RulePair(from: rule.from, to: rule.to))
         case .stopped(let rule):
-            blocked.remove(RulePair(from: rule.from, to: rule.to))
-            blocked.remove(RulePair(from: rule.to, to: rule.from))
+            // The stop blocked whichever capital form was seen; every form of the rule and its reverse is cleared.
+            let forms = [RulePair(from: rule.from, to: rule.to), RulePair(from: rule.to, to: rule.from)]
+            blocked = blocked.filter { block in !forms.contains { Self.sameForm($0, block) } }
             if !rules.contains(where: { $0.id == rule.id }) { rules.append(rule) }
         }
     }
@@ -97,8 +98,10 @@ public struct LearningState: Codable, Equatable, Sendable {
 
     /// Adds a sighting; returns the fix to learn once it has been seen in enough different dictations.
     /// The mid-sentence form is kept when both were seen, so the rule also matches at sentence start.
-    private mutating func sighted(_ fix: RulePair, in dictation: UUID) -> RulePair? {
-        if let index = candidates.firstIndex(where: { Self.sameFix($0.pair, fix) }) {
+    private mutating func sighted(
+        _ fix: RulePair, in dictation: UUID, same: (RulePair, RulePair) -> Bool = sameFix
+    ) -> RulePair? {
+        if let index = candidates.firstIndex(where: { same($0.pair, fix) }) {
             candidates[index].dictations.insert(dictation)
             if fix.from.first?.isLowercase == true { candidates[index].pair.from = fix.from }
             let pair = candidates[index].pair
@@ -111,8 +114,8 @@ public struct LearningState: Codable, Equatable, Sendable {
         return nil
     }
 
-    private mutating func forget(_ fix: RulePair) {
-        candidates.removeAll { Self.sameFix($0.pair, fix) }
+    private mutating func forget(_ fix: RulePair, same: (RulePair, RulePair) -> Bool = sameFix) {
+        candidates.removeAll { same($0.pair, fix) }
     }
 
     // A capital first letter is how speech recognition starts a sentence, not a different word.
@@ -122,5 +125,10 @@ public struct LearningState: Codable, Equatable, Sendable {
 
     private static func sameFix(_ a: RulePair, _ b: RulePair) -> Bool {
         sameText(a.from, b.from) && a.to == b.to
+    }
+
+    // Reverse fixes start sentences too: "TapTalk -> Tap talk" and "TapTalk -> tap talk" undo the same rule.
+    private static func sameForm(_ a: RulePair, _ b: RulePair) -> Bool {
+        sameText(a.from, b.from) && sameText(a.to, b.to)
     }
 }
