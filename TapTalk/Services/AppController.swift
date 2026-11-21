@@ -85,6 +85,7 @@ final class AppController: ObservableObject {
     /// Called once at app launch.
     func setup() {
         suppressAppNap()
+        LlamaServerManager.stopOrphanedServer()
         sweepDownloadResidue()
         reconcileStreamingFlag()
         warmUpStreamingEngineIfNeeded()
