@@ -97,7 +97,16 @@ one engine that downloads a `.mlpackage` bundle and compiles it to `.mlmodelc` o
 `ParakeetEngine` - English and 24 European languages, auto-detect only; kept as the base for the
 optional live-typing add-on.
 `NemotronEngine` - Hindi and 100+ languages, with an explicit language prompt.
-`EouStreamingEngine` - the live-typing model, conforming to `StreamingTranscriber`.
+`EouStreamingEngine` - the live-typing model, conforming to `StreamingTranscriber`. After a
+confirmed end of utterance (about 1.3 s of silence) the model can stay silent until its state is
+rebuilt, so the engine calls `rearm(keepTranscript: true)` from FluidAudio's EOU callback: the rearm
+replays the audio since the pause and keeps the text already typed.
+
+FluidAudio is pinned to 0.18.4 in `project.yml` and in the vendored `OrukeetCoreML` package. Its
+convenience loaders (`loadFromCache`, the parameterless `loadModels()`) fetch missing files and
+re-download a bundle that fails to load, so every engine loads from its own folder only:
+`AsrModels.loadLocal` for Orukeet and Parakeet, `loadModels(from:)` for Nemotron and live typing.
+Network access stays inside the `download(progress:)` a user's click starts.
 
 Adding an engine means touching nine places: the `LocalEngine` enum and its exhaustive switches,
 `ActiveEngine`, `EnginePlan`, `resolveEnginePlan`, both halves of `applyEnginePlan`,

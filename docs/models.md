@@ -24,6 +24,8 @@ download accounting. Cached model loads and transcription make no such requests.
 | **Qwen 2.5 1.5B Instruct (GGUF q4_k_m)** | Smart Mode rewrite | 1.06 GB | llama.cpp, pinned release `b10107` | Apache-2.0 |
 | OpenAI Whisper (cloud) | Optional, opt-in, off by default | - | OpenAI API | - |
 
+The FluidAudio rows run on FluidAudio 0.18.4.
+
 Memory is much lower than disk size suggests, because Core ML weights and the GGUF are
 memory-mapped: the app sits at ~164 MB with Parakeet loaded, and `llama-server` at ~279 MB
 footprint against a 1.06 GB file.
@@ -55,6 +57,14 @@ Bengali, Gujarati, Tamil, Telugu, Kannada, Malayalam and Punjabi. Those language
 inaccurate, they are *impossible* to emit. Devanagari (196 tokens), Arabic (252), CJK (6,907) and
 Kana (217) all work. The language picker is restricted to what the vocabulary can actually produce,
 which is why it is shorter than the model's advertised language list.
+
+**Nemotron's encoder file.** Since FluidAudio 0.18.4 a new download of the 2240 ms tier gets
+`encoder_v2.mlmodelc` in place of `encoder.mlmodelc` (same weights and outputs, FluidAudio #1141).
+Existing installs keep their encoder; the loader prefers v2 when both exist, and
+`NemotronEngine.isInstalled()` accepts either. FluidAudio notes that the M3 Pro Neural Engine
+rejects the single 2240 ms encoder, so Nemotron runs on the CPU there. The split encoder
+(FluidAudio #1116, #1142) is the documented fix; it needs a new download and the measurements in
+"Adding or changing a model" before it is adopted.
 
 **Qwen 2.5 1.5B for the rewrite**, kept rather than replaced with something smaller. A 0.6B model
 would be roughly 2.5x faster, but the 1.5B *already* fabricates occasionally - it has invented a
