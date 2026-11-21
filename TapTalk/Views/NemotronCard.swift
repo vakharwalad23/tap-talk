@@ -119,6 +119,7 @@ struct NemotronCard: View {
                 Text(message)
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.danger)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
 

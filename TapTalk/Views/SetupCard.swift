@@ -151,7 +151,15 @@ struct SetupCard: View {
         }
     }
 
+    @ViewBuilder
     private var otherLanguagesLink: some View {
+        if let message = nemotron.errorMessage {
+            Text(message)
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.danger)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
         Button("Other languages (Hindi + 100 more)") { nemotron.download() }
             .buttonStyle(.plain)
             .font(.system(size: 11))
