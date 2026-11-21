@@ -63,8 +63,8 @@ actor NemotronEngine {
             .appendingPathComponent("\(chunkMs)ms", isDirectory: true)
     }
 
-    // Is the model present on disk? (No download.) metadata.json is written last by the
-    // downloader; an encoder must sit beside it, either the original or the v2 that the loader prefers.
+    // Is the model present on disk? (No download.) metadata.json lands before encoder_v2.mlmodelc, so an
+    // encoder must sit beside it too: the original or the v2 that the loader prefers.
     nonisolated static func isInstalled() -> Bool {
         let dir = modelDirectory()
         let exists = { FileManager.default.fileExists(atPath: dir.appendingPathComponent($0).path) }

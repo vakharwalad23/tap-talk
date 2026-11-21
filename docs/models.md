@@ -59,12 +59,14 @@ Kana (217) all work. The language picker is restricted to what the vocabulary ca
 which is why it is shorter than the model's advertised language list.
 
 **Nemotron's encoder file.** Since FluidAudio 0.18.4 a new download of the 2240 ms tier gets
-`encoder_v2.mlmodelc` in place of `encoder.mlmodelc` (same weights and outputs, FluidAudio #1141).
-Existing installs keep their encoder; the loader prefers v2 when both exist, and
-`NemotronEngine.isInstalled()` accepts either. FluidAudio notes that the M3 Pro Neural Engine
-rejects the single 2240 ms encoder, so Nemotron runs on the CPU there. The split encoder
-(FluidAudio #1116, #1142) is the documented fix; it needs a new download and the measurements in
-"Adding or changing a model" before it is adopted.
+`encoder_v2.mlmodelc` in place of `encoder.mlmodelc` (FluidAudio #1141): same weights and outputs,
+with one concat rewritten so the M2 and M3 Neural Engines can compile it, where the original falls
+back to the CPU. Existing installs keep their encoder and so stay on the CPU on those chips; the
+loader prefers v2 when both exist, and `NemotronEngine.isInstalled()` accepts either. FluidAudio
+also notes that the M3 Pro Neural Engine rejects the single 2240 ms encoder (about 4 min first load,
+about 2 GB). The split encoder (FluidAudio #1116, #1142) targets that and is not yet verified on
+an M3 Pro; it needs a new download and the measurements in "Adding or changing a model" before it
+is adopted.
 
 **Qwen 2.5 1.5B for the rewrite**, kept rather than replaced with something smaller. A 0.6B model
 would be roughly 2.5x faster, but the 1.5B *already* fabricates occasionally - it has invented a

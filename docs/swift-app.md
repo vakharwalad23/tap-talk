@@ -98,7 +98,7 @@ one engine that downloads a `.mlpackage` bundle and compiles it to `.mlmodelc` o
 optional live-typing add-on.
 `NemotronEngine` - Hindi and 100+ languages, with an explicit language prompt.
 `EouStreamingEngine` - the live-typing model, conforming to `StreamingTranscriber`. After a
-confirmed end of utterance (about 1.3 s of silence) the model can stay silent until its state is
+confirmed end of utterance (1.28 s without new words) the model can stay silent until its state is
 rebuilt, so the engine calls `rearm(keepTranscript: true)` from FluidAudio's EOU callback: the rearm
 replays the audio since the pause and keeps the text already typed.
 
