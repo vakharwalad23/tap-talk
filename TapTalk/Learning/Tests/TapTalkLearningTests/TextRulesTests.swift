@@ -34,6 +34,14 @@ final class TextRulesTests: XCTestCase {
         XCTAssertEqual(learned.overridden(by: []), learned)
     }
 
+    func testCaseFoldingMatchesFinalSigma() {
+        // Greek "logos": final small sigma in the rule, capital sigma in the all-caps text.
+        let lower = "\u{3BB}\u{3CC}\u{3B3}\u{3BF}\u{3C2}"
+        let upper = "\u{39B}\u{38C}\u{393}\u{39F}\u{3A3}"
+        let r = TextRules([.init(from: lower, to: "logos")], matching: .caseInsensitive)
+        XCTAssertEqual(r.apply("say \(upper) now"), "say logos now")
+    }
+
     func testEmptyFromAndNoRules() {
         XCTAssertEqual(TextRules([.init(from: "", to: "x")], matching: .caseInsensitive).apply("keep"), "keep")
         XCTAssertEqual(TextRules.empty.apply("keep"), "keep")

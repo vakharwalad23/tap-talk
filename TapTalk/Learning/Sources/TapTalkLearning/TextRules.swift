@@ -14,8 +14,8 @@ public struct RulePair: Codable, Hashable, Sendable {
 extension Array where Element == RulePair {
     /// Drops pairs whose `from` one of `overrides` also has, ignoring case, so the user's own entry wins.
     public func overridden(by overrides: [RulePair]) -> [RulePair] {
-        let taken = Set(overrides.map { $0.from.lowercased() })
-        return filter { !taken.contains($0.from.lowercased()) }
+        let taken = Set(overrides.map { TextRules.folded($0.from) })
+        return filter { !taken.contains(TextRules.folded($0.from)) }
     }
 }
 
@@ -43,7 +43,7 @@ public struct TextRules: Sendable {
         for pair in pairs where !pair.from.isEmpty {
             let variants = caseInsensitive ? [pair.from] : [pair.from, Self.capitalizingFirst(pair.from)]
             for form in variants {
-                let key = caseInsensitive ? form.lowercased() : form
+                let key = caseInsensitive ? Self.folded(form) : form
                 guard table[key] == nil else { continue }
                 table[key] = pair.to
                 forms.append(form)
@@ -71,12 +71,17 @@ public struct TextRules: Sendable {
         for match in regex.matches(in: text, range: NSRange(location: 0, length: source.length)) {
             let range = match.range
             let found = source.substring(with: range)
-            guard let replacement = replacements[caseInsensitive ? found.lowercased() : found] else { continue }
+            guard let replacement = replacements[caseInsensitive ? Self.folded(found) : found] else { continue }
             result += source.substring(with: NSRange(location: cursor, length: range.location - cursor))
             result += replacement
             cursor = range.location + range.length
         }
         return result + source.substring(from: cursor)
+    }
+
+    // Case folding, unlike lowercased(), treats final and medial sigma alike, matching the regex's own folding.
+    static func folded(_ text: String) -> String {
+        text.folding(options: .caseInsensitive, locale: nil)
     }
 
     private static func capitalizingFirst(_ text: String) -> String {
