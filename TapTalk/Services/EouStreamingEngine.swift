@@ -121,7 +121,7 @@ actor EouStreamingEngine: StreamingTranscriber {
         }
 
         // After a confirmed end of utterance the decoder stays silent until its state is rebuilt, so
-        // words after a pause were lost. Rearm replays the audio since the pause and keeps the transcript.
+        // words after a pause would be lost. Rearm replays the audio since the pause and keeps the transcript.
         await mgr.setEouCallback { [weak self] _ in
             Task { await self?.rearmAfterPause() }
         }
@@ -147,28 +147,27 @@ actor EouStreamingEngine: StreamingTranscriber {
         await consumerTask?.value
         consumerTask = nil
         let final = try await mgr.finish()
+        manager = nil
         updateContinuation?.yield(StreamingUpdate(confirmed: final, volatile: "", isFinal: true))
         updateContinuation?.finish()
         await mgr.cleanup()
-        manager = nil
         return final
     }
 
     func cancel() async {
         inputContinuation.finish()
         consumerTask?.cancel(); consumerTask = nil
-        if let mgr = manager {
-            await mgr.cleanup()
-        }
-        updateContinuation?.finish()
+        let mgr = manager
         manager = nil
+        await mgr?.cleanup()
+        updateContinuation?.finish()
     }
 
     private func emitPartial(_ partial: String) {
         updateContinuation?.yield(StreamingUpdate(confirmed: partial, volatile: "", isFinal: false))
     }
 
-    // A rearm after finish() or cancel() finds no manager or an emptied one and does nothing.
+    // finish() and cancel() drop the manager before cleanup, so a rearm arriving after that does nothing.
     private func rearmAfterPause() async {
         try? await manager?.rearm(keepTranscript: true)
     }
