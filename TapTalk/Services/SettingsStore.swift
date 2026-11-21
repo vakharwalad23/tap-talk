@@ -274,8 +274,11 @@ final class SettingsStore: ObservableObject {
     }
 
     private static func rules(for segments: [DictionarySegment]) -> TextRules {
-        let pairs = segments.filter(\.isEnabled).flatMap(\.entries).map { RulePair(from: $0.from, to: $0.to) }
-        return TextRules(pairs, matching: .caseInsensitive)
+        TextRules(pairs(for: segments), matching: .caseInsensitive)
+    }
+
+    static func pairs(for segments: [DictionarySegment]) -> [RulePair] {
+        segments.filter(\.isEnabled).flatMap(\.entries).map { RulePair(from: $0.from, to: $0.to) }
     }
 
     private func applyLaunchAtLogin(_ enable: Bool) {

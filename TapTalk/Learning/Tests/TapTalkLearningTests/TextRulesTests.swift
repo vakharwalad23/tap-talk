@@ -27,6 +27,13 @@ final class TextRulesTests: XCTestCase {
         XCTAssertEqual(r.apply("nodexjs and node.js"), "nodexjs and Node.js")
     }
 
+    func testDictionaryEntryOverridesLearnedPair() {
+        let learned: [RulePair] = [.init(from: "tap talk", to: "Tap Talk"), .init(from: "Drew", to: "Dhruv")]
+        let dictionary: [RulePair] = [.init(from: "TAP TALK", to: "TapTalk")]
+        XCTAssertEqual(learned.overridden(by: dictionary), [.init(from: "Drew", to: "Dhruv")])
+        XCTAssertEqual(learned.overridden(by: []), learned)
+    }
+
     func testEmptyFromAndNoRules() {
         XCTAssertEqual(TextRules([.init(from: "", to: "x")], matching: .caseInsensitive).apply("keep"), "keep")
         XCTAssertEqual(TextRules.empty.apply("keep"), "keep")

@@ -11,6 +11,14 @@ public struct RulePair: Codable, Hashable, Sendable {
     }
 }
 
+extension Array where Element == RulePair {
+    /// Drops pairs whose `from` one of `overrides` also has, ignoring case, so the user's own entry wins.
+    public func overridden(by overrides: [RulePair]) -> [RulePair] {
+        let taken = Set(overrides.map { $0.from.lowercased() })
+        return filter { !taken.contains($0.from.lowercased()) }
+    }
+}
+
 /// How a rule's `from` is matched against text.
 public enum RuleMatching: Sendable {
     /// Any letter case, as the user's dictionary has always matched.
