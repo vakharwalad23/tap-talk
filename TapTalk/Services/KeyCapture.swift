@@ -2,8 +2,8 @@ import Cocoa
 import Carbon.HIToolbox
 
 // Captures a single modifier keypress so the user can rebind a hotkey. Lives beside the other
-// event-tap code rather than inside a settings view - both settings pages use it, and a view is
-// the wrong owner for something that installs a system-wide tap.
+// event-tap code rather than inside a settings view - the Settings page uses one per hotkey,
+// and a view is the wrong owner for something that installs a system-wide tap.
 final class KeyCapture {
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?

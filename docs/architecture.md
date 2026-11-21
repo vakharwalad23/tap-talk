@@ -56,12 +56,20 @@ for English and European), `ParakeetEngine` (also English and European, and the 
 live typing), `NemotronEngine` for Hindi and other languages, or the OpenAI cloud path in the Rust
 core.
 
-**5. Post-processing** - `PostProcessingService.applyDictionary` runs the user's word replacements.
-Then, only on the smart hotkey and only if a rewrite mode is enabled, `AppContextService` builds an
-instruction and `LLMService` sends transcript plus instruction to a local `llama-server`.
+**5. Post-processing** - the user's dictionary runs first, as `TextRules` from the
+`TapTalkLearning` package (case-insensitive, whole words, one compiled pass). Then, only on the
+smart hotkey and only if a rewrite mode is enabled, `AppContextService` builds an instruction and
+`LLMService` sends transcript plus instruction to a local `llama-server`. Last, right before the
+paste, `LearnedCorrections` applies the word fixes learned from the user's edits, matched by exact
+case or a sentence-start capital. A dictionary entry for the same word removes the learned one, so
+the user's entry always wins.
 
 **6. Paste** - `PasteService` writes to the pasteboard, marks the entry transient and concealed so
-clipboard managers skip it, posts Cmd-V, and restores the previous clipboard.
+clipboard managers skip it, posts Cmd-V, and restores the previous clipboard. `CorrectionLearner`
+then remembers the focused field. When the next dictation starts it reads that field once through
+Accessibility: a word the user fixed in two different dictations becomes a learned fix, and
+changing a learned fix back twice stops it. Password fields are never read, and only the fixed
+words are stored.
 
 `LatencyTrace` records each stage and emits one line per dictation:
 
