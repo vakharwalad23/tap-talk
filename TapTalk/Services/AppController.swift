@@ -101,6 +101,14 @@ final class AppController: ObservableObject {
         observeSystemEvents()
         observeMemoryPressure()
         state.markLaunchResolved()
+        // Learned rules and the spell checker cost 8 to 46 ms on first use; paid after launch instead of
+        // inside the first recording. Both are main-actor only.
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                _ = LearnedCorrections.shared
+                if SettingsStore.shared.learnCorrections { CorrectionLearner.warmSpelling() }
+            }
+        }
     }
 
     // Holding a model resident is a bet that RAM is free. Let the system settle that bet rather

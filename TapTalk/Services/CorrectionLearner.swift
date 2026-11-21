@@ -99,6 +99,12 @@ final class CorrectionLearner {
             """)
     }
 
+    /// Loads the spelling dictionaries once, so the first learned fix does not pay for it mid-recording.
+    static func warmSpelling() {
+        _ = isOrdinaryWord("the")
+        _ = isOrdinaryWord("tapptalk")
+    }
+
     private static func isOrdinaryWord(_ word: String) -> Bool {
         NSSpellChecker.shared.checkSpelling(of: word, startingAt: 0).location == NSNotFound
     }
