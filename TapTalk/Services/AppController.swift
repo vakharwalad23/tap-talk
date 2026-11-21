@@ -259,6 +259,10 @@ final class AppController: ObservableObject {
     // Launch never prompts: the setup card asks for each permission when the user clicks it. A key
     // press without the microphone fails with a status line, never a dialog mid-press.
     private func setupAudioAndHotkey() {
+        // Swept here, before any click can start a fetch whose partial folder this would delete.
+        let store = vadStore
+        store.sweepResidue()
+        state.voiceDetector = store.isInstalled() ? .installed : .missing
         if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
             warmUpAudioStream()
         }
@@ -266,24 +270,51 @@ final class AppController: ObservableObject {
     }
 
     // Builds the audio graph off the main thread once permission is granted, so device setup never
-    // lands inside the hotkey callback. Silero downloads here when missing (~0.9 MB, pinned); until
-    // it is installed, recordings are transcribed untrimmed.
+    // lands inside the hotkey callback. Silero loads here only when installed: it is fetched after a
+    // click that sets up speech, and until then recordings are transcribed untrimmed.
     func warmUpAudioStream() {
         let rec = recorder
         rec.setLevelHandler { rms in
             DispatchQueue.main.async { FloatingPillController.shared.setLevel(rms) }
         }
-        let store = VadModelStore(modelsDirectory: URL(fileURLWithPath: Self.modelsDirectory(), isDirectory: true))
+        let store = vadStore
         Task.detached {
             try? rec.warmUp()
+            guard store.isInstalled() else { return }
+            await Self.loadVoiceActivity(into: rec, from: store)
+        }
+    }
+
+    /// Fetches Silero (~0.9 MB, pinned) after a click that sets up speech; a no-op once it is on disk.
+    @MainActor func fetchVoiceDetectorIfMissing() {
+        guard state.voiceDetector == .missing else { return }
+        state.voiceDetector = .fetching
+        let rec = recorder
+        let store = vadStore
+        Task.detached {
             do {
-                store.sweepResidue()
-                if !store.isInstalled() { try await store.install() }
-                try await rec.loadVoiceActivity(modelURL: store.modelURL)
+                try await store.install()
             } catch {
                 Logger(subsystem: "talk.tap.app", category: "audio").error(
-                    "voice activity unavailable, recordings stay untrimmed: \(error.localizedDescription, privacy: .public)")
+                    "voice activity download failed: \(error.localizedDescription, privacy: .public)")
+                await MainActor.run { AppController.shared.state.voiceDetector = .missing }
+                return
             }
+            await MainActor.run { AppController.shared.state.voiceDetector = .installed }
+            await Self.loadVoiceActivity(into: rec, from: store)
+        }
+    }
+
+    private var vadStore: VadModelStore {
+        VadModelStore(modelsDirectory: URL(fileURLWithPath: Self.modelsDirectory(), isDirectory: true))
+    }
+
+    private static func loadVoiceActivity(into rec: DictationRecorder, from store: VadModelStore) async {
+        do {
+            try await rec.loadVoiceActivity(modelURL: store.modelURL)
+        } catch {
+            Logger(subsystem: "talk.tap.app", category: "audio").error(
+                "voice activity unavailable, recordings stay untrimmed: \(error.localizedDescription, privacy: .public)")
         }
     }
 

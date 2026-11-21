@@ -14,11 +14,19 @@ final class RecordingState: ObservableObject {
         case ready
     }
 
+    // On-disk state of the Silero model that trims silence; recordings work untrimmed without it.
+    enum VoiceDetector {
+        case missing
+        case fetching
+        case installed
+    }
+
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var modelStatus: ModelStatus = .none
     @Published var hotkeyActive = false
     // Accessibility is granted but the tap still cannot be created until TapTalk relaunches.
     @Published var hotkeyNeedsRestart = false
+    @Published var voiceDetector: VoiceDetector = .missing
     // False until launch has resolved the engine and the hotkey, so nothing renders a guess.
     @Published private(set) var launchResolved = false
     @Published var status = ""

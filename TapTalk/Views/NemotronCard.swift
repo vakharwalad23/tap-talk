@@ -20,6 +20,7 @@ final class NemotronDownloadManager: ObservableObject {
     func download() {
         guard !downloading else { return }   // already in flight - don't start a second
         downloading = true
+        AppController.shared.fetchVoiceDetectorIfMissing()
         progress = 0
         errorMessage = nil
         Task {

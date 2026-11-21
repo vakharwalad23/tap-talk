@@ -74,6 +74,7 @@ final class OrukeetInstaller: ObservableObject {
 
     func install() {
         if busy { return }
+        AppController.shared.fetchVoiceDetectorIfMissing()
         if OrukeetEngine.isInstalled() {
             status = .ready
             OrukeetMigration.shared.completeIfEligible()

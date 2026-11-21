@@ -113,7 +113,8 @@ struct RecordView: View {
             // ponytail: a failed engine load also reads as not ready; the card's button then reselects or re-downloads
             speech: settings.transcriptionEngine == .cloud ? !settings.apiKey.isEmpty : state.modelStatus != .none,
             microphone: permissions.microphone == .granted,
-            accessibility: state.hotkeyActive
+            accessibility: state.hotkeyActive,
+            voiceDetector: state.voiceDetector == .installed
         )
     }
 

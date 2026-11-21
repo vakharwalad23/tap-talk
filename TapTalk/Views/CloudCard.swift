@@ -39,6 +39,7 @@ struct CloudCard: View {
                 Spacer()
                 UseEngineControl(isInUse: settings.isCloudInUse, isEnabled: !settings.apiKey.isEmpty) {
                     settings.useCloud()
+                    AppController.shared.fetchVoiceDetectorIfMissing()
                 }
             }
             Text("Sends your audio to OpenAI with your own API key. Needs an internet connection.")

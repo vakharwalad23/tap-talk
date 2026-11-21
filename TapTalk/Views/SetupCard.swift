@@ -5,8 +5,10 @@ struct SetupChecklist {
     let speech: Bool
     let microphone: Bool
     let accessibility: Bool
+    // The silence-trimming model; its row is the speech row, so a failed fetch keeps the card open.
+    let voiceDetector: Bool
 
-    var isComplete: Bool { speech && microphone && accessibility }
+    var isComplete: Bool { speech && voiceDetector && microphone && accessibility }
 }
 
 /// Session-only memory that the card was shown, so the ready line follows a setup and never greets
@@ -48,7 +50,7 @@ struct SetupCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 SetupRow(icon: "waveform", title: "Speech model",
                          subtitle: speechSubtitle,
-                         done: checklist.speech) { speechControl }
+                         done: checklist.speech && checklist.voiceDetector) { speechControl }
                 if !checklist.speech { speechDetail.padding(.leading, 30) }
             }
             SetupRow(icon: "mic", title: "Microphone",
@@ -98,6 +100,7 @@ struct SetupCard: View {
     }
 
     private var speechSubtitle: String {
+        if checklist.speech && !checklist.voiceDetector { return "Silence trimming needs a 1 MB voice detector" }
         guard checklist.speech else {
             return "\(LocalEngine.orukeet.displayName) - \(LocalEngine.orukeet.languageSummary)"
         }
@@ -107,7 +110,13 @@ struct SetupCard: View {
 
     @ViewBuilder
     private var speechControl: some View {
-        if nemotron.downloading {
+        if checklist.speech {
+            if state.voiceDetector == .fetching {
+                spinner("Downloading")
+            } else {
+                CardButton(title: "Download", prominent: false) { AppController.shared.fetchVoiceDetectorIfMissing() }
+            }
+        } else if nemotron.downloading {
             spinner("Downloading")
         } else {
             switch orukeet.status {

@@ -13,7 +13,7 @@ export const privacyChecklist = [
 	},
 	{
 		title: "No automatic downloads",
-		body: "No model is fetched until you tap Download.",
+		body: "No model is fetched until you click Download on a model or Use on Cloud.",
 	},
 	{
 		title: "Cloud is strictly opt-in",
