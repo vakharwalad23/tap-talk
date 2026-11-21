@@ -172,7 +172,7 @@ struct NemotronCard: View {
         if settings.selectedLanguage != AppContextService.hindiLanguageCode {
             return "Roman applies to Hindi only - pick Hindi in the Record tab. Other languages are pasted as the model produces them."
         }
-        return "Roman writes Hindi the way people type it in chat: main kal aaunga. Produced by the rewrite model, so it needs Smart Mode."
+        return "Roman writes Hindi the way people type it in chat: main kal aaunga. Produced by the rewrite model, so it needs the Smart key with Smart Mode on."
     }
 
     private func scriptButton(_ script: HindiScript) -> some View {
