@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Combine
 import TapTalkLearning
 import os
 
@@ -24,8 +25,21 @@ final class CorrectionLearner {
     private var pending: Pending?
     private var pasteGeneration = 0
     private var notice: (event: LearningEvent, generation: Int)?
+    private var learningWatch: AnyCancellable?
 
-    private init() {}
+    private init() {
+        // Turning learning off forgets the last paste, including a field capture still in flight.
+        learningWatch = settings.$learnCorrections
+            .filter { !$0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.pending = nil
+                    self.pasteGeneration &+= 1
+                }
+            }
+    }
 
     /// Remembers the focused field and the text just inserted into it.
     func didPaste(_ text: String) {
