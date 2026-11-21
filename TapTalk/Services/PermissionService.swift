@@ -80,8 +80,8 @@ final class PermissionService: ObservableObject {
         NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config) { app, error in
             Task { @MainActor in
                 // Quitting without a new instance running would leave the user with no TapTalk at all.
+                // The flag stays set: the manual quit and reopen the card asks for is the restart.
                 guard app != nil, error == nil else {
-                    UserDefaults.standard.removeObject(forKey: PermissionService.restartAttemptedKey)
                     PermissionService.shared.restartFailed = true
                     return
                 }
@@ -96,7 +96,10 @@ final class PermissionService: ObservableObject {
         UserDefaults.standard.removeObject(forKey: Self.restartAttemptedKey)
     }
 
+    /// Offered after a restart that did not help. Turning TapTalk off and on there is a new grant, which can
+    /// need its own restart, so the next return offers Restart again.
     func openAccessibilitySettings() {
+        clearRestartAttempt()
         open(Self.accessibilitySettingsURL)
     }
 
