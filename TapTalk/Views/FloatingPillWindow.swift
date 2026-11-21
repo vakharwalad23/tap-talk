@@ -48,21 +48,45 @@ final class FloatingPillController {
 
     private static let smallWidth: CGFloat = 186
     private static let panelHeight: CGFloat = 56
-    // Checkmark 14, two 8 pt gaps, 14 pt capsule padding per side, 12 pt per side for the shadow.
-    private static let noticeChrome: CGFloat = 14 + 16 + 28 + 24
+    // Checkmark 14, two 8 pt gaps, 14 pt capsule padding per side, 12 pt per side for the shadow, and
+    // 4 pt for the gap between NSString measurement and SwiftUI rendering.
+    private static let noticeChrome: CGFloat = 14 + 16 + 28 + 24 + 4
     // Past this a notice truncates rather than spanning the screen.
     private static let maxNoticeWidth: CGFloat = 640
+
+    // The small pill's frame before a notice widened it, and the frame that notice got.
+    private var restingFrame: NSRect?
+    private var widenedFrame: NSRect?
 
     private func apply(_ state: PillState) {
         let size = Self.panelSize(for: state)
         if let panel = window, panel.frame.size != size {
-            // Resizes around the current center and bottom, so a pill the user dragged stays where it was put.
-            let old = panel.frame
-            panel.setFrame(
-                NSRect(x: old.midX - size.width / 2, y: old.minY, width: size.width, height: size.height), display: false)
+            let frame: NSRect
+            if let resting = restingFrame, panel.frame == widenedFrame, resting.size == size {
+                // Back to where the user left the pill, even if the notice had to shift to fit the screen.
+                frame = resting
+            } else {
+                frame = Self.resized(panel.frame, to: size, within: (panel.screen ?? NSScreen.main)?.visibleFrame)
+            }
+            if case .notice = state {
+                if restingFrame == nil { restingFrame = panel.frame }
+                widenedFrame = frame
+            } else {
+                restingFrame = nil
+                widenedFrame = nil
+            }
+            panel.setFrame(frame, display: false)
             hostingView?.frame = NSRect(origin: .zero, size: size)
         }
         holder.state = state
+    }
+
+    // Resizes around the current center and bottom, so a dragged pill stays put, but never past the
+    // visible screen edge, where a wide notice would lose its "to" side and Undo.
+    private static func resized(_ current: NSRect, to size: NSSize, within visible: NSRect?) -> NSRect {
+        var x = current.midX - size.width / 2
+        if let visible { x = min(max(x, visible.minX), visible.maxX - size.width) }
+        return NSRect(x: x, y: current.minY, width: size.width, height: size.height)
     }
 
     // Live mic RMS for the recording waveform. Cheap - read by the pill's render timer.
