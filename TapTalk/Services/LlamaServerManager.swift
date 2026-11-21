@@ -206,8 +206,9 @@ final class LlamaServerManager {
 
     // A crash or force quit skips stop(), and the server would keep running with its model mapped.
     private static func pidFilePath() -> String {
-        let appDir = (binaryDirectory() as NSString).deletingLastPathComponent
-        return (appDir as NSString).appendingPathComponent("llama-server.pid")
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.path
+            ?? NSTemporaryDirectory()
+        return (appSupport as NSString).appendingPathComponent("talk.tap.app/llama-server.pid")
     }
 
     /// Terminates a llama-server left by a crashed run; runs at launch, before any server can start.
