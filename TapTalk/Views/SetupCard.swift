@@ -200,9 +200,10 @@ struct SetupCard: View {
     }
 
     private var accessibilitySubtitle: String {
-        state.hotkeyNeedsRestart
-            ? "Allowed - TapTalk needs a restart to use it"
-            : "Detects the hotkey and pastes the text"
+        guard state.hotkeyNeedsRestart else { return "Detects the hotkey and pastes the text" }
+        return permissions.restartAttempted
+            ? "Still blocked after a restart - check TapTalk in Accessibility"
+            : "Allowed - TapTalk needs a restart to use it"
     }
 
     @ViewBuilder
@@ -212,6 +213,12 @@ struct SetupCard: View {
             Text("Restart after the download")
                 .font(.system(size: 11))
                 .foregroundStyle(AppTheme.secondary)
+        } else if state.hotkeyNeedsRestart && permissions.restartFailed {
+            Text("Couldn't restart. Quit and reopen TapTalk.")
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.danger)
+        } else if state.hotkeyNeedsRestart && permissions.restartAttempted {
+            CardButton(title: "Open Accessibility Settings", prominent: true) { permissions.openAccessibilitySettings() }
         } else if state.hotkeyNeedsRestart {
             CardButton(title: "Restart TapTalk", prominent: true) { permissions.restartApp() }
         } else if permissions.isRepairingAccessibility {

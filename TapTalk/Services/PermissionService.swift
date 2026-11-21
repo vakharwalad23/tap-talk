@@ -11,6 +11,11 @@ final class PermissionService: ObservableObject {
 
     @Published private(set) var microphone: MicrophoneAccess
     @Published private(set) var isRepairingAccessibility = false
+    @Published private(set) var restartFailed = false
+    // Survives the relaunch, so a hotkey that still fails afterwards leads to System Settings, not another restart.
+    @Published private(set) var restartAttempted = UserDefaults.standard.bool(forKey: PermissionService.restartAttemptedKey)
+
+    private static let restartAttemptedKey = "restartAttempted"
 
     private static let microphoneSettingsURL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
     private static let accessibilitySettingsURL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
@@ -68,11 +73,31 @@ final class PermissionService: ObservableObject {
     /// Relaunches TapTalk. A new instance is requested explicitly; asking for the running app
     /// only re-activates it, and terminating first can leave nothing running.
     func restartApp() {
+        restartFailed = false
+        UserDefaults.standard.set(true, forKey: Self.restartAttemptedKey)
         let config = NSWorkspace.OpenConfiguration()
         config.createsNewApplicationInstance = true
-        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config) { _, _ in
-            Task { @MainActor in NSApp.terminate(nil) }
+        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config) { app, error in
+            Task { @MainActor in
+                // Quitting without a new instance running would leave the user with no TapTalk at all.
+                guard app != nil, error == nil else {
+                    UserDefaults.standard.removeObject(forKey: PermissionService.restartAttemptedKey)
+                    PermissionService.shared.restartFailed = true
+                    return
+                }
+                NSApp.terminate(nil)
+            }
         }
+    }
+
+    func clearRestartAttempt() {
+        guard restartAttempted else { return }
+        restartAttempted = false
+        UserDefaults.standard.removeObject(forKey: Self.restartAttemptedKey)
+    }
+
+    func openAccessibilitySettings() {
+        open(Self.accessibilitySettingsURL)
     }
 
     private func open(_ string: String) {

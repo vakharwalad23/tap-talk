@@ -911,6 +911,8 @@ final class AppController: ObservableObject {
         hotkeySetupPending = false
         guard PermissionService.isAccessibilityTrusted else {
             state.hotkeyActive = false
+            // A new grant may need its own restart, so an earlier attempt no longer counts.
+            MainActor.assumeIsolated { PermissionService.shared.clearRestartAttempt() }
             startPermissionPoller()
             return
         }
@@ -951,6 +953,7 @@ final class AppController: ObservableObject {
         // tapCreate can keep failing after a grant until the process restarts. A grant the tap cannot
         // use yet is offered a relaunch on the setup card, never another reset of a valid grant.
         state.hotkeyNeedsRestart = !state.hotkeyActive
+        if state.hotkeyActive { MainActor.assumeIsolated { PermissionService.shared.clearRestartAttempt() } }
         permissionPoller?.invalidate()
         permissionPoller = nil
     }
