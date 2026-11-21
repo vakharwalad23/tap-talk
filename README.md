@@ -40,7 +40,7 @@ Privacy isn't a feature bolted on - it's the default behavior.
 - **On-device by default.** Audio is captured, voice-activity-trimmed, and transcribed entirely on your Mac. No analytics, no telemetry, no accounts, and no network requests unless you turn on cloud transcription or update checks.
 - **Audio is never persisted.** Recordings are processed in memory and discarded.
 - **Learning reads one field, once.** To learn from your corrections, TapTalk reads the text field it pasted into once, on your next dictation, and keeps only the fixed words. Password fields are never read, and learning can be turned off on the **Words** page.
-- **No automatic downloads - ever.** No model is fetched until *you* click **Download** on a model or **Use** on Cloud, which also brings the 1 MB silence detector. Selecting an engine whose model isn't installed simply prompts you to download it; it never pulls data silently.
+- **No automatic downloads - ever.** No model is fetched until *you* choose to download one or to use Cloud, which also brings the 1 MB silence detector. Selecting an engine whose model isn't installed simply prompts you to download it; it never pulls data silently.
 - **You choose what stays on disk.** Models live in `~/Library/Application Support/talk.tap.app/models/`. Each is removable from the **Models** page, and TapTalk cleans up partial/interrupted downloads automatically so nothing is left orphaned.
 - **Secrets stay in the Keychain.** If you opt into the cloud engine or a custom LLM endpoint, the API key is stored in the macOS Keychain - never in plaintext, never in a config file.
 - **Cloud is strictly opt-in.** TapTalk ships with an optional OpenAI Whisper cloud engine for people who want it. It is off by default and only ever used if you select it *and* provide your own API key. When enabled, audio is sent directly from your Mac to OpenAI - nowhere else.
@@ -55,7 +55,7 @@ Privacy isn't a feature bolted on - it's the default behavior.
 | **Microphone** | To capture the audio you dictate | When you click Allow on the setup card |
 | **Accessibility** | To detect the global push-to-talk hotkey and paste into the focused app | When you click Allow on the setup card |
 
-Nothing is requested at launch. Until all three are in place (a speech model and both permissions), the Record page shows a setup card with one button per step.
+Nothing is requested at launch. Until all three are in place (a speech model with its 1 MB silence detector, and both permissions), the Record page shows a setup card with one button per step.
 
 That's it. No full-disk access, no network entitlement is required for the on-device engines.
 

@@ -1,10 +1,11 @@
 # Models and inference engines
 
 TapTalk ships **no model weights**. Everything is downloaded on explicit user action, from the
-publisher, to `~/Library/Application Support/` - except the 0.9 MB Silero VAD model, a pipeline
-component rather than a user-chosen model, which downloads at launch from a pinned revision with
-per-file SHA-256 checks. Nothing model-shaped is in the app bundle, the DMG or this repository -
-see [`../MODEL-LICENSES.md`](../MODEL-LICENSES.md) for why that boundary matters legally.
+publisher, to `~/Library/Application Support/`. The 0.9 MB Silero VAD model, a pipeline component
+rather than a user-chosen model, comes with the first speech set-up click (a model download or
+choosing Cloud), from a pinned revision with per-file SHA-256 checks. Nothing model-shaped is in
+the app bundle, the DMG or this repository - see [`../MODEL-LICENSES.md`](../MODEL-LICENSES.md) for
+why that boundary matters legally.
 
 Orukeet downloads read `coreml/manifest.json` from the same immutable Hugging Face
 revision as the archive. The installer verifies the selected filename, the

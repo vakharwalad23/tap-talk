@@ -3,8 +3,9 @@
 TapTalk ships **no model weights**. Nothing model-shaped is inside the app bundle, the DMG,
 or this repository. Models are downloaded by the end user's machine, on explicit action, from
 the upstream host - so each user receives the weights directly from the publisher under that
-publisher's own grant. The one download that does not wait for an explicit action is the 0.9 MB
-Silero VAD model, fetched at launch because every recording uses it.
+publisher's own grant. The 0.9 MB Silero VAD model, which every recording uses to trim silence,
+comes with the first speech set-up click (a model download or choosing Cloud), and the setup card
+offers it if that fetch failed.
 
 This file records the terms of every model TapTalk can download, so they live somewhere
 auditable rather than only in prose. `README.md` carries the user-facing attribution.

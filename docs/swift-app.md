@@ -70,9 +70,10 @@ returning plausible probabilities. The threshold is 0.35, below Silero's 0.5, to
 dictation; six windows (~190 ms) of padding are kept either side. Do not change any of these
 without re-running that comparison on real speech.
 
-Silero (`silero-vad-unified-v6.0.0`, the 32 ms Core ML conversion) downloads at launch from a
-pinned Hugging Face revision with SHA-256 checks, into `models/silero-vad/`. Until it is present,
-recordings are transcribed untrimmed.
+Silero (`silero-vad-unified-v6.0.0`, the 32 ms Core ML conversion) is fetched from a pinned Hugging
+Face revision with SHA-256 checks, into `models/silero-vad/`, by the first speech set-up click: a
+model download or choosing Cloud (`AppController.fetchVoiceDetectorIfMissing`). Launch only loads it
+when present. Until it is, recordings are transcribed untrimmed and the setup card offers it.
 
 ## Recognition engines
 
@@ -162,10 +163,13 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
   every prompt follows a click on the setup card. "Allow" for Accessibility first runs `tccutil reset
   Accessibility talk.tap.app`, so an entry left by an earlier build cannot sit switched on while the
   hotkey stays dead. When the grant is present but the tap still cannot be created, `AppController`
-  sets `hotkeyNeedsRestart` and the card offers a relaunch instead of a modal alert.
-- `SetupCard` - the Record page empty state: speech model, microphone, accessibility. Every row reads
-  live state (engine status, mic status, a live hotkey tap), so it reappears if a model is deleted or
-  a permission is lost. There is no stored "setup done" flag to disagree with reality.
+  sets `hotkeyNeedsRestart` and the card offers a relaunch instead of a modal alert. TapTalk quits
+  only once the new instance is confirmed; a failed relaunch says so on the card. If the tap still
+  fails after a relaunch, the card offers Accessibility Settings instead of another restart.
+- `SetupCard` - the Record page empty state: speech model (with the Silero voice detector),
+  microphone, accessibility. Every row reads live state (engine status, detector on disk, mic
+  status, a live hotkey tap), so it reappears if a model is deleted or a permission is lost. There
+  is no stored "setup done" flag to disagree with reality.
 - `UpdateService` - the daily release check, behind a three-state consent (not asked, on, off) that
   sends nothing until the user says yes. An hourly timer checks whether 24 h have passed since the
   last attempt, which survives sleep; failures are silent and also wait a day. The decisions (GitHub
