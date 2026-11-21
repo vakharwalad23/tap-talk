@@ -45,7 +45,10 @@ final class FloatingPillController {
     private func apply(_ state: PillState) {
         let size = Self.panelSize(for: state)
         if let panel = window, panel.frame.size != size {
-            positionWindow(panel, size: size)
+            // Resizes around the current center and bottom, so a pill the user dragged stays where it was put.
+            let old = panel.frame
+            panel.setFrame(
+                NSRect(x: old.midX - size.width / 2, y: old.minY, width: size.width, height: size.height), display: false)
             hostingView?.frame = NSRect(origin: .zero, size: size)
         }
         holder.state = state
@@ -100,7 +103,7 @@ final class FloatingPillController {
 
     private func positionWindow(_ panel: NSPanel, size: NSSize) {
         guard let screen = NSScreen.main else { return }
-        let x = (screen.frame.width - size.width) / 2
+        let x = screen.frame.minX + (screen.frame.width - size.width) / 2
         let y = screen.visibleFrame.minY + 56
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: false)
     }
