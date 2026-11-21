@@ -47,6 +47,7 @@ final class UpdateService: ObservableObject {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(command, forType: .string)
         case .open(let url):
+            guard UpdateCheck.isOpenable(url) else { return }
             NSWorkspace.shared.open(url)
         }
     }
@@ -81,12 +82,15 @@ final class UpdateService: ObservableObject {
 
     private func checkIfDue() {
         guard settings.updateCheckConsent == .on, !isChecking else { return }
-        let lastCheck = defaults.object(forKey: Key.lastCheck) as? Date ?? .distantPast
-        guard Date().timeIntervalSince(lastCheck) >= Self.checkInterval else { return }
+        let lastCheck = defaults.object(forKey: Key.lastCheck) as? Date
+        guard UpdateCheck.isDue(lastCheck: lastCheck, now: Date(), interval: Self.checkInterval) else { return }
         isChecking = true
         Task {
             let result = await Task.detached { () -> (Release, InstallSource)? in
-                guard let release = try? await UpdateCheck.fetchLatestRelease(session: .shared) else { return nil }
+                // Ephemeral: no cookies, cache or credentials kept between checks.
+                let session = URLSession(configuration: .ephemeral)
+                defer { session.finishTasksAndInvalidate() }
+                guard let release = try? await UpdateCheck.fetchLatestRelease(session: session) else { return nil }
                 return (release, Self.installSource())
             }.value
             isChecking = false

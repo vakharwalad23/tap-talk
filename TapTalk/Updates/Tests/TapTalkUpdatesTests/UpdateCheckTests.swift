@@ -61,4 +61,19 @@ final class UpdateCheckTests: XCTestCase {
         XCTAssertNil(UpdateCheck.notice(for: r, currentVersion: "0.5.2", source: .dmg, dismissedVersion: "0.6.0"))
         XCTAssertNil(UpdateCheck.notice(for: r, currentVersion: "0.6.0", source: .dmg, dismissedVersion: nil))
     }
+
+    func testDueWhenNeverCheckedAfterIntervalOrStampedInFuture() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        XCTAssertTrue(UpdateCheck.isDue(lastCheck: nil, now: now, interval: 86_400))
+        XCTAssertFalse(UpdateCheck.isDue(lastCheck: now.addingTimeInterval(-3_600), now: now, interval: 86_400))
+        XCTAssertTrue(UpdateCheck.isDue(lastCheck: now.addingTimeInterval(-86_400), now: now, interval: 86_400))
+        XCTAssertTrue(UpdateCheck.isDue(lastCheck: now.addingTimeInterval(3_600), now: now, interval: 86_400))
+    }
+
+    func testOnlyHTTPSLinksOpen() throws {
+        XCTAssertTrue(UpdateCheck.isOpenable(try XCTUnwrap(URL(string: "https://github.com/vakharwalad23/tap-talk"))))
+        XCTAssertFalse(UpdateCheck.isOpenable(try XCTUnwrap(URL(string: "http://example.com/TapTalk.dmg"))))
+        XCTAssertFalse(UpdateCheck.isOpenable(try XCTUnwrap(URL(string: "file:///Applications/Calculator.app"))))
+        XCTAssertFalse(UpdateCheck.isOpenable(try XCTUnwrap(URL(string: "x-apple.systempreferences:com.apple.preference"))))
+    }
 }

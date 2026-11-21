@@ -56,6 +56,17 @@ public enum UpdateCheck {
         return padded(old).lexicographicallyPrecedes(padded(new))
     }
 
+    /// Due after `interval`, when never checked, or when the stamp lies in the future (a clock set back).
+    public static func isDue(lastCheck: Date?, now: Date, interval: TimeInterval) -> Bool {
+        guard let lastCheck, lastCheck <= now else { return true }
+        return now.timeIntervalSince(lastCheck) >= interval
+    }
+
+    /// Release links come from a network answer; only https ones are handed to the system to open.
+    public static func isOpenable(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == "https"
+    }
+
     public static func installSource(caskroomEntries: [String]) -> InstallSource {
         if caskroomEntries.contains(caskName) { return .homebrew }
         if caskroomEntries.contains(where: { $0.hasPrefix(caskName + "@") }) { return .pinnedHomebrew }
