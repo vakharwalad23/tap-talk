@@ -111,6 +111,9 @@ final class AppController: ObservableObject {
             UpdateService.shared.start()
         }
         refresh()
+        #if DEBUG
+        observeDebugPresses()
+        #endif
         FloatingPillController.shared.hide()
         // The tap reports clicks in top-left-origin global coordinates; AppKit frames start bottom-left
         // on the primary display.
@@ -1061,6 +1064,21 @@ final class AppController: ObservableObject {
             break
         }
     }
+
+    #if DEBUG
+    // Hands-free measurement: each "talk.tap.debug.press" distributed notification is one press and
+    // release of the dictation key, through the same gesture as the tap. Only with
+    // open TapTalk.app --args -TapTalkDebugPresses YES
+    private func observeDebugPresses() {
+        guard UserDefaults.standard.bool(forKey: "TapTalkDebugPresses") else { return }
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("talk.tap.debug.press"), object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.handleHotkeyInput(.hotkeyDown(.dictation, at: ProcessInfo.processInfo.systemUptime))
+            self?.handleHotkeyInput(.hotkeyUp(.dictation))
+        }
+    }
+    #endif
 
     private func startPermissionPoller() {
         guard permissionPoller == nil else { return }
