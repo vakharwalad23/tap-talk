@@ -79,7 +79,7 @@ struct SetupCard: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 13))
                     .foregroundStyle(AppTheme.success)
-                Text("Ready - hold \(AppTheme.keyLabel(for: settings.hotkeyCode)) and speak")
+                Text("Ready - \(settings.hotkeyMode == .toggle ? "press" : "hold") \(AppTheme.keyLabel(for: settings.hotkeyCode)) and speak")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(AppTheme.primary)
                 Spacer(minLength: 8)

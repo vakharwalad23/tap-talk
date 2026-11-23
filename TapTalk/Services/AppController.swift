@@ -757,7 +757,7 @@ final class AppController: ObservableObject {
                         self.tearDownStreamingSession()
                         if processed.isEmpty {
                             self.state.finish()
-                            self.state.status = "Too short - hold longer"
+                            self.state.status = self.tooShortStatus
                             FloatingPillController.shared.hide()
                         } else {
                             self.state.transcriptText = processed
@@ -910,7 +910,7 @@ final class AppController: ObservableObject {
                     // never gets pasted as a blank transcript.
                     if finalText.isEmpty {
                         self.state.finish()
-                        self.state.status = "Too short - hold longer"
+                        self.state.status = self.tooShortStatus
                         FloatingPillController.shared.hide()
                     } else {
                         self.state.transcriptText = finalText
@@ -984,6 +984,10 @@ final class AppController: ObservableObject {
         if state.hotkeyActive { MainActor.assumeIsolated { PermissionService.shared.clearRestartAttempt() } }
         permissionPoller?.invalidate()
         permissionPoller = nil
+    }
+
+    private var tooShortStatus: String {
+        settings.hotkeyMode == .toggle ? "Too short" : "Too short - hold longer"
     }
 
     private func handleHotkeyInput(_ input: GestureInput) {

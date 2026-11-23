@@ -1,5 +1,6 @@
 import SwiftUI
 import Carbon.HIToolbox
+import TapTalkHotkeys
 
 struct SettingsView: View {
     @ObservedObject private var settings = SettingsStore.shared
@@ -74,10 +75,37 @@ struct SettingsView: View {
                     .foregroundStyle(listeningSmartKey ? .orange : AppTheme.primary)
                 }
             }
-            Text(keyMessage ?? "Hold the dictation key to type what you say. The Smart key works while Smart Mode is on in Models.")
+            Divider().background(AppTheme.divider)
+            SettingRow("Key mode") {
+                Picker("", selection: modeBinding) {
+                    Text("Hold to talk").tag(HotkeyMode.hold)
+                    Text("Press to toggle").tag(HotkeyMode.toggle)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+            }
+            Text(keyMessage ?? modeFooter)
                 .font(.system(size: 11))
                 .foregroundStyle(keyMessage == nil ? AppTheme.tertiary : AppTheme.danger)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // setupHotkey defers itself while a recording runs, so a switch never cuts one short.
+    private var modeBinding: Binding<HotkeyMode> {
+        Binding(
+            get: { settings.hotkeyMode },
+            set: { settings.hotkeyMode = $0; AppController.shared.setupHotkey() }
+        )
+    }
+
+    private var modeFooter: String {
+        switch settings.hotkeyMode {
+        case .hold:
+            return "Hold the dictation key to type what you say. Esc cancels. The Smart key works while Smart Mode is on in Models."
+        case .toggle:
+            return "Press the dictation key to start and again to finish. Esc or the cross cancels. The Smart key works while Smart Mode is on in Models."
         }
     }
 

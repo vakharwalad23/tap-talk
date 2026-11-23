@@ -94,7 +94,7 @@ struct RecordView: View {
                     .font(.system(size: 10))
                 Text(state.hotkeyActive
                      ? "Hotkey active - \(keyLabel)"
-                     : "\(keyLabel) push-to-talk")
+                     : "\(keyLabel) \(settings.hotkeyMode == .toggle ? "press to talk" : "push-to-talk")")
                     .font(.system(size: 11))
             }
             .foregroundStyle(state.hotkeyActive ? AppTheme.success : AppTheme.tertiary)
