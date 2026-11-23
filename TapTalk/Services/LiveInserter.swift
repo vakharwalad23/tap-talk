@@ -31,6 +31,8 @@ final class LiveInserter {
     // Scheduled restore. Cancelled (and performed synchronously) on a re-`begin()` so rapid
     // back-to-back sessions can't capture the transient text as their saved clipboard.
     private var pendingRestore: DispatchWorkItem?
+    // Pasteboard change count right after this session's last paste insert; nil before the first.
+    private var lastInsertChangeCount: Int?
 
     // Coalesces rapid hypothesis updates so the path doesn't backspace+retype on every
     // micro-revision.
@@ -58,6 +60,7 @@ final class LiveInserter {
             pendingRestore = nil
         }
         inserted = ""
+        lastInsertChangeCount = nil
         sessionPID = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
         savedClipboard = NSPasteboard.general.string(forType: .string)
         if let (element, _) = currentFocusedElement() {
@@ -107,13 +110,23 @@ final class LiveInserter {
         restoreClipboardSoon()
     }
 
+    // Ends the session without touching the screen, for a press that turned out to be a shortcut.
+    func abandon() {
+        pendingWork?.cancel(); pendingWork = nil
+        inserted = ""
+        restoreClipboardSoon(onlyOverOwnInsert: true)
+    }
+
     // Pastes use the system clipboard, so each session's last insert leaves the engine's
     // text on the user's pasteboard. Restore the original contents 200 ms after the final
     // Cmd-V completes (matches PasteService's delay pattern).
-    private func restoreClipboardSoon() {
+    // onlyOverOwnInsert: the user may have copied since (the shortcut was Cmd+C); their copy wins.
+    private func restoreClipboardSoon(onlyOverOwnInsert: Bool = false) {
         let saved = savedClipboard
         savedClipboard = nil
+        let ownInsert = lastInsertChangeCount
         let work = DispatchWorkItem {
+            if onlyOverOwnInsert, ownInsert == nil || NSPasteboard.general.changeCount != ownInsert { return }
             if let saved {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(saved, forType: .string)
@@ -250,6 +263,7 @@ final class LiveInserter {
         board.setString(text, forType: .string)
         board.setData(Data(), forType: .transient)
         board.setData(Data(), forType: .concealed)
+        lastInsertChangeCount = board.changeCount
 
         let vDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
         let vUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)

@@ -4,6 +4,7 @@ import AVFoundation
 import Combine
 import TapTalkAudio
 import TapTalkLearning
+import TapTalkHotkeys
 import os
 
 /// App-level singleton. Owns recorder, engines, state, and hotkey registration.
@@ -38,6 +39,9 @@ final class AppController: ObservableObject {
     // A hotkey change made while recording (Smart Mode switched, a key rebound) waits here and is
     // applied the moment the recording ends, so it never touches the tap mid-press.
     private var hotkeySetupPending = false
+    private var gesture = HotkeyGesture(mode: .hold)
+    // Shown again after a shortcut cancel, which ends the recording without a status of its own.
+    private var statusBeforeRecording = ""
 
     // Bumped on every engine (re)load so a superseded async load/unload can no-op instead
     // of racing the newer one. All engine load/unload runs serialized through engineTask.
@@ -62,7 +66,9 @@ final class AppController: ObservableObject {
     private var streamingEngine: EouStreamingEngine?
     private var streamConsumerTask: Task<Void, Never>?
 
-    private let maxRecordingSeconds: TimeInterval = 120
+    // Safety stops. A toggle recording has no held key to lose, so it may run longer.
+    private let holdRecordingLimit: TimeInterval = 120
+    private let toggleRecordingLimit: TimeInterval = 600
 
     private init() {
         guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
@@ -529,6 +535,7 @@ final class AppController: ObservableObject {
         let liveSink = shouldStream(smart: smart) ? beginStreamingSession() : nil
         recordingGeneration &+= 1
         let generation = recordingGeneration
+        statusBeforeRecording = state.status
         state.beginRecording(hotkey: hotkey, smart: smart)
         state.status = "Recording..."
         AppRecordingState.shared.isRecording = true
@@ -663,7 +670,8 @@ final class AppController: ObservableObject {
             self.stopAndTranscribe()
         }
         recordingWatchdog = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + maxRecordingSeconds, execute: work)
+        let limit = settings.hotkeyMode == .toggle ? toggleRecordingLimit : holdRecordingLimit
+        DispatchQueue.main.asyncAfter(deadline: .now() + limit, execute: work)
     }
 
     private func applyPendingHotkeySetup() {
@@ -675,14 +683,16 @@ final class AppController: ObservableObject {
         recordingWatchdog = nil
     }
 
-    func cancelRecording() {
+    /// Silently: a shortcut ended the press; no status, and live-typed text stays, since the
+    /// shortcut already acted on the target app and backspacing could delete the wrong text.
+    func cancelRecording(silently: Bool = false) {
         guard state.recording else { return }
         cancelRecordingWatchdog()
         // Reset UI/state first; tear the audio stream down off the main thread. A slow
         // CoreAudio pause (start->pause race) used to block this method and leave
         // the app stuck in the .recording phase.
         state.cancel()
-        state.status = "Cancelled"
+        state.status = silently ? statusBeforeRecording : "Cancelled"
         AppRecordingState.shared.isRecording = false
         applyPendingHotkeySetup()
         FloatingPillController.shared.hide()
@@ -693,7 +703,7 @@ final class AppController: ObservableObject {
         // a concurrent error path can't re-touch the same instance during the detached cancel.
         let activeStreamingEngine = streamingEngine
         if activeStreamingEngine != nil {
-            liveInserter.cancel()
+            if silently { liveInserter.abandon() } else { liveInserter.cancel() }
             tearDownStreamingSession()
         }
         Task.detached { [self, activeStreamingEngine] in
@@ -958,36 +968,14 @@ final class AppController: ObservableObject {
         }
 
         HotkeyService.shared.unregister()
-        HotkeyService.shared.unregisterSmart()
         HotkeyService.shared.setKeyCode(settings.hotkeyCode)
-        HotkeyService.shared.register(
-            keyDown: { [weak self] in
-                guard let self else { return }
-                startRecording(hotkey: true, smart: false)
-            },
-            keyUp: { [weak self] in
-                guard let self else { return }
-                if state.recording { stopAndTranscribe() }
-            }
-        )
-
         // Smart Mode's one switch arms its key, so setting Smart Mode up needs no second trip. A Smart key
         // equal to the dictation key would never fire (the tap matches the dictation key first); Settings
         // flags that pair instead.
-        if settings.llmEnabled && settings.smartHotkeyCode != settings.hotkeyCode {
-            HotkeyService.shared.setSmartKeyCode(settings.smartHotkeyCode)
-            HotkeyService.shared.registerSmart(
-                keyDown: { [weak self] in
-                    guard let self else { return }
-                    startRecording(hotkey: true, smart: true)
-                    prewarmRewrite()
-                },
-                keyUp: { [weak self] in
-                    guard let self else { return }
-                    if state.recording { stopAndTranscribe() }
-                }
-            )
-        }
+        let smartArmed = settings.llmEnabled && settings.smartHotkeyCode != settings.hotkeyCode
+        HotkeyService.shared.setSmartKeyCode(smartArmed ? settings.smartHotkeyCode : nil)
+        gesture = HotkeyGesture(mode: settings.hotkeyMode)
+        HotkeyService.shared.register { [weak self] input in self?.handleHotkeyInput(input) }
 
         state.hotkeyActive = HotkeyService.shared.isTapAlive
         // tapCreate can keep failing after a grant until the process restarts. A grant the tap cannot
@@ -996,6 +984,22 @@ final class AppController: ObservableObject {
         if state.hotkeyActive { MainActor.assumeIsolated { PermissionService.shared.clearRestartAttempt() } }
         permissionPoller?.invalidate()
         permissionPoller = nil
+    }
+
+    private func handleHotkeyInput(_ input: GestureInput) {
+        switch gesture.handle(input, isRecording: state.recording) {
+        case .start(let id):
+            startRecording(hotkey: true, smart: id == .smart)
+            if id == .smart { prewarmRewrite() }
+        case .stop:
+            stopAndTranscribe()
+        case .cancel:
+            cancelRecording()
+        case .cancelShortcut:
+            cancelRecording(silently: true)
+        case .pauseLiveTyping, nil:
+            break
+        }
     }
 
     private func startPermissionPoller() {

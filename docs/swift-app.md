@@ -144,9 +144,13 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
 
 ## Input and output
 
-- `HotkeyService` - one `CGEvent` tap, two independently registered modifier hotkeys. Only
-  `.flagsChanged` is observed, so hotkeys must be modifiers. A health check re-enables a tap macOS
-  has silently disabled.
+- `HotkeyService` - one listen-only `CGEvent` tap, two modifier hotkeys. It sees modifier changes,
+  key presses and mouse button presses, reports them as `GestureInput` and stores nothing; events
+  this process posted (the paste, live typing) are skipped by source PID. Hotkeys must be modifiers.
+  `HotkeyGesture` (TapTalkHotkeys) turns the inputs into start, stop and cancel for hold or toggle
+  mode: other input within 1 s of the starting press makes it a shortcut, cancelled silently;
+  Escape cancels any recording. A health check re-enables a tap macOS has silently disabled, and a
+  key held when the tap was disabled is reported released.
 - `PasteService` - pasteboard write marked `transient`/`concealed` so clipboard managers skip the
   entry, then Cmd-V, then restore.
 - `LiveInserter` - live typing. Prefers an Accessibility range-replace, falls back to pasteboard,

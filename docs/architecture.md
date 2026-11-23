@@ -32,10 +32,13 @@ download manager and the cloud client.**
 
 One pass of the whole system, which is the fastest way to understand it.
 
-**1. Key down** - `HotkeyService` runs a `CGEvent` tap watching `.flagsChanged`, so hotkeys must be
-modifier keys. Two are registered independently: a plain one and a "smart" one that additionally
-triggers the rewrite. `AppController.startRecording` begins capture; on the smart hotkey it also
-prewarms the LLM server, because starting it later would land on the paste path.
+**1. Key down** - `HotkeyService` runs a listen-only `CGEvent` tap that sees modifier changes, key
+presses and mouse presses; hotkeys must be modifier keys. There are two: a plain one and a "smart"
+one that additionally triggers the rewrite. `HotkeyGesture` decides what a press means for the key
+mode (hold to talk, or press to toggle), and a key or click within 1 s of the press marks it a
+shortcut that is cancelled silently. `AppController.startRecording` begins capture on key down in
+both modes; on the smart hotkey it also prewarms the LLM server, because starting it later would
+land on the paste path.
 
 **2. Recording** - `DictationRecorder.start()` starts a Core Audio IOProc on the input device,
 attached at launch and stopped rather than torn down between dictations. It records from the system
