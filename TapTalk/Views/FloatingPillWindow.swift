@@ -38,11 +38,15 @@ final class FloatingPillController {
     // A notice is sized to its text; every other state fits the small panel, which keeps the
     // click-catching area at the bottom of the screen as small as it was.
     private static func panelSize(for state: PillState) -> NSSize {
-        guard case .notice(let event) = state else { return NSSize(width: smallWidth, height: panelHeight) }
         let font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        let text = (PillView.noticeText(event) as NSString).size(withAttributes: [.font: font]).width
-        let undo = ("Undo" as NSString).size(withAttributes: [.font: font]).width
-        let width = ceil(text + undo + noticeChrome)
+        func measure(_ text: String) -> CGFloat { (text as NSString).size(withAttributes: [.font: font]).width }
+        let content: CGFloat
+        switch state {
+        case .notice(let event): content = measure(PillView.noticeText(event)) + measure("Undo")
+        case .notPasted:         content = measure(PillView.notPastedText)
+        default:                 return NSSize(width: smallWidth, height: panelHeight)
+        }
+        let width = ceil(content + noticeChrome)
         return NSSize(width: min(max(width, smallWidth), maxNoticeWidth), height: panelHeight)
     }
 
@@ -68,7 +72,7 @@ final class FloatingPillController {
             } else {
                 frame = Self.resized(panel.frame, to: size, within: (panel.screen ?? NSScreen.main)?.visibleFrame)
             }
-            if case .notice = state {
+            if size.width != Self.smallWidth {
                 if restingFrame == nil { restingFrame = panel.frame }
                 widenedFrame = frame
             } else {

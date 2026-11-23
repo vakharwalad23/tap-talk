@@ -29,6 +29,8 @@ final class AppController: ObservableObject {
     private var appNapToken: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
     private var didBecomeActiveObserver: NSObjectProtocol?
+    private var sleepObserver: NSObjectProtocol?
+    private var lockObserver: NSObjectProtocol?
     private var recordingWatchdog: DispatchWorkItem?
     // Core Audio start can block for seconds while a Bluetooth device changes mode, and a blocked
     // main thread makes macOS disable the hotkey tap, losing the key release. Starts run here in
@@ -42,6 +44,7 @@ final class AppController: ObservableObject {
     private var gesture = HotkeyGesture(mode: .hold)
     // Shown again after a shortcut cancel, which ends the recording without a status of its own.
     private var statusBeforeRecording = ""
+    private let displayAwake = DisplayAwakeAssertion()
 
     // Bumped on every engine (re)load so a superseded async load/unload can no-op instead
     // of racing the newer one. All engine load/unload runs serialized through engineTask.
@@ -68,7 +71,14 @@ final class AppController: ObservableObject {
 
     // Safety stops. A toggle recording has no held key to lose, so it may run longer.
     private let holdRecordingLimit: TimeInterval = 120
-    private let toggleRecordingLimit: TimeInterval = 600
+    private var toggleRecordingLimit: TimeInterval {
+        #if DEBUG
+        // Exercises the toggle safety stop: open TapTalk.app --args -TapTalkToggleLimitSeconds 15
+        let override = UserDefaults.standard.double(forKey: "TapTalkToggleLimitSeconds")
+        if override > 0 { return override }
+        #endif
+        return 600
+    }
 
     private init() {
         guard let m = try? ModelManager(modelsDir: Self.modelsDirectory()) else {
@@ -160,6 +170,18 @@ final class AppController: ObservableObject {
     }
 
     private func observeSystemEvents() {
+        // A locked or sleeping Mac has nobody at the keyboard to receive a paste: keep the text instead.
+        let endUnattended: (Notification) -> Void = { [weak self] _ in
+            guard let self, self.state.recording else { return }
+            self.stopAndTranscribe(paste: false)
+        }
+        sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification, object: nil, queue: .main, using: endUnattended
+        )
+        lockObserver = DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main, using: endUnattended
+        )
+
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -537,6 +559,7 @@ final class AppController: ObservableObject {
         let generation = recordingGeneration
         statusBeforeRecording = state.status
         state.beginRecording(hotkey: hotkey, smart: smart)
+        if settings.hotkeyMode == .toggle { displayAwake.hold() }
         state.status = "Recording..."
         AppRecordingState.shared.isRecording = true
         FloatingPillController.shared.show(state: .recording)
@@ -557,6 +580,7 @@ final class AppController: ObservableObject {
     // to transcribing finds nothing recorded and finishes quietly, so the reason shown is this one.
     private func captureFailed(_ error: Error, generation: Int) {
         guard generation == recordingGeneration else { return }
+        displayAwake.release()
         if state.recording {
             cancelRecordingWatchdog()
             state.cancel()
@@ -665,12 +689,14 @@ final class AppController: ObservableObject {
     // against a missed key-release leaving the app stuck in recording.
     private func startRecordingWatchdog() {
         recordingWatchdog?.cancel()
+        let isToggle = settings.hotkeyMode == .toggle
         let work = DispatchWorkItem { [weak self] in
             guard let self, self.state.recording else { return }
-            self.stopAndTranscribe()
+            // A toggle recording this long was most likely left running; hold its text, do not paste.
+            self.stopAndTranscribe(paste: !isToggle)
         }
         recordingWatchdog = work
-        let limit = settings.hotkeyMode == .toggle ? toggleRecordingLimit : holdRecordingLimit
+        let limit = isToggle ? toggleRecordingLimit : holdRecordingLimit
         DispatchQueue.main.asyncAfter(deadline: .now() + limit, execute: work)
     }
 
@@ -691,6 +717,7 @@ final class AppController: ObservableObject {
         // Reset UI/state first; tear the audio stream down off the main thread. A slow
         // CoreAudio pause (start->pause race) used to block this method and leave
         // the app stuck in the .recording phase.
+        displayAwake.release()
         state.cancel()
         state.status = silently ? statusBeforeRecording : "Cancelled"
         AppRecordingState.shared.isRecording = false
@@ -721,9 +748,13 @@ final class AppController: ObservableObject {
         scheduleIdleRelease()
     }
 
-    func stopAndTranscribe() {
+    /// paste false: the Mac locked or slept, or a toggle recording hit its limit. Nobody may be at the
+    /// keyboard, so the text is kept in the window and the pill says so instead of pasting.
+    func stopAndTranscribe(paste: Bool = true) {
         guard state.recording else { return }
         cancelRecordingWatchdog()
+        displayAwake.release()
+        if !paste, streamingEngine != nil { liveInserter.pause() }
 
         let smartMode       = state.smartMode
         let hotkeyTriggered = state.hotkeyTriggered
@@ -752,10 +783,11 @@ final class AppController: ObservableObject {
                     await MainActor.run {
                         guard !Task.isCancelled else { return }
                         let typed: Bool
+                        var pasted = processed
                         if self.liveInserter.isPaused {
                             // The caret may have moved since the pause; only the untyped rest goes in, at the caret.
-                            let rest = self.liveInserter.finishPaused(processed)
-                            if !rest.isEmpty { PasteService.paste(rest) }
+                            pasted = self.liveInserter.finishPaused(processed)
+                            if paste, !pasted.isEmpty { PasteService.paste(pasted) }
                             typed = true
                         } else {
                             typed = self.liveInserter.commit(processed)
@@ -780,8 +812,10 @@ final class AppController: ObservableObject {
                             if !typed {
                                 PasteService.paste(processed)
                             }
-                            CorrectionLearner.shared.didPaste(processed)
-                            if hotkeyTriggeredLocal {
+                            if paste { CorrectionLearner.shared.didPaste(pasted) }
+                            if !paste {
+                                FloatingPillController.shared.show(state: .notPasted)
+                            } else if hotkeyTriggeredLocal {
                                 FloatingPillController.shared.show(
                                     state: CorrectionLearner.shared.takeNotice(generation: self.recordingGeneration).map(PillState.notice) ?? .done
                                 )
@@ -933,7 +967,9 @@ final class AppController: ObservableObject {
                         } else {
                             self.state.status = "Done"
                         }
-                        if hotkeyTriggered {
+                        if !paste {
+                            FloatingPillController.shared.show(state: .notPasted)
+                        } else if hotkeyTriggered {
                             PasteService.paste(finalText)
                             CorrectionLearner.shared.didPaste(finalText)
                             finalTrace.finish("paste")

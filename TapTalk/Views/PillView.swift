@@ -10,6 +10,8 @@ enum PillState: Equatable {
     case done
     /// Pasted, plus a word fix just learned or stopped, with Undo.
     case notice(LearningEvent)
+    /// Transcribed while nobody was at the keyboard; the text waits in the window.
+    case notPasted
 }
 
 final class PillStateHolder: ObservableObject {
@@ -43,7 +45,7 @@ struct PillView: View {
         case .recording, .transcribing: return 96
         case .rewriting:                return 124
         case .done:                     return 104
-        case .notice:                   return 0
+        case .notice, .notPasted:        return 0
         case .idle, .hidden:            return 0
         }
     }
@@ -61,7 +63,7 @@ struct PillView: View {
                     .frame(width: 54, height: 4)
                     .transition(.opacity)
 
-            case .notice:
+            case .notice, .notPasted:
                 // Sized to its text; the panel widens for it (FloatingPillController.panelSize).
                 activeContent
                     .padding(.horizontal, 14)
@@ -130,6 +132,9 @@ struct PillView: View {
         case .notice(let event):
             noticeContent(event)
 
+        case .notPasted:
+            notPastedContent
+
         case .idle, .hidden:
             EmptyView()
         }
@@ -143,6 +148,7 @@ struct PillView: View {
         case .done:         return AppTheme.success.opacity(0.55)
         case .notice(.learned): return AppTheme.success.opacity(0.55)
         case .notice(.stopped): return Color.white.opacity(0.3)
+        case .notPasted:    return Color.white.opacity(0.3)
         case .idle, .hidden: return .clear
         }
     }
@@ -164,6 +170,25 @@ struct PillView: View {
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(smartColor)
         }
+    }
+
+    static let notPastedText = "Not pasted - open TapTalk"
+
+    private var notPastedContent: some View {
+        Button {
+            MainWindowOpener.shared.open()
+            FloatingPillController.shared.hide()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "tray.and.arrow.down")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.8))
+                Text(Self.notPastedText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     static func noticeText(_ event: LearningEvent) -> String {
