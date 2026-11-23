@@ -5,7 +5,14 @@ import SwiftUI
 final class AppNavigation: ObservableObject {
     static let shared = AppNavigation()
     @Published var selection: NavItem = .record
-    private init() {}
+    private init() {
+        #if DEBUG
+        // Opens a page at launch for screenshots and measurements: open TapTalk.app --args -TapTalkInitialPage Models
+        if let raw = UserDefaults.standard.string(forKey: "TapTalkInitialPage"), let page = NavItem(rawValue: raw) {
+            selection = page
+        }
+        #endif
+    }
 }
 
 // One-time, non-destructive Orukeet migration. Removes the old Parakeet model only for

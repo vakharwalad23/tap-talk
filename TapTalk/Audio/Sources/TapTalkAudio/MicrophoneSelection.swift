@@ -1,34 +1,38 @@
 import CoreAudio
-
-/// Which microphone recordings use.
-public enum InputPreference: Sendable, Equatable {
-    /// Whatever macOS has selected as the default input.
-    case systemDefault
-    /// The Mac's own microphone, so Bluetooth headphones stay in their high-quality mode.
-    case builtIn
-}
+import IOKit
 
 /// An input-capable Core Audio device, as much as choosing a microphone needs.
 struct InputDeviceInfo: Equatable {
     let id: AudioDeviceID
-    let isBuiltIn: Bool
+    let transport: UInt32
+
+    var isBuiltIn: Bool { transport == kAudioDeviceTransportTypeBuiltIn }
+    var isBluetooth: Bool {
+        transport == kAudioDeviceTransportTypeBluetooth || transport == kAudioDeviceTransportTypeBluetoothLE
+    }
 }
 
 /// Picks the Core Audio input device a recording uses.
-public enum MicrophoneSelection {
-    /// True when this Mac has a built-in microphone; Mac mini, Studio and Pro have none.
-    public static var hasBuiltInMicrophone: Bool {
-        inputDevices().contains(where: \.isBuiltIn)
+enum MicrophoneSelection {
+    /// The built-in microphone in place of a Bluetooth default while the lid is open, else the system default.
+    static func device(
+        systemDefault: InputDeviceInfo?, builtIn: AudioDeviceID?, isLidClosed: () -> Bool
+    ) -> AudioDeviceID? {
+        // Recording from a Bluetooth microphone drops the headphones into low-quality headset mode,
+        // and a closed lid disconnects the built-in microphone in hardware.
+        if let systemDefault, systemDefault.isBluetooth, let builtIn, !isLidClosed() {
+            return builtIn
+        }
+        return systemDefault?.id
     }
 
-    /// The device to record from; the built-in microphone when preferred and present, else the system default.
-    static func device(
-        for preference: InputPreference, among devices: [InputDeviceInfo], systemDefault: AudioDeviceID
-    ) -> AudioDeviceID? {
-        if preference == .builtIn, let builtIn = devices.first(where: \.isBuiltIn) {
-            return builtIn.id
-        }
-        return systemDefault == kAudioObjectUnknown ? nil : systemDefault
+    /// The device the next recording should use, read from Core Audio now.
+    static func currentDevice() -> AudioDeviceID? {
+        let defaultID = systemDefaultInput()
+        let systemDefault = defaultID == kAudioObjectUnknown
+            ? nil : InputDeviceInfo(id: defaultID, transport: transportType(of: defaultID))
+        let builtIn = inputDevices().first(where: \.isBuiltIn)?.id
+        return device(systemDefault: systemDefault, builtIn: builtIn, isLidClosed: isLidClosed)
     }
 
     /// Every present device that has input streams.
@@ -41,18 +45,35 @@ public enum MicrophoneSelection {
         guard AudioObjectGetPropertyDataSize(system, &address, 0, nil, &size) == noErr else { return [] }
         var ids = [AudioDeviceID](repeating: kAudioObjectUnknown, count: Int(size) / MemoryLayout<AudioDeviceID>.size)
         guard AudioObjectGetPropertyData(system, &address, 0, nil, &size, &ids) == noErr else { return [] }
-        return ids.filter(hasInput).map { InputDeviceInfo(id: $0, isBuiltIn: transportType(of: $0) == kAudioDeviceTransportTypeBuiltIn) }
+        return ids.filter(hasInput).map { InputDeviceInfo(id: $0, transport: transportType(of: $0)) }
     }
 
     /// The input device macOS currently routes recordings to, or kAudioObjectUnknown.
     static func systemDefaultInput() -> AudioDeviceID {
-        var address = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultInputDevice, mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain)
         var device = kAudioObjectUnknown
-        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
-        let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device)
-        return status == noErr ? device : kAudioObjectUnknown
+        let found = read(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDefaultInputDevice, into: &device)
+        return found ? device : kAudioObjectUnknown
+    }
+
+    /// The format an IOProc receives from the device's first input stream.
+    static func inputFormat(of device: AudioDeviceID) -> AudioStreamBasicDescription? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreams, mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain)
+        var stream = kAudioObjectUnknown
+        var size = UInt32(MemoryLayout<AudioStreamID>.size)
+        guard AudioObjectGetPropertyData(device, &address, 0, nil, &size, &stream) == noErr else { return nil }
+        var format = AudioStreamBasicDescription()
+        return read(stream, kAudioStreamPropertyVirtualFormat, into: &format) ? format : nil
+    }
+
+    /// True while a MacBook's lid is closed; false on Macs without one.
+    static func isLidClosed() -> Bool {
+        let root = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
+        guard root != IO_OBJECT_NULL else { return false }
+        defer { IOObjectRelease(root) }
+        let state = IORegistryEntryCreateCFProperty(root, "AppleClamshellState" as CFString, kCFAllocatorDefault, 0)
+        return (state?.takeRetainedValue() as? Bool) ?? false
     }
 
     private static func hasInput(_ device: AudioDeviceID) -> Bool {
@@ -64,11 +85,14 @@ public enum MicrophoneSelection {
     }
 
     private static func transportType(of device: AudioDeviceID) -> UInt32 {
-        var address = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyTransportType, mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain)
         var type: UInt32 = 0
-        var size = UInt32(MemoryLayout<UInt32>.size)
-        return AudioObjectGetPropertyData(device, &address, 0, nil, &size, &type) == noErr ? type : 0
+        return read(device, kAudioDevicePropertyTransportType, into: &type) ? type : 0
+    }
+
+    private static func read<T: BitwiseCopyable>(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector, into value: inout T) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+        var size = UInt32(MemoryLayout<T>.size)
+        return AudioObjectGetPropertyData(object, &address, 0, nil, &size, &value) == noErr
     }
 }

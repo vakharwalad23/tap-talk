@@ -3,41 +3,33 @@ import XCTest
 @testable import TapTalkAudio
 
 final class MicrophoneSelectionTests: XCTestCase {
-    private let usb = InputDeviceInfo(id: 5, isBuiltIn: false)
-    private let builtIn = InputDeviceInfo(id: 7, isBuiltIn: true)
+    private let headset = InputDeviceInfo(id: 3, transport: kAudioDeviceTransportTypeBluetooth)
+    private let headsetLE = InputDeviceInfo(id: 4, transport: kAudioDeviceTransportTypeBluetoothLE)
+    private let usb = InputDeviceInfo(id: 5, transport: kAudioDeviceTransportTypeUSB)
+    private let builtIn: AudioDeviceID = 7
 
-    func testBuiltInPreferencePinsTheBuiltInMicrophone() {
-        XCTAssertEqual(MicrophoneSelection.device(for: .builtIn, among: [usb, builtIn], systemDefault: 5), 7)
+    func testBluetoothDefaultWithLidOpenRecordsFromTheBuiltInMicrophone() {
+        XCTAssertEqual(MicrophoneSelection.device(systemDefault: headset, builtIn: builtIn, isLidClosed: { false }), builtIn)
+        XCTAssertEqual(MicrophoneSelection.device(systemDefault: headsetLE, builtIn: builtIn, isLidClosed: { false }), builtIn)
     }
 
-    func testBuiltInPreferenceFallsBackToTheSystemDefaultWhenThereIsNone() {
-        XCTAssertEqual(MicrophoneSelection.device(for: .builtIn, among: [usb], systemDefault: 5), 5)
+    func testBluetoothDefaultWithLidClosedKeepsTheHeadset() {
+        XCTAssertEqual(MicrophoneSelection.device(systemDefault: headset, builtIn: builtIn, isLidClosed: { true }), headset.id)
     }
 
-    func testSystemDefaultPreferenceFollowsTheDefaultEvenWithABuiltInPresent() {
-        XCTAssertEqual(MicrophoneSelection.device(for: .systemDefault, among: [usb, builtIn], systemDefault: 5), 5)
+    func testBluetoothDefaultWithoutABuiltInMicrophoneKeepsTheHeadset() {
+        XCTAssertEqual(MicrophoneSelection.device(systemDefault: headset, builtIn: nil, isLidClosed: { false }), headset.id)
     }
 
-    func testNoDefaultAndNoBuiltInMeansNoDevice() {
-        XCTAssertNil(MicrophoneSelection.device(for: .builtIn, among: [usb], systemDefault: kAudioObjectUnknown))
-        XCTAssertNil(MicrophoneSelection.device(for: .systemDefault, among: [], systemDefault: kAudioObjectUnknown))
+    func testWiredDefaultIsRespectedAndNeverReadsTheLid() {
+        let device = MicrophoneSelection.device(systemDefault: usb, builtIn: builtIn, isLidClosed: {
+            XCTFail("lid state read for a wired microphone")
+            return false
+        })
+        XCTAssertEqual(device, usb.id)
     }
 
-    func testChangingThePreferenceSchedulesOneRebuild() {
-        let capture = MicrophoneCapture()
-        _ = capture.rebuild.claim()
-        capture.setInputPreference(.builtIn)
-        XCTAssertTrue(capture.rebuild.claim())
-        capture.setInputPreference(.builtIn)
-        XCTAssertFalse(capture.rebuild.claim())
-        capture.setInputPreference(.systemDefault)
-        XCTAssertTrue(capture.rebuild.claim())
-    }
-
-    func testRecorderPassesThePreferenceToItsCapture() {
-        let capture = FakeCapture()
-        let recorder = DictationRecorder(capture: capture)
-        recorder.setInputPreference(.builtIn)
-        XCTAssertEqual(capture.preference, .builtIn)
+    func testNoDefaultMeansNoDevice() {
+        XCTAssertNil(MicrophoneSelection.device(systemDefault: nil, builtIn: builtIn, isLidClosed: { false }))
     }
 }

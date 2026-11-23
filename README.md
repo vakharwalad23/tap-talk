@@ -37,9 +37,10 @@ It's also fast and frugal. On Apple Silicon the models run with low latency on t
 
 Privacy isn't a feature bolted on - it's the default behavior.
 
-- **On-device by default.** Audio is captured, voice-activity-trimmed, and transcribed entirely on your Mac. No analytics, no telemetry, no accounts, no background phone-home.
+- **On-device by default.** Audio is captured, voice-activity-trimmed, and transcribed entirely on your Mac. No analytics, no telemetry, no accounts, and no network requests unless you turn on cloud transcription or update checks.
 - **Audio is never persisted.** Recordings are processed in memory and discarded.
-- **No automatic downloads - ever.** No model is fetched until *you* tap **Download**. Selecting an engine whose model isn't installed simply prompts you to download it; it never pulls data silently.
+- **Learning reads one field, once.** To learn from your corrections, TapTalk reads the text field it pasted into once, on your next dictation, and keeps only the fixed words. Password fields are never read, and learning can be turned off on the **Words** page.
+- **No automatic downloads - ever.** No model is fetched until *you* choose to download one or to use Cloud, which also brings the 1 MB silence detector. Selecting an engine whose model isn't installed simply prompts you to download it; it never pulls data silently.
 - **You choose what stays on disk.** Models live in `~/Library/Application Support/talk.tap.app/models/`. Each is removable from the **Models** page, and TapTalk cleans up partial/interrupted downloads automatically so nothing is left orphaned.
 - **Secrets stay in the Keychain.** If you opt into the cloud engine or a custom LLM endpoint, the API key is stored in the macOS Keychain - never in plaintext, never in a config file.
 - **Cloud is strictly opt-in.** TapTalk ships with an optional OpenAI Whisper cloud engine for people who want it. It is off by default and only ever used if you select it *and* provide your own API key. When enabled, audio is sent directly from your Mac to OpenAI - nowhere else.
@@ -51,14 +52,16 @@ Privacy isn't a feature bolted on - it's the default behavior.
 
 | Permission | Why | When |
 |---|---|---|
-| **Microphone** | To capture the audio you dictate | First recording |
-| **Accessibility** | To detect the global push-to-talk hotkey and paste into the focused app | First launch |
+| **Microphone** | To capture the audio you dictate | When you click Allow on the setup card |
+| **Accessibility** | To detect the global push-to-talk hotkey and paste into the focused app | When you click Allow on the setup card |
+
+Nothing is requested at launch. Until all three are in place (a speech model with its 1 MB silence detector, and both permissions), the Record page shows a setup card with one button per step.
 
 That's it. No full-disk access, no network entitlement is required for the on-device engines.
 
 ## Transcription engines
 
-TapTalk lets you pick the engine per your needs. All on-device engines run locally. Downloading a model from the Models page selects it as your engine automatically - you only need **Settings -> Local model** to switch between installed engines.
+TapTalk lets you pick the engine per your needs. All on-device engines run locally. Downloading a model from the Models page selects it as your engine automatically; to switch later, click **Use** on another installed model there.
 
 | Engine | Best for | Languages | Download | Runs on |
 |---|---|---|---|---|
@@ -70,7 +73,7 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 - **Orukeet** is the default English/European engine: a Parakeet fine-tune (with fitted Gabor filters) that is measurably more accurate - independently benchmarked at about 15 percent fewer word errors than Parakeet across 25 FLEURS languages, and it is as fast as Parakeet on Apple M3 Pro (a touch faster on the recognition step). It auto-detects the language and runs batch (no live typing). New installs default to it; existing Parakeet users get a one-time in-app upgrade prompt, and Parakeet is always kept as a fallback and for live typing.
 - **Parakeet** auto-detects the spoken language, so it shows an "Auto" indicator instead of a language picker. It remains the base for the optional Live typing add-on.
 - **Multilingual** lets you pick a language in the Record tab. The list is restricted to what the model can actually produce - measured from its own vocabulary, so it never offers a language it would emit as garbage.
-- **Live typing** - install the optional Realtime EOU add-on from the Models page and enable the toggle in Settings. Words appear in the focused text field as you speak, with sub-second latency on the Neural Engine. Streaming runs locally and is mutually exclusive with Smart Mode (which needs the whole transcript).
+- **Live typing** - install the optional Realtime EOU add-on on the Parakeet card in Models, then turn on the Live typing switch that appears on that card while Parakeet is in use. Words appear in the focused text field as you speak, with sub-second latency on the Neural Engine. Streaming runs locally and is mutually exclusive with Smart Mode (which needs the whole transcript).
 
 ## Features
 
@@ -78,9 +81,10 @@ TapTalk lets you pick the engine per your needs. All on-device engines run local
 - **Live typing** - optional streaming mode (Parakeet + Realtime EOU): words appear in the focused text field as you speak, with sub-second latency.
 - **Neural Engine acceleration** - Core ML inference on Apple Silicon.
 - **Global push-to-talk** - a system-wide hotkey that works from any application.
-- **Built-in microphone option** - record with the Mac's own microphone so Bluetooth headphones keep their high-quality sound while you dictate (Settings, Microphone; shown only on Macs with a built-in microphone).
+- **Headphones keep their sound** - when Bluetooth headphones are the default input, TapTalk records with the Mac's own microphone while the lid is open, so they never drop to headset quality while you dictate.
 - **Auto-paste** - transcribed text is inserted into the focused text field (or typed live, when streaming is on).
 - **Word dictionary** - custom replacement rules (technical jargon, proper nouns, shorthand) applied as post-processing.
+- **Learns your fixes** - fix a word TapTalk typed in two dictations and it gets it right from then on; the pill says so with Undo, and learned fixes are listed on the Words page.
 - **Smart Mode** - TapTalk reads the context of where you're typing and rewrites your words to fit. Dropping a message in Slack? Casual. Writing in Notion? Clean prose. Powered by a local LLM by default.
 - **Resource-conscious** - switching engines releases the inactive model, and idle models are unloaded to free memory and the Neural Engine.
 - **Plain-language model catalog** - clear, non-technical descriptions so you can pick the right model, with downloads that persist across navigation.
@@ -110,7 +114,7 @@ The cask downloads the DMG and clears the Gatekeeper quarantine flag for you, so
 
 Download the pre-built DMG from the [Releases](https://github.com/vakharwalad23/tap-talk/releases) page and drag `TapTalk.app` to `/Applications`.
 
-> **Note:** TapTalk is not yet notarized. If macOS blocks the app on first launch, clear the quarantine flag (see [Troubleshooting](#troubleshooting)) or right-click -> Open to bypass it. Notarization is coming in a future release.
+> **Note:** TapTalk is not yet notarized. If macOS blocks the app on first launch, clear the quarantine flag (see [Troubleshooting](#troubleshooting)) or right-click -> Open to bypass it. Notarization is coming in a future release. Releases are signed with a stable self-signed certificate, so Microphone and Accessibility stay granted across updates.
 
 ## Troubleshooting
 
@@ -124,17 +128,16 @@ xattr -dr com.apple.quarantine "/Applications/TapTalk.app"
 
 **Hotkey stopped working after updating**
 
-TapTalk is not notarized or signed with a stable identity yet, so a new version can look like a different app to macOS. After an update it may ask for Microphone and Accessibility again, and sometimes a stale entry blocks the hotkey. If push-to-talk does not fire after updating:
+Releases are signed with the same certificate, so updates keep their permissions. Versions from before the switch to stable signing were not, so the first update from one of them asks once more. Open TapTalk: the setup card on the Record page shows what is missing.
 
-1. Open **System Settings -> Privacy & Security -> Accessibility**.
-2. Select the old **TapTalk** entry and remove it with the minus button.
-3. Relaunch TapTalk and grant Accessibility again when prompted.
+- **Accessibility:** click **Allow**. TapTalk clears the entry left by the old version and asks again; switch TapTalk on in the list that opens. If the card then shows **Restart TapTalk**, click it.
+- **Microphone:** click **Allow**, or **Open Settings** if it was turned off.
 
-Do the same under **Privacy & Security -> Microphone** if dictation cannot hear you.
+If the card does not help, remove the old **TapTalk** entry under **System Settings -> Privacy & Security -> Accessibility** with the minus button and relaunch.
 
 **Bluetooth headphones sound muffled while dictating**
 
-While any app records from Bluetooth headphones, macOS switches them to a lower-quality headset mode until the recording ends. Open **Settings -> Microphone** in TapTalk and turn on **Use the built-in microphone**: TapTalk then records with the Mac's own microphone, only while you hold the hotkey, and the headphones keep their full sound. The option is hidden on Macs without a built-in microphone (Mac mini, Mac Studio, Mac Pro); there TapTalk records from the input selected in **System Settings -> Sound**.
+While any app records from Bluetooth headphones, macOS switches them to a lower-quality headset mode until the recording ends. TapTalk avoids this on its own: when Bluetooth headphones are the default input and the lid is open, it records with the Mac's built-in microphone instead, only while you hold the hotkey. With the lid closed, or on a Mac without a built-in microphone (Mac mini, Mac Studio, Mac Pro), it records from the input selected in **System Settings -> Sound**, so docked use still works through the headset.
 
 ## Getting Started
 
@@ -144,7 +147,7 @@ cd tap-talk
 make run
 ```
 
-This single command compiles the Rust core, generates Swift bindings via UniFFI, builds the Xcode project, and launches the app. No model is bundled - download the one you want from the **Models** page on first use. Models are stored in `~/Library/Application Support/talk.tap.app/models/`.
+This single command compiles the Rust core, generates Swift bindings via UniFFI, builds the Xcode project, and launches the app. No model is bundled - the setup card on the Record page downloads Orukeet in one click, and the **Models** page has the others. Models are stored in `~/Library/Application Support/talk.tap.app/models/`.
 
 ### Build Targets
 
@@ -161,9 +164,9 @@ This single command compiles the Rust core, generates Swift bindings via UniFFI,
 
 ## How It Works
 
-TapTalk is split into two layers. The **SwiftUI app** captures audio (AVAudioEngine), trims silence with Silero VAD on Core ML, runs the speech-recognition engines, and handles the interface, hotkey management, accessibility integration, and system services. A small **Rust core** handles LLM model downloads and the optional cloud transcription path, through a thin FFI bridge generated by [UniFFI](https://mozilla.github.io/uniffi-rs/).
+TapTalk is split into two layers. The **SwiftUI app** captures audio (Core Audio), trims silence with Silero VAD on Core ML, runs the speech-recognition engines, and handles the interface, hotkey management, accessibility integration, and system services. A small **Rust core** handles LLM model downloads and the optional cloud transcription path, through a thin FFI bridge generated by [UniFFI](https://mozilla.github.io/uniffi-rs/).
 
-When you press the hotkey, TapTalk captures audio from your default input device, or from the built-in microphone if you turn that on in Settings. Silero VAD trims silence. On release, the audio is transcribed by your selected engine, passed through your custom dictionary replacements and optional Smart Mode rewrite, and pasted into the active text field via the accessibility API. The whole round trip happens on your Mac.
+When you press the hotkey, TapTalk captures audio from your default input device, or from the built-in microphone when the default is a Bluetooth headset and the lid is open. Silero VAD trims silence. On release, the audio is transcribed by your selected engine, passed through your custom dictionary replacements and optional Smart Mode rewrite, and pasted into the active text field via the accessibility API. The whole round trip happens on your Mac.
 
 ## Open-source models & attribution
 

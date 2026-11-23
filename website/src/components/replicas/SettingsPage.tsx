@@ -1,27 +1,22 @@
-import { cx } from "#/components/ui/cx";
-import { Icon } from "#/components/ui/Icon";
+import { privacyStatements } from "#/content/privacy";
 import app from "./app.module.css";
+import { Checkbox } from "./Checkbox";
+import styles from "./SettingsPage.module.css";
 
-function Checkbox({ on }: { readonly on: boolean }) {
-	return (
-		<span className={cx(app.checkbox, on && app.checkboxOn)} aria-hidden="true">
-			{on ? <Icon name="check" size={10} strokeWidth={3} /> : null}
-		</span>
-	);
+interface KeyRowProps {
+	readonly label: string;
+	readonly keyName: string;
 }
 
-interface TileProps {
-	readonly title: string;
-	readonly sub: string;
-	readonly active?: boolean;
-}
-
-function Tile({ title, sub, active = false }: TileProps) {
+function KeyRow({ label, keyName }: KeyRowProps) {
 	return (
-		<span className={cx(app.tile, active && app.tileActive)}>
-			<strong>{title}</strong>
-			<span>{sub}</span>
-		</span>
+		<div className={app.row}>
+			<span className={app.rowLabel}>{label}</span>
+			<span className={styles.keys}>
+				<span className={styles.reset}>Reset</span>
+				<span className={app.bordered}>{keyName}</span>
+			</span>
+		</div>
 	);
 }
 
@@ -30,48 +25,18 @@ export function SettingsPage() {
 		<div>
 			<div className={app.header}>
 				<h3 className={app.h1}>Settings</h3>
-				<p className={app.sub}>Engine, microphone, hotkey, and startup</p>
+				<p className={app.sub}>Hotkeys, startup and privacy</p>
 			</div>
 
 			<section className={app.section}>
-				<div className={app.sectionLabel}>Transcription engine</div>
+				<div className={app.sectionLabel}>Hotkeys</div>
 				<div className={app.card}>
-					<div className={app.tiles}>
-						<Tile title="Local" sub="On-device, private" active />
-						<Tile title="Cloud" sub="OpenAI Whisper API" />
-					</div>
+					<KeyRow label="Dictation key" keyName="Right Cmd" />
 					<div className={app.divider} />
-					<div className={app.label}>Local model</div>
-					<div className={app.tiles}>
-						<Tile title="Orukeet" sub="English + 24 European" active />
-						<Tile title="Parakeet TDT" sub="English + 24 European" />
-						<Tile title="Nemotron 3.5" sub="Hindi + 100 languages" />
-					</div>
-					<div className={app.divider} />
-					<div className={app.row}>
-						<span className={app.rowLabel}>
-							Live typing (stream as you speak)
-						</span>
-						<Checkbox on={false} />
-					</div>
+					<KeyRow label="Smart key" keyName="Left Option" />
 					<p className={app.hint}>
-						Types words live into the focused app as Parakeet recognizes them.
-						Uses the Parakeet Realtime (EOU) model. Off in Smart Mode.
-					</p>
-				</div>
-			</section>
-
-			<section className={app.section}>
-				<div className={app.sectionLabel}>Microphone</div>
-				<div className={app.card}>
-					<div className={app.row}>
-						<span className={app.rowLabel}>Use the built-in microphone</span>
-						<Checkbox on={false} />
-					</div>
-					<p className={app.hint}>
-						Records with the Mac's own microphone even when headphones are
-						connected, so Bluetooth headphones keep their high-quality sound
-						while you dictate.
+						Hold the dictation key to type what you say. The Smart key works
+						while Smart Mode is on in Models.
 					</p>
 				</div>
 			</section>
@@ -87,16 +52,19 @@ export function SettingsPage() {
 			</section>
 
 			<section className={app.section}>
-				<div className={app.sectionLabel}>Hotkey</div>
+				<div className={app.sectionLabel}>Privacy</div>
 				<div className={app.card}>
 					<div className={app.row}>
-						<span className={app.rowLabel}>Push-to-talk key</span>
-						<span className={app.bordered}>Right Cmd</span>
+						<span className={app.rowLabel}>Check for updates once a day</span>
+						<Checkbox on={false} />
 					</div>
 					<div className={app.divider} />
-					<span className={cx(app.bordered, app.borderedMuted)}>
-						Reset to Right Cmd
-					</span>
+					{privacyStatements.map((section) => (
+						<div key={section.title} className={styles.statement}>
+							<strong>{section.title}</strong>
+							<span>{section.body}</span>
+						</div>
+					))}
 				</div>
 			</section>
 		</div>

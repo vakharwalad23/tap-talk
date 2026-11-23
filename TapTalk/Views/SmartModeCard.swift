@@ -1,23 +1,15 @@
 import SwiftUI
-import Carbon.HIToolbox
 
-struct IntelligenceView: View {
+// Everything about Smart Mode on one card: the switch, what it does, and which model runs it.
+// The switch also arms the Smart key; the key itself is chosen in Settings.
+struct SmartModeCard: View {
     @ObservedObject private var settings = SettingsStore.shared
     @ObservedObject private var installer = LocalIntelligenceInstaller.shared
-
-    // Dictionary editing
-    @State private var addingSegment = false
-    @State private var newSegmentName = ""
-    @State private var expandedSegments: Set<String> = []
 
     @State private var llmApiKeyInput = ""
     @State private var llmApiKeySaved = false
     @State private var llmTestStatus: LLMTestStatus = .idle
     @State private var llmTestTask: Task<Void, Never>?
-
-    // Smart hotkey
-    @State private var listeningSmartKey = false
-    @State private var smartKeyCapture = KeyCapture()
 
     enum LLMTestStatus: Equatable {
         case idle, testing
@@ -25,266 +17,50 @@ struct IntelligenceView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                pageHeader
-
-                dictionarySection
-                aiSection
-                smartHotkeySection
-            }
-            .padding(24)
-        }
-        .background(AppTheme.windowBg)
-        .onAppear {
-            llmApiKeyInput = settings.llmApiKey
-            installer.reconcileFromDisk()
-        }
-        .onDisappear { smartKeyCapture.stop(); llmTestTask?.cancel() }
-    }
-
-    // MARK: Page header
-
-    private var pageHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Intelligence")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(AppTheme.primary)
-            Text("Dictionary, AI rewriting, and smart hotkey")
-                .font(.caption)
-                .foregroundStyle(AppTheme.tertiary)
-        }
-        .padding(.bottom, 20)
-    }
-
-    // MARK: Dictionary
-
-    private var dictionarySection: some View {
-        SettingsSection("Word Dictionary") {
-            if settings.dictionarySegments.isEmpty && !addingSegment {
-                Text("No segments yet. Add one to replace words in every transcription.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(AppTheme.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            ForEach(settings.dictionarySegments.indices, id: \.self) { idx in
-                segmentRow(idx: idx)
-                if idx < settings.dictionarySegments.count - 1 {
-                    Divider().background(AppTheme.divider)
-                }
-            }
-
-            if addingSegment {
-                if !settings.dictionarySegments.isEmpty {
-                    Divider().background(AppTheme.divider)
-                }
-                addSegmentRow
-            }
-
-            Button(action: { addingSegment = true; newSegmentName = "" }) {
-                Label("Add Segment", systemImage: "plus")
-                    .font(.system(size: 12))
-                    .foregroundStyle(AppTheme.accent)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 4)
-        }
-    }
-
-    private func segmentRow(idx: Int) -> some View {
-        let segment = settings.dictionarySegments[idx]
-        let isExpanded = expandedSegments.contains(segment.name)
-
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Button(action: { toggleExpand(segment.name) }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(AppTheme.tertiary)
-                        Text(segment.name)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(AppTheme.primary)
-                        Text("\(segment.entries.count) entries")
-                            .font(.system(size: 11))
-                            .foregroundStyle(AppTheme.tertiary)
-                    }
-                }
-                .buttonStyle(.plain)
-
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 7) {
+                Text("Smart Mode")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppTheme.primary)
                 Spacer()
-
-                Toggle("", isOn: Binding(
-                    get: { settings.dictionarySegments[idx].isEnabled },
-                    set: { settings.dictionarySegments[idx].isEnabled = $0 }
-                ))
-                .labelsHidden()
-
-                Button(action: { settings.dictionarySegments.remove(at: idx) }) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 11))
-                        .foregroundStyle(AppTheme.danger.opacity(0.7))
-                }
-                .buttonStyle(.plain)
-            }
-
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(settings.dictionarySegments[idx].entries.indices, id: \.self) { eIdx in
-                        entryRow(segIdx: idx, entryIdx: eIdx)
-                    }
-                    addEntryButton(segIdx: idx)
-                }
-                .padding(.leading, 20)
-            }
-        }
-    }
-
-    private func entryRow(segIdx: Int, entryIdx: Int) -> some View {
-        HStack(spacing: 8) {
-            TextField("From", text: Binding(
-                get: {
-                    guard segIdx < settings.dictionarySegments.count,
-                          entryIdx < settings.dictionarySegments[segIdx].entries.count
-                    else { return "" }
-                    return settings.dictionarySegments[segIdx].entries[entryIdx].from
-                },
-                set: {
-                    guard segIdx < settings.dictionarySegments.count,
-                          entryIdx < settings.dictionarySegments[segIdx].entries.count
-                    else { return }
-                    settings.dictionarySegments[segIdx].entries[entryIdx].from = $0
-                }
-            ))
-            .textFieldStyle(.plain)
-            .font(.system(size: 12, design: .monospaced))
-            .frame(maxWidth: .infinity)
-            .padding(6)
-            .background(AppTheme.windowBg)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppTheme.divider, lineWidth: 1))
-
-            Image(systemName: "arrow.right")
-                .font(.system(size: 10))
-                .foregroundStyle(AppTheme.tertiary)
-
-            TextField("To", text: Binding(
-                get: {
-                    guard segIdx < settings.dictionarySegments.count,
-                          entryIdx < settings.dictionarySegments[segIdx].entries.count
-                    else { return "" }
-                    return settings.dictionarySegments[segIdx].entries[entryIdx].to
-                },
-                set: {
-                    guard segIdx < settings.dictionarySegments.count,
-                          entryIdx < settings.dictionarySegments[segIdx].entries.count
-                    else { return }
-                    settings.dictionarySegments[segIdx].entries[entryIdx].to = $0
-                }
-            ))
-            .textFieldStyle(.plain)
-            .font(.system(size: 12, design: .monospaced))
-            .frame(maxWidth: .infinity)
-            .padding(6)
-            .background(AppTheme.windowBg)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppTheme.divider, lineWidth: 1))
-
-            Button(action: { settings.dictionarySegments[segIdx].entries.remove(at: entryIdx) }) {
-                Image(systemName: "minus.circle")
-                    .font(.system(size: 13))
-                    .foregroundStyle(AppTheme.danger.opacity(0.7))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private func addEntryButton(segIdx: Int) -> some View {
-        Button(action: {
-            settings.dictionarySegments[segIdx].entries.append(
-                DictionaryEntry(from: "", to: "")
-            )
-        }) {
-            Label("Add entry", systemImage: "plus")
-                .font(.system(size: 11))
-                .foregroundStyle(AppTheme.secondary)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var addSegmentRow: some View {
-        HStack(spacing: 8) {
-            TextField("Segment name (e.g. Tech, Personal)", text: $newSegmentName)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12))
-                .padding(7)
-                .background(AppTheme.windowBg)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(AppTheme.accent.opacity(0.5), lineWidth: 1))
-
-            Button("Add") {
-                let name = newSegmentName.trimmingCharacters(in: .whitespaces)
-                guard !name.isEmpty else { return }
-                settings.dictionarySegments.append(
-                    DictionarySegment(name: name, isEnabled: true, entries: [])
-                )
-                expandedSegments.insert(name)
-                addingSegment = false
-                newSegmentName = ""
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppTheme.accent)
-            .controlSize(.small)
-            .disabled(newSegmentName.trimmingCharacters(in: .whitespaces).isEmpty)
-
-            Button("Cancel") { addingSegment = false }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-        }
-    }
-
-    private func toggleExpand(_ name: String) {
-        if expandedSegments.contains(name) {
-            expandedSegments.remove(name)
-        } else {
-            expandedSegments.insert(name)
-        }
-    }
-
-    // MARK: AI Rewriting
-
-    private var aiSection: some View {
-        SettingsSection("AI Rewriting") {
-            SettingRow("Enable AI rewriting") {
                 Toggle("", isOn: $settings.llmEnabled).labelsHidden()
             }
+            Text("Rewrites what you dictate with an AI model, on this Mac or at a server you choose.")
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
 
+            // Off builds nothing below the switch: the page pays only for what is shown.
             if settings.llmEnabled {
                 Divider().background(AppTheme.divider)
-
                 rewriteModes
-
                 Divider().background(AppTheme.divider)
-
                 backendPicker
-
+                Divider().background(AppTheme.divider)
                 if settings.llmBackend == .custom {
-                    Divider().background(AppTheme.divider)
                     customEndpointFields
                 } else {
-                    Divider().background(AppTheme.divider)
                     localBackendSection
                 }
+                Divider().background(AppTheme.divider)
+                Text("Hold \(AppTheme.keyLabel(for: settings.smartHotkeyCode)) to rewrite. Change the key in Settings.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppTheme.secondary)
             }
         }
+        .padding(14)
+        .background(AppTheme.sectionBg)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.divider, lineWidth: 1))
+        .onAppear { llmApiKeyInput = settings.llmApiKey }
+        .onDisappear { llmTestTask?.cancel() }
     }
 
     // Independent toggles - any combination runs as a single rewrite pass. All start off, so
-    // the section states plainly when the smart hotkey would do nothing.
+    // the section states plainly when the Smart key would do nothing.
     private var rewriteModes: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("What the smart hotkey does")
+            Text("What the Smart key does")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(AppTheme.secondary)
 
@@ -305,7 +81,7 @@ struct IntelligenceView: View {
             )
 
             if settings.rewriteOptions.isEmpty {
-                Text("Nothing enabled - the smart hotkey pastes the plain transcript.")
+                Text("Nothing enabled - the Smart key pastes the plain transcript.")
                     .font(.system(size: 10))
                     .foregroundStyle(AppTheme.tertiary)
                     .padding(.top, 2)
@@ -461,6 +237,8 @@ struct IntelligenceView: View {
                     .foregroundStyle(AppTheme.danger)
             }
         }
+        // Checked only when the local model is on screen; Smart Mode off does no disk work.
+        .onAppear { installer.reconcileFromDisk() }
     }
 
     private var combinedLocalRow: some View {
@@ -583,60 +361,4 @@ struct IntelligenceView: View {
             }
         }
     }
-
-    // MARK: Smart Hotkey
-
-    private var smartHotkeySection: some View {
-        SettingsSection("Smart Hotkey") {
-            SettingRow("Enable smart hotkey") {
-                Toggle("", isOn: Binding(
-                    get: { settings.smartHotkeyEnabled },
-                    set: {
-                        settings.smartHotkeyEnabled = $0
-                        AppController.shared.setupHotkey()
-                    }
-                ))
-                .labelsHidden()
-            }
-
-            if settings.smartHotkeyEnabled {
-                Divider().background(AppTheme.divider)
-                SettingRow("Smart key") {
-                    Button(listeningSmartKey ? "Press a key..." : keyName(settings.smartHotkeyCode)) {
-                        startListeningSmartKey()
-                    }
-                    .buttonStyle(.bordered)
-                    .foregroundStyle(listeningSmartKey ? .orange : AppTheme.primary)
-                }
-                Divider().background(AppTheme.divider)
-                Button("Reset to Left Option") { applySmartKey(UInt16(kVK_Option)) }
-                    .foregroundStyle(AppTheme.secondary)
-                    .font(.callout)
-
-                Text("Hold smart key -> transcribe + AI rewrite based on active app")
-                    .font(.system(size: 11))
-                    .foregroundStyle(AppTheme.tertiary)
-                    .padding(.top, 2)
-            }
-        }
-    }
-
-    private func startListeningSmartKey() {
-        listeningSmartKey = true
-        smartKeyCapture.start { code in
-            applySmartKey(code)
-            listeningSmartKey = false
-        }
-    }
-
-    private func applySmartKey(_ code: UInt16) {
-        settings.smartHotkeyCode = code
-        AppController.shared.setupHotkey()
-    }
-
-    private func keyName(_ code: UInt16) -> String { AppTheme.keyLabel(for: code) }
-
-    // MARK: Layout helpers
-
-
 }

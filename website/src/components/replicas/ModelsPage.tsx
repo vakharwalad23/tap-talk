@@ -2,14 +2,24 @@ import { cx } from "#/components/ui/cx";
 import { Icon } from "#/components/ui/Icon";
 import app from "./app.module.css";
 import styles from "./ModelsPage.module.css";
+import { SmartModeCard } from "./SmartModeCard";
 
-function Installed() {
+function InUse() {
 	return (
 		<span className={styles.actions}>
 			<span className={app.installed}>
 				<Icon name="checkCircle" size={13} strokeWidth={2.2} />
-				Installed
+				In use
 			</span>
+			<Icon name="trash" size={11} className={app.danger} />
+		</span>
+	);
+}
+
+function Use() {
+	return (
+		<span className={styles.actions}>
+			<span className={app.downloadButton}>Use</span>
 			<Icon name="trash" size={11} className={app.danger} />
 		</span>
 	);
@@ -21,11 +31,13 @@ export function ModelsPage() {
 			<div className={app.header}>
 				<h3 className={app.h1}>Models</h3>
 				<p className={app.sub}>
-					Run entirely on your device - no internet required.
+					Speech and Smart Mode. Runs on this Mac unless you choose Cloud or a
+					Smart Mode server
 				</p>
 			</div>
 
 			<div className={styles.cards}>
+				<div className={styles.group}>Speech</div>
 				<div className={app.card}>
 					<div className={app.row}>
 						<span className={styles.nameRow}>
@@ -37,10 +49,10 @@ export function ModelsPage() {
 					</div>
 					<div className={cx(app.row, styles.descRow)}>
 						<p className={cx(app.hint, styles.desc)}>
-							Oruk r3, the default engine for English and European. A more
-							accurate drop-in for everyday dictation.
+							Orukeet r3. Makes fewer mistakes than Parakeet. English and 24
+							European languages.
 						</p>
-						<span className={app.downloadButton}>Download</span>
+						<InUse />
 					</div>
 				</div>
 
@@ -54,10 +66,10 @@ export function ModelsPage() {
 					</div>
 					<div className={cx(app.row, styles.descRow)}>
 						<p className={cx(app.hint, styles.desc)}>
-							NVIDIA Parakeet TDT 0.6B v3. Fast English and European dictation,
-							and the base for the Live typing add-on. Adds punctuation for you.
+							NVIDIA Parakeet TDT 0.6B v3. Fast English and European dictation.
+							Adds punctuation for you.
 						</p>
-						<Installed />
+						<Use />
 					</div>
 					<div className={app.divider} />
 					<div className={cx(app.row, app.rowTop)}>
@@ -67,8 +79,8 @@ export function ModelsPage() {
 								<span className={cx(app.size, styles.sizeSmall)}>~440 MB</span>
 							</span>
 							<span className={app.hint}>
-								Streams words live as you speak. Required for the Live typing
-								toggle in Settings.
+								Streams words live as you speak. Its switch appears here while
+								Parakeet is in use.
 							</span>
 						</div>
 						<span className={styles.actions}>
@@ -96,6 +108,26 @@ export function ModelsPage() {
 						<span className={app.downloadButton}>Download</span>
 					</div>
 				</div>
+
+				<div className={app.card}>
+					<div className={app.row}>
+						<span className={styles.name}>Cloud - OpenAI Whisper</span>
+						<span className={cx(app.downloadButton, styles.disabled)}>Use</span>
+					</div>
+					<p className={app.hint}>
+						Sends your audio to OpenAI with your own API key. Needs an internet
+						connection.
+					</p>
+					<div className={app.divider} />
+					<div className={app.label}>OpenAI API key</div>
+					<div className={styles.keyRow}>
+						<span className={styles.keyField}>sk-...</span>
+						<span className={app.bordered}>Save</span>
+					</div>
+				</div>
+
+				<div className={styles.group}>Smart Mode</div>
+				<SmartModeCard />
 			</div>
 		</div>
 	);

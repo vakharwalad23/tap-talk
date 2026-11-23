@@ -16,7 +16,7 @@ export const site = {
 	authorName: "Dhruv Vakharwala",
 	authorUrl: "https://www.dhruvvakharwala.dev",
 	version,
-	lastUpdated: "2026-10-10",
+	lastUpdated: "2026-11-23",
 	title: "TapTalk - Free On-Device Dictation for Mac",
 	// Under 160 characters so search snippets show the whole sentence.
 	description:

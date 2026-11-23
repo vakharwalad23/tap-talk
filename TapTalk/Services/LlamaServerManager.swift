@@ -120,6 +120,7 @@ final class LlamaServerManager {
         }
 
         try proc.run()
+        try? String(proc.processIdentifier).write(toFile: Self.pidFilePath(), atomically: true, encoding: .utf8)
         process = proc
         isRunning = true
 
@@ -135,6 +136,7 @@ final class LlamaServerManager {
         readyCheckTask = nil
         try? logHandle?.close()
         logHandle = nil
+        if process != nil { try? FileManager.default.removeItem(atPath: Self.pidFilePath()) }
         process?.terminate()
         process = nil
         isRunning = false
@@ -200,6 +202,29 @@ final class LlamaServerManager {
             }
         }
         return nil
+    }
+
+    // A crash or force quit skips stop(), and the server would keep running with its model mapped.
+    private static func pidFilePath() -> String {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.path
+            ?? NSTemporaryDirectory()
+        return (appSupport as NSString).appendingPathComponent("talk.tap.app/llama-server.pid")
+    }
+
+    /// Terminates a llama-server left by a crashed run; runs at launch, before any server can start.
+    static func stopOrphanedServer() {
+        let path = pidFilePath()
+        defer { try? FileManager.default.removeItem(atPath: path) }
+        guard let text = try? String(contentsOfFile: path, encoding: .utf8),
+              let pid = pid_t(text.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0 else { return }
+        // The recorded ID may since belong to another process; only TapTalk's own binary is stopped.
+        var buffer = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+        guard proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0 else { return }
+        let running = URL(fileURLWithPath: String(cString: buffer)).resolvingSymlinksInPath().path
+        let ours = URL(fileURLWithPath: (binaryDirectory() as NSString).appendingPathComponent("llama-server"))
+            .resolvingSymlinksInPath().path
+        guard running == ours else { return }
+        kill(pid, SIGTERM)
     }
 
     // MARK: Binary management

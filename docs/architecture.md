@@ -37,17 +37,17 @@ modifier keys. Two are registered independently: a plain one and a "smart" one t
 triggers the rewrite. `AppController.startRecording` begins capture; on the smart hotkey it also
 prewarms the LLM server, because starting it later would land on the paste path.
 
-**2. Recording** - `DictationRecorder.start()` resumes a prepared `AVAudioEngine` whose sink node
-is paused rather than torn down between dictations. It records from the system default input, or
-from the built-in microphone when Settings asks for it. The real-time callback only downmixes into
-the ring. The pipeline actor converts to 16 kHz, scores each 512-sample window with Silero, and
+**2. Recording** - `DictationRecorder.start()` starts a Core Audio IOProc on the input device,
+attached at launch and stopped rather than torn down between dictations. It records from the system
+default input, except that a Bluetooth default is replaced by the built-in microphone while the lid
+is open. The real-time callback only downmixes into the ring. The pipeline actor converts to 16 kHz, scores each 512-sample window with Silero, and
 emits the RMS level (~30 Hz) that drives the floating pill.
 
 If live typing is on, the pipeline sends 16 kHz buffers to the EOU engine instead of running Silero,
 and a separate Parakeet EOU model types words into the focused app as you speak. Live typing and
 Smart Mode are mutually exclusive - a rewrite needs the whole transcript.
 
-**3. Key up** - `DictationRecorder.stop()` pauses the engine, finishes the last ~32 ms of conversion
+**3. Key up** - `DictationRecorder.stop()` stops the IOProc, finishes the last ~32 ms of conversion
 and voice activity, trims to the speech span with six windows of padding, and applies gain to quiet
 speech. Everything else already happened while recording.
 
@@ -56,12 +56,20 @@ for English and European), `ParakeetEngine` (also English and European, and the 
 live typing), `NemotronEngine` for Hindi and other languages, or the OpenAI cloud path in the Rust
 core.
 
-**5. Post-processing** - `PostProcessingService.applyDictionary` runs the user's word replacements.
-Then, only on the smart hotkey and only if a rewrite mode is enabled, `AppContextService` builds an
-instruction and `LLMService` sends transcript plus instruction to a local `llama-server`.
+**5. Post-processing** - the user's dictionary runs first, as `TextRules` from the
+`TapTalkLearning` package (case-insensitive, whole words, one compiled pass). Then, only on the
+smart hotkey and only if a rewrite mode is enabled, `AppContextService` builds an instruction and
+`LLMService` sends transcript plus instruction to a local `llama-server`. Last, right before the
+paste, `LearnedCorrections` applies the word fixes learned from the user's edits, matched by exact
+case or a sentence-start capital. A dictionary entry for the same word removes the learned one, so
+the user's entry always wins.
 
 **6. Paste** - `PasteService` writes to the pasteboard, marks the entry transient and concealed so
-clipboard managers skip it, posts Cmd-V, and restores the previous clipboard.
+clipboard managers skip it, posts Cmd-V, and restores the previous clipboard. `CorrectionLearner`
+then remembers the focused field. When the next dictation starts it reads that field once through
+Accessibility: a word the user fixed in two different dictations becomes a learned fix, and
+changing a learned fix back twice stops it. Password fields are never read, and only the fixed
+words are stored.
 
 `LatencyTrace` records each stage and emits one line per dictation:
 

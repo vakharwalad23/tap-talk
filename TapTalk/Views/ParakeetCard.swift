@@ -19,6 +19,7 @@ final class ParakeetDownloadManager: ObservableObject {
     func download() {
         guard !downloading else { return }   // already in flight - don't start a second
         downloading = true
+        AppController.shared.fetchVoiceDetectorIfMissing()
         progress = 0
         Task {
             do {
@@ -103,6 +104,7 @@ final class EouDownloadManager: ObservableObject {
 struct ParakeetCard: View {
     @ObservedObject private var model = ParakeetDownloadManager.shared
     @ObservedObject private var eou = EouDownloadManager.shared
+    @ObservedObject private var settings = SettingsStore.shared
     @State private var pendingRemoval = false
     @State private var pendingEouRemoval = false
 
@@ -143,14 +145,7 @@ struct ParakeetCard: View {
                     }
                 } else if model.installed {
                     HStack(spacing: 10) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(AppTheme.success)
-                                .font(.system(size: 13))
-                            Text("Installed")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(AppTheme.success)
-                        }
+                        UseEngineControl(isInUse: settings.isInUse(.parakeet)) { settings.use(.parakeet) }
                         Button { pendingRemoval = true } label: {
                             Image(systemName: "trash")
                                 .font(.system(size: 11))
@@ -186,6 +181,12 @@ struct ParakeetCard: View {
                 Divider().background(AppTheme.divider)
                 eouSubRow
             }
+
+            // Live typing streams through the add-on, so it needs both the add-on and Parakeet in use.
+            if eou.installed && settings.isInUse(.parakeet) {
+                Divider().background(AppTheme.divider)
+                liveTypingToggle
+            }
         }
         .padding(14)
         .background(AppTheme.sectionBg)
@@ -216,6 +217,18 @@ struct ParakeetCard: View {
         }
     }
 
+    private var liveTypingToggle: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            SettingRow("Live typing (stream as you speak)") {
+                Toggle("", isOn: $settings.streamingEnabled).labelsHidden()
+            }
+            Text("Types words live into the focused app as Parakeet recognizes them. Off while you hold the Smart key.")
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var eouSubRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
@@ -229,7 +242,7 @@ struct ParakeetCard: View {
                             .foregroundStyle(AppTheme.secondary)
                             .monospacedDigit()
                     }
-                    Text("Streams words live as you speak. Required for the Live typing toggle in Settings.")
+                    Text("Streams words live as you speak. Its switch appears here while Parakeet is in use.")
                         .font(.system(size: 11))
                         .foregroundStyle(AppTheme.tertiary)
                         .fixedSize(horizontal: false, vertical: true)

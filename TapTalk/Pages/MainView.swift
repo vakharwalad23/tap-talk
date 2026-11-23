@@ -14,9 +14,21 @@ final class RecordingState: ObservableObject {
         case ready
     }
 
+    // On-disk state of the Silero model that trims silence; recordings work untrimmed without it.
+    enum VoiceDetector {
+        case missing
+        case fetching
+        case installed
+    }
+
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var modelStatus: ModelStatus = .none
     @Published var hotkeyActive = false
+    // Accessibility is granted but the tap still cannot be created until TapTalk relaunches.
+    @Published var hotkeyNeedsRestart = false
+    @Published var voiceDetector: VoiceDetector = .missing
+    // False until launch has resolved the engine and the hotkey, so nothing renders a guess.
+    @Published private(set) var launchResolved = false
     @Published var status = ""
 
     @Published private(set) var hotkeyTriggered = false
@@ -37,7 +49,8 @@ final class RecordingState: ObservableObject {
     var rewriting: Bool { phase == .rewriting }
     var modelReady: Bool { modelStatus == .ready }
     var loadingModel: Bool { modelStatus == .loading }
-    var canRecord: Bool { modelStatus == .ready && phase == .idle }
+    // A loading engine still records: transcribe waits for the load to land.
+    var canRecord: Bool { modelStatus != .none && phase == .idle }
 
     func beginRecording(hotkey: Bool, smart: Bool) {
         phase = .recording
@@ -72,5 +85,9 @@ final class RecordingState: ObservableObject {
 
     func setModel(_ status: ModelStatus) {
         modelStatus = status
+    }
+
+    func markLaunchResolved() {
+        launchResolved = true
     }
 }

@@ -2,12 +2,22 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Environment(\.openWindow) private var openWindow
+    @ObservedObject private var updates = UpdateService.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             MenuRow(title: "Open TapTalk", systemImage: "macwindow", shortcut: "o") {
                 openWindow(id: "main")
                 NSApp.activate(ignoringOtherApps: true)
+            }
+
+            // The Record page carries the command or download button for it.
+            if let notice = updates.notice {
+                MenuRow(title: "Update available: \(notice.version)", systemImage: "arrow.down.circle", shortcut: "u") {
+                    AppNavigation.shared.selection = .record
+                    openWindow(id: "main")
+                    NSApp.activate(ignoringOtherApps: true)
+                }
             }
 
             Divider()

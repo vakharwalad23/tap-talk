@@ -2,18 +2,16 @@ import { SectionHeading } from "#/components/ui/SectionHeading";
 import { AboutPage } from "./AboutPage";
 import styles from "./AppReplicas.module.css";
 import { AppWindow } from "./AppWindow";
-import { IntelligencePage } from "./IntelligencePage";
 import { ModelsPage } from "./ModelsPage";
-import { PrivacyPage } from "./PrivacyPage";
 import { RecordPage } from "./RecordPage";
 import { SettingsPage } from "./SettingsPage";
+import { WordsPage } from "./WordsPage";
 
 const tabs = [
 	{ id: "record", label: "Record" },
 	{ id: "models", label: "Models" },
+	{ id: "words", label: "Words" },
 	{ id: "settings", label: "Settings" },
-	{ id: "intelligence", label: "Intelligence" },
-	{ id: "privacy", label: "Privacy" },
 	{ id: "about", label: "About" },
 ] as const;
 
@@ -63,18 +61,13 @@ export function AppReplicas() {
 							</AppWindow>
 						</div>
 						<div className={styles.panel}>
+							<AppWindow active="Words">
+								<WordsPage />
+							</AppWindow>
+						</div>
+						<div className={styles.panel}>
 							<AppWindow active="Settings">
 								<SettingsPage />
-							</AppWindow>
-						</div>
-						<div className={styles.panel}>
-							<AppWindow active="Intelligence" pill="rewriting">
-								<IntelligencePage />
-							</AppWindow>
-						</div>
-						<div className={styles.panel}>
-							<AppWindow active="Privacy">
-								<PrivacyPage />
 							</AppWindow>
 						</div>
 						<div className={styles.panel}>

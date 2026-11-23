@@ -9,15 +9,14 @@ let package = Package(
     ],
     targets: [
         .target(name: "RingAtomics"),
-        .target(name: "ObjCExceptions"),
         .target(
             name: "TapTalkAudio",
-            dependencies: ["RingAtomics", "ObjCExceptions"],
+            dependencies: ["RingAtomics"],
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
         .testTarget(
             name: "TapTalkAudioTests",
-            dependencies: ["TapTalkAudio", "ObjCExceptions"],
+            dependencies: ["TapTalkAudio"],
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
     ]

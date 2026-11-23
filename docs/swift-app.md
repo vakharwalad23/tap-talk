@@ -6,8 +6,10 @@ audio, recognition, the rewrite, the hotkey, the paste, the interface.
 ```
 TapTalk/
   Audio/      TapTalkAudio package: capture, 16 kHz conversion, Silero VAD, trim, gain
+  Learning/   TapTalkLearning package: compiled word rules, finding fixes, the learning state
   Services/   system interaction and orchestration
-  Pages/      full screens (Record, Settings, Intelligence, Privacy, About)
+  Pages/      full screens (Record, Models, Words, Settings, About). Models is where a speech
+              engine is chosen and Smart Mode is set up; Settings holds both hotkeys
   Views/      reusable components and the floating pill
   Models/     plain data types
   Theme/      colours and key labels
@@ -38,21 +40,26 @@ before crossing into it - never read `settings` from inside the task.
 
 `TapTalk/Audio` is a local Swift package (`TapTalkAudio`) with its own tests (`make test`).
 
-- `MicrophoneCapture` - `AVAudioEngine` input into an `AVAudioSinkNode`. The sink block runs on
-  Core Audio's real-time thread and only downmixes into `SampleRing`: no locks, no allocation, no
-  reference counting. The engine is paused, never torn down, between dictations; a device change
-  marks the graph for rebuild on the next start. The rebuild wires the input node with its hardware
-  format (`inputFormat`): after a device change its output format still describes the old device,
-  and connecting with that raises an Objective-C exception (#22). Graph wiring runs inside
-  `tt_catch_exception`, so any such exception becomes an error instead of quitting the app.
-- `MicrophoneSelection` - the "Use the built-in microphone" setting. Each graph build points the input
-  node at the chosen Core Audio device (`kAudioOutputUnitProperty_CurrentDevice`): the built-in
-  microphone when preferred and present, else the system default. Changing it marks the graph for
-  rebuild, so it applies on the next key press; Bluetooth headphones then stay in their high-quality
-  mode because nothing records from their microphone.
+- `MicrophoneCapture` - a Core Audio IOProc (`AudioDeviceCreateIOProcIDWithBlock`) on one chosen
+  input device. The block runs on Core Audio's real-time thread and only downmixes into
+  `SampleRing`: no locks, no allocation, no reference counting. The IOProc is created at launch,
+  started on key-down and stopped on key-up, never torn down between dictations. Every start
+  re-resolves the device and recreates the IOProc only when the device or its rate changed, so a
+  new default input, a closed lid or a vanished device applies on the next press without device
+  notifications.
+- **Why not `AVAudioEngine`.** Its input node records through a per-process aggregate of the default
+  input and output (`CADefaultDeviceAggregate`). Building that aggregate pulls Bluetooth headphones
+  into headset mode at launch, before any recording, and AVAudioEngine re-points the input unit at
+  the aggregate about 300 ms after `kAudioOutputUnitProperty_CurrentDevice` selects another device.
+  Measured on an M3 Pro with a Bluetooth headset as default input: the old capture recorded from the
+  headset with the built-in microphone selected; the IOProc keeps the headset in stereo 44.1 kHz.
+- `MicrophoneSelection` - the system default input, except a Bluetooth default is replaced by the
+  built-in microphone while the lid is open (`AppleClamshellState` in `IOPMrootDomain`). A closed
+  lid disconnects the built-in microphone in hardware, so docked use keeps the headset; wired USB
+  microphones are always respected. There is no setting.
 - `RecordingPipeline` (actor) drains the ring every 32 ms: RMS for the pill, `AVAudioConverter`
   to 16 kHz, Silero on each complete 512-sample window, or the live sink for EOU instead.
-- `DictationRecorder.stop` pauses the engine and finishes only the last ~32 ms. Measured on an M3
+- `DictationRecorder.stop` stops the IOProc and finishes only the last ~32 ms. Measured on an M3
   Pro with 17 to 21 s clips: 0.7 to 1.2 ms, against 53 to 66 ms for the Rust stage it replaced
   (ONNX Silero at ~2.5 ms per second of audio plus a full-clip resample, and ~100 ms more on the
   first dictation of a process).
@@ -63,9 +70,10 @@ returning plausible probabilities. The threshold is 0.35, below Silero's 0.5, to
 dictation; six windows (~190 ms) of padding are kept either side. Do not change any of these
 without re-running that comparison on real speech.
 
-Silero (`silero-vad-unified-v6.0.0`, the 32 ms Core ML conversion) downloads at launch from a
-pinned Hugging Face revision with SHA-256 checks, into `models/silero-vad/`. Until it is present,
-recordings are transcribed untrimmed.
+Silero (`silero-vad-unified-v6.0.0`, the 32 ms Core ML conversion) is fetched from a pinned Hugging
+Face revision with SHA-256 checks, into `models/silero-vad/`, by the first speech set-up click: a
+model download or choosing Cloud (`AppController.fetchVoiceDetectorIfMissing`). Launch only loads it
+when present. Until it is, recordings are transcribed untrimmed and the setup card offers it.
 
 ## Recognition engines
 
@@ -90,7 +98,16 @@ one engine that downloads a `.mlpackage` bundle and compiles it to `.mlmodelc` o
 `ParakeetEngine` - English and 24 European languages, auto-detect only; kept as the base for the
 optional live-typing add-on.
 `NemotronEngine` - Hindi and 100+ languages, with an explicit language prompt.
-`EouStreamingEngine` - the live-typing model, conforming to `StreamingTranscriber`.
+`EouStreamingEngine` - the live-typing model, conforming to `StreamingTranscriber`. After a
+confirmed end of utterance (1.28 s without new words) the model can stay silent until its state is
+rebuilt, so the engine calls `rearm(keepTranscript: true)` from FluidAudio's EOU callback: the rearm
+replays the audio since the pause and keeps the text already typed.
+
+FluidAudio is pinned to 0.18.4 in `project.yml` and in the vendored `OrukeetCoreML` package. Its
+convenience loaders (`loadFromCache`, the parameterless `loadModels()`) fetch missing files and
+re-download a bundle that fails to load, so every engine loads from its own folder only:
+`AsrModels.loadLocal` for Orukeet and Parakeet, `loadModels(from:)` for Nemotron and live typing.
+Network access stays inside the `download(progress:)` a user's click starts.
 
 Adding an engine means touching nine places: the `LocalEngine` enum and its exhaustive switches,
 `ActiveEngine`, `EnginePlan`, `resolveEnginePlan`, both halves of `applyEnginePlan`,
@@ -132,9 +149,32 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
   entry, then Cmd-V, then restore.
 - `LiveInserter` - live typing. Prefers an Accessibility range-replace, falls back to pasteboard,
   and permanently disables the AX path after a first failure rather than retrying per keystroke.
+- `FieldReader` - Accessibility reads of the focused text field for correction learning. A 250 ms
+  messaging timeout, no secure fields or secure input, and fields over 20,000 characters are skipped.
+- `CorrectionLearner` - remembers the field and text of the last paste and reads that field once when
+  the next dictation has started, off the main actor; fixes go to `LearnedCorrections`, and a notice
+  is shown only at the paste of the dictation that produced it.
+- `LearnedCorrections` - the learned rules, candidates and blocked fixes in UserDefaults, with the
+  rules compiled once per change and applied to the final text right before it is pasted.
 - `AppContextService` - reads the frontmost app and its window title for rewrite context. The
   Accessibility read carries a 250 ms timeout because an AX request to a hung app otherwise blocks
   forever, on the paste path.
+- `PermissionService` - microphone state and the Accessibility repair. Nothing prompts at launch:
+  every prompt follows a click on the setup card. "Allow" for Accessibility first runs `tccutil reset
+  Accessibility talk.tap.app`, so an entry left by an earlier build cannot sit switched on while the
+  hotkey stays dead. When the grant is present but the tap still cannot be created, `AppController`
+  sets `hotkeyNeedsRestart` and the card offers a relaunch instead of a modal alert. TapTalk quits
+  only once the new instance is confirmed; a failed relaunch says so on the card. If the tap still
+  fails after a relaunch, the card offers Accessibility Settings instead of another restart.
+- `SetupCard` - the Record page empty state: speech model (with the Silero voice detector),
+  microphone, accessibility. Every row reads live state (engine status, detector on disk, mic
+  status, a live hotkey tap), so it reappears if a model is deleted or a permission is lost. There
+  is no stored "setup done" flag to disagree with reality.
+- `UpdateService` - the daily release check, behind a three-state consent (not asked, on, off) that
+  sends nothing until the user says yes. An hourly timer checks whether 24 h have passed since the
+  last attempt, which survives sleep; failures are silent and also wait a day. The decisions (GitHub
+  JSON, version order, Homebrew or DMG, pinned casks get nothing) live in the `TapTalkUpdates`
+  package with its own tests.
 
 Browsers are detected by asking Launch Services which apps handle `https`, never a hardcoded list -
 a list already missed a browser installed on the development machine.
@@ -143,7 +183,7 @@ a list already missed a browser installed on the development machine.
 
 - `@Published` + `didSet` writing to `UserDefaults` for every setting; Keychain for secrets.
 - Actors for engines, `@MainActor` for UI state. No `@unchecked Sendable`, except the three audio
-  types that share raw memory or `AVAudioEngine` with the real-time thread (`SampleRing`, its
+  types that share raw memory or a Core Audio IOProc with the real-time thread (`SampleRing`, its
   `Writer`, `MicrophoneCapture`); each names its invariant in a comment.
 - No force-unwrapping outside previews.
 - Warnings are treated as errors in review even though the build does not enforce it - the Swift 6
@@ -154,9 +194,9 @@ a list already missed a browser installed on the development machine.
 ```bash
 make run      # rust -> bindings -> xcodegen -> xcodebuild -> launch
 make kill     # stop a running instance first; two instances fight over the event tap
-make test     # Rust tests and the TapTalkAudio package tests
+make test     # Rust tests and the TapTalkAudio, TapTalkUpdates and TapTalkLearning package tests
 ```
 
-`make test` runs the Rust tests and the `TapTalkAudio` package tests. The rest of the app has no
+`make test` runs the Rust tests and the `TapTalkAudio`, `TapTalkUpdates` and `TapTalkLearning` package tests. The rest of the app has no
 test target: its logic is prompt composition and enum dispatch, where exhaustive `switch` breakage
 at compile time is a stronger check than a test would be. `make build` failing is the signal.

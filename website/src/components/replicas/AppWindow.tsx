@@ -7,9 +7,8 @@ import app from "./app.module.css";
 export const navItems = [
 	"Record",
 	"Models",
+	"Words",
 	"Settings",
-	"Intelligence",
-	"Privacy",
 	"About",
 ] as const;
 export type NavItem = (typeof navItems)[number];

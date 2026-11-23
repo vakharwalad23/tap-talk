@@ -1,0 +1,26 @@
+.keys {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.reset {
+	font-size: 12px;
+	color: var(--a-ink60);
+}
+
+.statement {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	font-size: 11px;
+}
+
+.statement strong {
+	font-weight: 600;
+}
+
+.statement span {
+	color: var(--a-ink60);
+	line-height: 1.45;
+}

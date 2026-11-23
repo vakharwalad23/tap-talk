@@ -7,10 +7,27 @@ struct RecordView: View {
     @ObservedObject private var state    = AppController.shared.state
     @ObservedObject private var settings = SettingsStore.shared
     @ObservedObject private var migration = OrukeetMigration.shared
+    @ObservedObject private var permissions = PermissionService.shared
+    @ObservedObject private var setupSession = SetupSession.shared
+    @ObservedObject private var updates = UpdateService.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            if migration.showBanner {
+            if showsSetupCard {
+                SetupCard(checklist: checklist)
+                    .padding(.bottom, 16)
+            }
+            if let notice = updates.notice {
+                UpdateBanner(notice: notice)
+                    .padding(.bottom, 16)
+            }
+            // Users past setup are asked once here; during setup the card asks instead.
+            if settings.updateCheckConsent == .notAsked && state.launchResolved && checklist.isComplete {
+                UpdateConsentRow()
+                    .bannerStyle()
+                    .padding(.bottom, 16)
+            }
+            if migration.showBanner && checklist.isComplete {
                 MigrationBanner()
                     .padding(.bottom, 16)
             }
@@ -90,6 +107,22 @@ struct RecordView: View {
     }
 
     private var keyLabel: String { AppTheme.keyLabel(for: settings.hotkeyCode) }
+
+    private var checklist: SetupChecklist {
+        SetupChecklist(
+            // ponytail: a failed engine load also reads as not ready; the card's button then reselects or re-downloads
+            speech: settings.transcriptionEngine == .cloud ? !settings.apiKey.isEmpty : state.modelStatus != .none,
+            microphone: permissions.microphone == .granted,
+            accessibility: state.hotkeyActive,
+            voiceDetector: state.voiceDetector == .installed
+        )
+    }
+
+    // The ready line stays after a setup this session until dismissed; a returning user never sees it.
+    private var showsSetupCard: Bool {
+        guard state.launchResolved else { return false }
+        return !checklist.isComplete || (setupSession.sawIncomplete && !setupSession.readyDismissed)
+    }
 
     // Left control: a static chip naming the active engine.
     @ViewBuilder

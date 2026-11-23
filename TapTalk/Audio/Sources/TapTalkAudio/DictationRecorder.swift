@@ -42,7 +42,7 @@ public final class DictationRecorder: Sendable {
         state.withLock { $0.onLevel = handler }
     }
 
-    /// Builds the audio graph so device setup happens before the first hotkey press.
+    /// Attaches to the microphone so device setup happens before the first hotkey press.
     public func warmUp() throws {
         try capture.prepare()
     }
@@ -91,11 +91,6 @@ public final class DictationRecorder: Sendable {
         pump.cancel()
         await pump.value
         return try await pipeline.finish(generation: generation, mode: mode)
-    }
-
-    /// Chooses the microphone the next recording uses.
-    public func setInputPreference(_ preference: InputPreference) {
-        capture.setInputPreference(preference)
     }
 
     /// Releases the audio hardware; call on app quit.

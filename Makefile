@@ -1,4 +1,4 @@
-.PHONY: all rust bindings xcode build run test install kill clean release notarize staple dmg dmg-unsigned
+.PHONY: all rust bindings xcode build run test install kill clean release notarize staple dmg dmg-unsigned check-signature
 
 # Single source of truth is project.yml; anything else drifts from the bundle.
 VERSION := $(shell awk -F'"' '/^ *MARKETING_VERSION:/{print $$2; exit}' project.yml)
@@ -34,6 +34,8 @@ run: build
 test:
 	cd core && cargo test
 	cd TapTalk/Audio && swift test
+	cd TapTalk/Updates && swift test
+	cd TapTalk/Learning && swift test
 
 # Builds an optimized app and installs it to /Applications as a STATIC binary.
 # Because it isn't rebuilt on every launch, macOS keeps the mic + accessibility
@@ -85,6 +87,11 @@ dmg: notarize staple
 		-srcfolder build/Build/Products/Release/TapTalk.app \
 		-ov -format UDZO dist/TapTalk-$(VERSION).dmg
 
+# Not notarized, but signed with SIGN_ID: macOS keys Microphone and Accessibility grants on the
+# signing certificate, so every release signed by the same one keeps them across updates. No
+# --timestamp: that needs Apple's timestamp service, which only Developer ID signing uses.
+# Only an explicit `make dmg-unsigned SIGN_ID=-` ships ad-hoc, which costs every user a re-grant;
+# a checkout without Makefile.local fails check-signature instead of shipping ad-hoc silently.
 dmg-unsigned:
 	cd core && cargo build --release
 	cd core && cargo run --release --bin uniffi-bindgen generate \
@@ -94,9 +101,10 @@ dmg-unsigned:
 	xcodebuild -project TapTalk.xcodeproj -scheme TapTalk \
 		-configuration Release -derivedDataPath build \
 		ONLY_ACTIVE_ARCH=YES \
-		CODE_SIGN_IDENTITY="-" \
-		CODE_SIGNING_REQUIRED=NO \
-		CODE_SIGNING_ALLOWED=NO 2>&1 | tail -5
+		CODE_SIGN_STYLE=Manual \
+		CODE_SIGN_IDENTITY="$(SIGN_ID)" \
+		OTHER_CODE_SIGN_FLAGS="--options=runtime" 2>&1 | tail -5
+	$(MAKE) check-signature
 	mkdir -p dist
 	create-dmg \
 		--volname "TapTalk" \
@@ -109,6 +117,12 @@ dmg-unsigned:
 		--no-internet-enable \
 		dist/TapTalk-$(VERSION).dmg \
 		build/Build/Products/Release/TapTalk.app
+
+check-signature:
+	@[ "$(SIGN_ID)" = "-" ] && [ "$(origin SIGN_ID)" = "command line" ] || codesign -d -r- build/Build/Products/Release/TapTalk.app 2>&1 \
+		| grep -q 'certificate leaf' || { \
+		echo "release must be signed with SIGN_ID (set it in Makefile.local, or pass SIGN_ID=- to ship ad-hoc)"; \
+		exit 1; }
 
 clean:
 	cd core && cargo clean

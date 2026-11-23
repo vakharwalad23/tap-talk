@@ -74,6 +74,7 @@ final class OrukeetInstaller: ObservableObject {
 
     func install() {
         if busy { return }
+        AppController.shared.fetchVoiceDetectorIfMissing()
         if OrukeetEngine.isInstalled() {
             status = .ready
             OrukeetMigration.shared.completeIfEligible()
@@ -123,6 +124,7 @@ final class OrukeetInstaller: ObservableObject {
 // Catalog card for the Orukeet engine. Download is user-initiated (never auto).
 struct OrukeetCard: View {
     @ObservedObject private var model = OrukeetInstaller.shared
+    @ObservedObject private var settings = SettingsStore.shared
     @State private var pendingRemoval = false
 
     var body: some View {
@@ -202,11 +204,7 @@ struct OrukeetCard: View {
             }
         case .ready:
             HStack(spacing: 10) {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AppTheme.success).font(.system(size: 13))
-                    Text("Installed").font(.system(size: 11, weight: .medium)).foregroundStyle(AppTheme.success)
-                }
+                UseEngineControl(isInUse: settings.isInUse(.orukeet)) { settings.use(.orukeet) }
                 Button { pendingRemoval = true } label: {
                     Image(systemName: "trash").font(.system(size: 11)).foregroundStyle(AppTheme.danger)
                 }

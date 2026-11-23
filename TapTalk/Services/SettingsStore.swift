@@ -1,5 +1,6 @@
 import Foundation
 import ServiceManagement
+import TapTalkLearning
 
 enum TranscriptionEngine: String {
     case local
@@ -94,6 +95,13 @@ enum OrukeetMigrationState: String {
     case notApplicable    // new user, or live-typing user we do not push off Parakeet
 }
 
+// The daily update check. Nothing is requested until the user answers yes.
+enum UpdateCheckConsent: String {
+    case notAsked
+    case on
+    case off
+}
+
 enum LLMBackend: String {
     case custom
     case local
@@ -147,11 +155,6 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(streamingEnabled, forKey: "streamingEnabled") }
     }
 
-    // Records from the Mac's own microphone so Bluetooth headphones keep their high-quality mode.
-    @Published var useBuiltInMicrophone: Bool {
-        didSet { UserDefaults.standard.set(useBuiltInMicrophone, forKey: "useBuiltInMicrophone") }
-    }
-
     @Published var cloudModel: String {
         didSet { UserDefaults.standard.set(cloudModel, forKey: "cloudModel") }
     }
@@ -190,16 +193,27 @@ final class SettingsStore: ObservableObject {
         didSet { persistLLMApiKey(llmApiKey) }
     }
 
-    @Published var smartHotkeyEnabled: Bool {
-        didSet { UserDefaults.standard.set(smartHotkeyEnabled, forKey: "smartHotkeyEnabled") }
-    }
-
     @Published var smartHotkeyCode: UInt16 {
         didSet { UserDefaults.standard.set(Int(smartHotkeyCode), forKey: "smartHotkeyCode") }
     }
 
     @Published var dictionarySegments: [DictionarySegment] {
-        didSet { persistDictionarySegments(dictionarySegments) }
+        didSet {
+            persistDictionarySegments(dictionarySegments)
+            dictionaryRules = Self.rules(for: dictionarySegments)
+        }
+    }
+
+    // Compiled when the dictionary changes, so a dictation never rebuilds it.
+    private(set) var dictionaryRules: TextRules = .empty
+
+    @Published var updateCheckConsent: UpdateCheckConsent {
+        didSet { UserDefaults.standard.set(updateCheckConsent.rawValue, forKey: "updateCheckConsent") }
+    }
+
+    // On for everyone by default: learning reads a field only on the dictation after a paste.
+    @Published var learnCorrections: Bool {
+        didSet { UserDefaults.standard.set(learnCorrections, forKey: "learnCorrections") }
     }
 
     private init() {
@@ -217,7 +231,6 @@ final class SettingsStore: ObservableObject {
         localEngine = LocalEngine(rawValue: rawLocalEngine) ?? .parakeet
 
         streamingEnabled = UserDefaults.standard.bool(forKey: "streamingEnabled")
-        useBuiltInMicrophone = UserDefaults.standard.bool(forKey: "useBuiltInMicrophone")
 
         cloudModel = UserDefaults.standard.string(forKey: "cloudModel") ?? "whisper-1"
 
@@ -241,10 +254,12 @@ final class SettingsStore: ObservableObject {
 
         llmApiKey = KeychainService.load(account: Self.llmApiKeyAccount) ?? ""
 
-        smartHotkeyEnabled = UserDefaults.standard.bool(forKey: "smartHotkeyEnabled")
-
         let rawSmartCode = UserDefaults.standard.integer(forKey: "smartHotkeyCode")
         smartHotkeyCode = rawSmartCode > 0 ? UInt16(rawSmartCode) : UInt16(0x3A) // kVK_Option
+
+        let rawConsent = UserDefaults.standard.string(forKey: "updateCheckConsent") ?? "notAsked"
+        updateCheckConsent = UpdateCheckConsent(rawValue: rawConsent) ?? .notAsked
+        learnCorrections = UserDefaults.standard.object(forKey: "learnCorrections") as? Bool ?? true
 
         let rawMigration = UserDefaults.standard.string(forKey: "orukeetMigrationState") ?? "unevaluated"
         orukeetMigrationState = OrukeetMigrationState(rawValue: rawMigration) ?? .unevaluated
@@ -255,6 +270,15 @@ final class SettingsStore: ObservableObject {
         } else {
             dictionarySegments = []
         }
+        dictionaryRules = Self.rules(for: dictionarySegments)
+    }
+
+    private static func rules(for segments: [DictionarySegment]) -> TextRules {
+        TextRules(pairs(for: segments), matching: .caseInsensitive)
+    }
+
+    static func pairs(for segments: [DictionarySegment]) -> [RulePair] {
+        segments.filter(\.isEnabled).flatMap(\.entries).map { RulePair(from: $0.from, to: $0.to) }
     }
 
     private func applyLaunchAtLogin(_ enable: Bool) {
@@ -289,5 +313,24 @@ final class SettingsStore: ObservableObject {
         if let data = try? JSONEncoder().encode(segments) {
             UserDefaults.standard.set(data, forKey: "dictionarySegments")
         }
+    }
+}
+
+// Speech engine choice as the Models page offers it. Each assignment is skipped when unchanged:
+// @Published emits on every set, and every emission reloads the engine.
+extension SettingsStore {
+    func isInUse(_ engine: LocalEngine) -> Bool {
+        transcriptionEngine == .local && localEngine == engine
+    }
+
+    var isCloudInUse: Bool { transcriptionEngine == .cloud }
+
+    func use(_ engine: LocalEngine) {
+        if localEngine != engine { localEngine = engine }
+        if transcriptionEngine != .local { transcriptionEngine = .local }
+    }
+
+    func useCloud() {
+        if transcriptionEngine != .cloud { transcriptionEngine = .cloud }
     }
 }

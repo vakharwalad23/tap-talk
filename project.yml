@@ -8,12 +8,16 @@ options:
 packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
-    exactVersion: "0.17.5"
+    exactVersion: "0.18.4"
     traits: []
   OrukeetCoreML:
     path: TapTalk/Vendor/OrukeetCoreML
   TapTalkAudio:
     path: TapTalk/Audio
+  TapTalkUpdates:
+    path: TapTalk/Updates
+  TapTalkLearning:
+    path: TapTalk/Learning
 
 targets:
   TapTalk:
@@ -24,6 +28,8 @@ targets:
       - package: OrukeetCoreML
         product: OrukeetCoreML
       - package: TapTalkAudio
+      - package: TapTalkUpdates
+      - package: TapTalkLearning
     sources:
       - path: TapTalk
         excludes:
@@ -33,6 +39,8 @@ targets:
           # SwiftPM .build output inside them is not swept into the app target (duplicate tasks).
           - "Vendor/OrukeetCoreML"
           - "Audio"
+          - "Updates"
+          - "Learning"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: talk.tap.app

@@ -17,7 +17,7 @@ make run          # full build + launch
 make build        # build without launching
 make rust         # rebuild Rust only
 make bindings     # regenerate Swift bindings
-make test         # Rust and TapTalkAudio tests
+make test         # Rust, TapTalkAudio, TapTalkUpdates and TapTalkLearning tests
 make clean        # remove all build artifacts
 ```
 
@@ -26,6 +26,8 @@ make clean        # remove all build artifacts
 - `core/` - Rust static library (LLM downloads, cloud transcription)
 - `TapTalk/` - SwiftUI app source
 - `TapTalk/Audio/` - TapTalkAudio Swift package: capture, VAD, gain (`make test`)
+- `TapTalk/Updates/` - TapTalkUpdates Swift package: release check logic for update notices (`make test`)
+- `TapTalk/Learning/` - TapTalkLearning Swift package: word rules, learned fixes (`make test`)
 - `TapTalk/Generated/` - UniFFI-generated bindings (rebuild with `make bindings`)
 - `project.yml` - xcodegen spec (generates `.xcodeproj`)
 - `scripts/` - build helper scripts

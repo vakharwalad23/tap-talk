@@ -1,10 +1,11 @@
 # Models and inference engines
 
 TapTalk ships **no model weights**. Everything is downloaded on explicit user action, from the
-publisher, to `~/Library/Application Support/` - except the 0.9 MB Silero VAD model, a pipeline
-component rather than a user-chosen model, which downloads at launch from a pinned revision with
-per-file SHA-256 checks. Nothing model-shaped is in the app bundle, the DMG or this repository -
-see [`../MODEL-LICENSES.md`](../MODEL-LICENSES.md) for why that boundary matters legally.
+publisher, to `~/Library/Application Support/`. The 0.9 MB Silero VAD model, a pipeline component
+rather than a user-chosen model, comes with the first speech set-up click (a model download or
+choosing Cloud), from a pinned revision with per-file SHA-256 checks. Nothing model-shaped is in
+the app bundle, the DMG or this repository - see [`../MODEL-LICENSES.md`](../MODEL-LICENSES.md) for
+why that boundary matters legally.
 
 Orukeet downloads read `coreml/manifest.json` from the same immutable Hugging Face
 revision as the archive. The installer verifies the selected filename, the
@@ -23,6 +24,8 @@ download accounting. Cached model loads and transcription make no such requests.
 | **Silero VAD v6 (32 ms Core ML)** | Silence trimming before recognition | ~0.9 MB | Core ML, CPU (Core ML places no Silero op on the ANE) | MIT |
 | **Qwen 2.5 1.5B Instruct (GGUF q4_k_m)** | Smart Mode rewrite | 1.06 GB | llama.cpp, pinned release `b10107` | Apache-2.0 |
 | OpenAI Whisper (cloud) | Optional, opt-in, off by default | - | OpenAI API | - |
+
+The FluidAudio rows run on FluidAudio 0.18.4.
 
 Memory is much lower than disk size suggests, because Core ML weights and the GGUF are
 memory-mapped: the app sits at ~164 MB with Parakeet loaded, and `llama-server` at ~279 MB
@@ -55,6 +58,16 @@ Bengali, Gujarati, Tamil, Telugu, Kannada, Malayalam and Punjabi. Those language
 inaccurate, they are *impossible* to emit. Devanagari (196 tokens), Arabic (252), CJK (6,907) and
 Kana (217) all work. The language picker is restricted to what the vocabulary can actually produce,
 which is why it is shorter than the model's advertised language list.
+
+**Nemotron's encoder file.** Since FluidAudio 0.18.4 a new download of the 2240 ms tier gets
+`encoder_v2.mlmodelc` in place of `encoder.mlmodelc` (FluidAudio #1141): same weights and outputs,
+with one concat rewritten so the M2 and M3 Neural Engines can compile it, where the original falls
+back to the CPU. Existing installs keep their encoder and so stay on the CPU on those chips; the
+loader prefers v2 when both exist, and `NemotronEngine.isInstalled()` accepts either. FluidAudio
+also notes that the M3 Pro Neural Engine rejects the single 2240 ms encoder (about 4 min first load,
+about 2 GB). The split encoder (FluidAudio #1116, #1142) targets that and is not yet verified on
+an M3 Pro; it needs a new download and the measurements in "Adding or changing a model" before it
+is adopted.
 
 **Qwen 2.5 1.5B for the rewrite**, kept rather than replaced with something smaller. A 0.6B model
 would be roughly 2.5x faster, but the 1.5B *already* fabricates occasionally - it has invented a

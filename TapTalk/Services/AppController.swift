@@ -3,6 +3,7 @@ import Carbon.HIToolbox
 import AVFoundation
 import Combine
 import TapTalkAudio
+import TapTalkLearning
 import os
 
 /// App-level singleton. Owns recorder, engines, state, and hotkey registration.
@@ -27,8 +28,16 @@ final class AppController: ObservableObject {
     private var appNapToken: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
     private var didBecomeActiveObserver: NSObjectProtocol?
-    private var hasRequestedAccessibilityPermission = false
     private var recordingWatchdog: DispatchWorkItem?
+    // Core Audio start can block for seconds while a Bluetooth device changes mode, and a blocked
+    // main thread makes macOS disable the hotkey tap, losing the key release. Starts run here in
+    // press order; every stop waits behind them. recordingGeneration lets a late start failure
+    // tell whether the recording it belonged to is still the current one.
+    private let captureQueue = DispatchQueue(label: "talk.tap.capture", qos: .userInteractive)
+    private var recordingGeneration = 0
+    // A hotkey change made while recording (Smart Mode switched, a key rebound) waits here and is
+    // applied the moment the recording ends, so it never touches the tap mid-press.
+    private var hotkeySetupPending = false
 
     // Bumped on every engine (re)load so a superseded async load/unload can no-op instead
     // of racing the newer one. All engine load/unload runs serialized through engineTask.
@@ -76,19 +85,30 @@ final class AppController: ObservableObject {
     /// Called once at app launch.
     func setup() {
         suppressAppNap()
+        LlamaServerManager.stopOrphanedServer()
         sweepDownloadResidue()
         reconcileStreamingFlag()
         warmUpStreamingEngineIfNeeded()
         MainActor.assumeIsolated {
             OrukeetMigration.shared.evaluate()
             self.reconcileEngineSelection()
+            UpdateService.shared.start()
         }
         refresh()
         FloatingPillController.shared.hide()
-        resolveMicThenSetupHotkey()
+        setupAudioAndHotkey()
         observeBackendChanges()
         observeSystemEvents()
         observeMemoryPressure()
+        state.markLaunchResolved()
+        // Learned rules and the spell checker cost 8 to 46 ms on first use; paid after launch instead of
+        // inside the first recording. Both are main-actor only.
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                _ = LearnedCorrections.shared
+                if SettingsStore.shared.learnCorrections { CorrectionLearner.warmSpelling() }
+            }
+        }
     }
 
     // Holding a model resident is a bet that RAM is free. Let the system settle that bet rather
@@ -150,6 +170,8 @@ final class AppController: ObservableObject {
             guard let self = self else { return }
             guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                   app.bundleIdentifier == Bundle.main.bundleIdentifier else { return }
+            // Returning from System Settings is when a microphone grant or denial changes.
+            MainActor.assumeIsolated { PermissionService.shared.refresh() }
             self.setupHotkey()
         }
     }
@@ -176,6 +198,15 @@ final class AppController: ObservableObject {
             }
             .store(in: &settingsCancellables)
 
+        // Smart Mode on or off arms or disarms the Smart key at once. Delivered after the property
+        // changes; @Published emits before its new value is stored, and setupHotkey reads it.
+        settings.$llmEnabled
+            .dropFirst()
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.setupHotkey() }
+            .store(in: &settingsCancellables)
+
         // Reload the active engine when the user switches transcription engine or local model.
         settings.$localEngine
             .combineLatest(settings.$transcriptionEngine)
@@ -194,13 +225,6 @@ final class AppController: ObservableObject {
             .removeDuplicates()
             .filter { $0 }
             .sink { _ in Task.detached { await EouStreamingEngine.warmUp() } }
-            .store(in: &settingsCancellables)
-
-        // Applies on the next key press; nothing opens the microphone here.
-        settings.$useBuiltInMicrophone
-            .dropFirst()
-            .removeDuplicates()
-            .sink { [weak self] builtIn in self?.recorder.setInputPreference(builtIn ? .builtIn : .systemDefault) }
             .store(in: &settingsCancellables)
     }
 
@@ -241,47 +265,65 @@ final class AppController: ObservableObject {
         state.audioDuration = 0
     }
 
-    // Ensures mic permission is resolved before the hotkey goes live, so the permission dialog
-    // can never interrupt a key press and leave a recording stuck waiting for key-up.
-    private func resolveMicThenSetupHotkey() {
-        switch AVCaptureDevice.authorizationStatus(for: .audio) {
-        case .authorized:
+    // Launch never prompts: the setup card asks for each permission when the user clicks it. A key
+    // press without the microphone fails with a status line, never a dialog mid-press.
+    private func setupAudioAndHotkey() {
+        // Swept here, before any click can start a fetch whose partial folder this would delete.
+        let store = vadStore
+        store.sweepResidue()
+        state.voiceDetector = store.isInstalled() ? .installed : .missing
+        if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
             warmUpAudioStream()
-            setupHotkey()
-        case .denied, .restricted:
-            setupHotkey()
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
-                DispatchQueue.main.async {
-                    if granted { self?.warmUpAudioStream() }
-                    self?.setupHotkey()
-                }
-            }
-        @unknown default:
-            setupHotkey()
         }
+        setupHotkey()
     }
 
     // Builds the audio graph off the main thread once permission is granted, so device setup never
-    // lands inside the hotkey callback. Silero downloads here when missing (~0.9 MB, pinned); until
-    // it is installed, recordings are transcribed untrimmed.
-    private func warmUpAudioStream() {
+    // lands inside the hotkey callback. Silero loads here only when installed: it is fetched after a
+    // click that sets up speech, and until then recordings are transcribed untrimmed.
+    func warmUpAudioStream() {
         let rec = recorder
-        rec.setInputPreference(settings.useBuiltInMicrophone ? .builtIn : .systemDefault)
         rec.setLevelHandler { rms in
             DispatchQueue.main.async { FloatingPillController.shared.setLevel(rms) }
         }
-        let store = VadModelStore(modelsDirectory: URL(fileURLWithPath: Self.modelsDirectory(), isDirectory: true))
+        let store = vadStore
         Task.detached {
             try? rec.warmUp()
+            guard store.isInstalled() else { return }
+            await Self.loadVoiceActivity(into: rec, from: store)
+        }
+    }
+
+    /// Fetches Silero (~0.9 MB, pinned) after a click that sets up speech; a no-op once it is on disk.
+    @MainActor func fetchVoiceDetectorIfMissing() {
+        guard state.voiceDetector == .missing else { return }
+        state.voiceDetector = .fetching
+        let rec = recorder
+        let store = vadStore
+        Task.detached {
             do {
-                store.sweepResidue()
-                if !store.isInstalled() { try await store.install() }
-                try await rec.loadVoiceActivity(modelURL: store.modelURL)
+                try await store.install()
             } catch {
                 Logger(subsystem: "talk.tap.app", category: "audio").error(
-                    "voice activity unavailable, recordings stay untrimmed: \(error.localizedDescription, privacy: .public)")
+                    "voice activity download failed: \(error.localizedDescription, privacy: .public)")
+                await MainActor.run { AppController.shared.state.voiceDetector = .missing }
+                return
             }
+            await MainActor.run { AppController.shared.state.voiceDetector = .installed }
+            await Self.loadVoiceActivity(into: rec, from: store)
+        }
+    }
+
+    private var vadStore: VadModelStore {
+        VadModelStore(modelsDirectory: URL(fileURLWithPath: Self.modelsDirectory(), isDirectory: true))
+    }
+
+    private static func loadVoiceActivity(into rec: DictationRecorder, from store: VadModelStore) async {
+        do {
+            try await rec.loadVoiceActivity(modelURL: store.modelURL)
+        } catch {
+            Logger(subsystem: "talk.tap.app", category: "audio").error(
+                "voice activity unavailable, recordings stay untrimmed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -362,9 +404,13 @@ final class AppController: ObservableObject {
 
         // Serialize all engine load/unload through one chain so a rapid switch can't run an
         // unload after the next load; stale plans no-op via the generation check.
+        // A dictation already transcribing loads and holds its own engine; switching after it lets
+        // releaseEngines free that engine too, instead of leaving both resident until idle release.
         let previous = engineTask
+        let inFlight = transcribeTask
         engineTask = Task { [weak self] in
             await previous?.value
+            await inFlight?.value
             guard let self, await self.isCurrentGeneration(gen) else { return }
             await self.applyEnginePlan(plan, generation: gen)
         }
@@ -476,25 +522,59 @@ final class AppController: ObservableObject {
     }
 
     func startRecording(hotkey: Bool, smart: Bool) {
+        // A new press supersedes a dictation that is still transcribing or rewriting.
+        if state.transcribing || state.rewriting { cancelTranscription() }
         guard state.canRecord else { return }
         cancelIdleRelease()
-        if state.transcribing { cancelTranscription() }
         let liveSink = shouldStream(smart: smart) ? beginStreamingSession() : nil
-        do {
-            try recorder.start(liveSink: liveSink)
-            state.beginRecording(hotkey: hotkey, smart: smart)
-            state.status = "Recording..."
-            AppRecordingState.shared.isRecording = true
-            FloatingPillController.shared.show(state: .recording)
-            startRecordingWatchdog()
-        } catch {
+        recordingGeneration &+= 1
+        let generation = recordingGeneration
+        state.beginRecording(hotkey: hotkey, smart: smart)
+        state.status = "Recording..."
+        AppRecordingState.shared.isRecording = true
+        FloatingPillController.shared.show(state: .recording)
+        startRecordingWatchdog()
+        captureQueue.async { [weak self, recorder] in
+            do {
+                try recorder.start(liveSink: liveSink)
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { CorrectionLearner.shared.dictationStarted(generation: generation) }
+                }
+            } catch {
+                DispatchQueue.main.async { self?.captureFailed(error, generation: generation) }
+            }
+        }
+    }
+
+    // Unwinds a recording whose microphone never started. A key release that already moved it on
+    // to transcribing finds nothing recorded and finishes quietly, so the reason shown is this one.
+    private func captureFailed(_ error: Error, generation: Int) {
+        guard generation == recordingGeneration else { return }
+        if state.recording {
+            cancelRecordingWatchdog()
+            state.cancel()
+            applyPendingHotkeySetup()
+            AppRecordingState.shared.isRecording = false
+            FloatingPillController.shared.hide()
             if let engine = streamingEngine {
                 liveInserter.cancel()
                 tearDownStreamingSession()
                 Task.detached { await engine.cancel() }
             }
+        }
+        // Before the first grant there is no TapTalk entry in System Settings to switch on yet.
+        if case .permissionDenied? = error as? AudioCaptureError,
+           AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+            state.status = "Microphone not allowed yet - click Allow on the Record page"
+        } else {
             state.status = "Error: \(error.localizedDescription)"
         }
+    }
+
+    // Waits behind any start still queued, so a fast release never stops a capture before it began.
+    private func stopCapture(_ mode: DictationRecorder.StopMode) async throws -> RecordedAudio {
+        await withCheckedContinuation { continuation in captureQueue.async { continuation.resume() } }
+        return try await recorder.stop(mode)
     }
 
     // Whether the current recording should stream live text. Smart Mode opts out - the LLM
@@ -586,6 +666,10 @@ final class AppController: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + maxRecordingSeconds, execute: work)
     }
 
+    private func applyPendingHotkeySetup() {
+        if hotkeySetupPending { setupHotkey() }
+    }
+
     private func cancelRecordingWatchdog() {
         recordingWatchdog?.cancel()
         recordingWatchdog = nil
@@ -600,6 +684,7 @@ final class AppController: ObservableObject {
         state.cancel()
         state.status = "Cancelled"
         AppRecordingState.shared.isRecording = false
+        applyPendingHotkeySetup()
         FloatingPillController.shared.hide()
         scheduleIdleRelease()
 
@@ -611,8 +696,8 @@ final class AppController: ObservableObject {
             liveInserter.cancel()
             tearDownStreamingSession()
         }
-        Task.detached { [recorder, activeStreamingEngine] in
-            _ = try? await recorder.stop(.discard)
+        Task.detached { [self, activeStreamingEngine] in
+            _ = try? await stopCapture(.discard)
             if let engine = activeStreamingEngine { await engine.cancel() }
         }
     }
@@ -636,6 +721,7 @@ final class AppController: ObservableObject {
         state.beginTranscribing()
         state.status = "Transcribing..."
         AppRecordingState.shared.isRecording = false
+        applyPendingHotkeySetup()
         FloatingPillController.shared.show(state: .transcribing)
 
         // Streaming session: text was typed live; just finalize, reconcile, and clean up.
@@ -643,15 +729,16 @@ final class AppController: ObservableObject {
             // Clear instance var immediately so a concurrent cancelRecording can't re-touch
             // this engine while the detached finish() is in flight.
             self.streamingEngine = nil
-            let segments = settings.dictionarySegments
+            let dictionaryRules = settings.dictionaryRules
+            let learnedRules = MainActor.assumeIsolated { LearnedCorrections.shared.rules }
             let hotkeyTriggeredLocal = hotkeyTriggered
             transcribeTask = Task.detached { [weak self] in
                 guard let self else { return }
                 // Discard still flushes the final audio into the EOU FIFO before finish() drains it.
-                _ = try? await self.recorder.stop(.discard)
+                _ = try? await self.stopCapture(.discard)
                 do {
                     let final = try await engine.finish()
-                    let processed = PostProcessingService.applyDictionary(final, segments: segments)
+                    let processed = learnedRules.apply(dictionaryRules.apply(final))
                     await MainActor.run {
                         guard !Task.isCancelled else { return }
                         let typed = self.liveInserter.commit(processed)
@@ -675,8 +762,11 @@ final class AppController: ObservableObject {
                             if !typed {
                                 PasteService.paste(processed)
                             }
+                            CorrectionLearner.shared.didPaste(processed)
                             if hotkeyTriggeredLocal {
-                                FloatingPillController.shared.show(state: .done)
+                                FloatingPillController.shared.show(
+                                    state: CorrectionLearner.shared.takeNotice(generation: self.recordingGeneration).map(PillState.notice) ?? .done
+                                )
                             } else {
                                 FloatingPillController.shared.hide()
                             }
@@ -704,7 +794,8 @@ final class AppController: ObservableObject {
         let localEngine = settings.localEngine
         let cloudModel  = settings.cloudModel
         let apiKey     = settings.apiKey
-        let segments   = settings.dictionarySegments
+        let dictionaryRules = settings.dictionaryRules
+        let learnedRules = MainActor.assumeIsolated { LearnedCorrections.shared.rules }
         let llmEnabled = settings.llmEnabled
         let llmBackend = settings.llmBackend
         let llmClient  = makeLLMClient(settings: settings)
@@ -715,13 +806,18 @@ final class AppController: ObservableObject {
         let rewriteOptions = smartMode ? settings.rewriteOptions : []
         let hindiScript = settings.hindiScript
 
+        // Recording is allowed while the engine loads; transcribe waits for that load to land
+        // rather than starting a second one beside it.
+        let pendingLoad = engineTask
+
         var trace = LatencyTrace()
 
         transcribeTask = Task.detached { [weak self] in
             guard let self = self else { return }
             do {
-                let audio = try await self.recorder.stop(.transcribe)
+                let audio = try await self.stopCapture(.transcribe)
                 trace.mark("audio")
+                await pendingLoad?.value
 
                 if Task.isCancelled {
                     await MainActor.run {
@@ -756,7 +852,7 @@ final class AppController: ObservableObject {
                 if Task.isCancelled { return }
                 trace.mark("asr")
 
-                var processed = PostProcessingService.applyDictionary(result.text, segments: segments)
+                var processed = dictionaryRules.apply(result.text)
 
                 // Script conversion is its own reason to call the model - a user who picked Roman
                 // should get Roman without also having to enable a rewrite mode.
@@ -788,6 +884,9 @@ final class AppController: ObservableObject {
                     trace.mark("llm")
                 }
 
+                // Learned fixes apply to exactly the kind of text they were learned from: what was pasted.
+                processed = learnedRules.apply(processed)
+
                 // Snapshot before crossing to the main actor - the closure must not capture
                 // the mutable locals it was still writing to a moment ago.
                 let finalTrace = trace
@@ -818,8 +917,11 @@ final class AppController: ObservableObject {
                         }
                         if hotkeyTriggered {
                             PasteService.paste(finalText)
+                            CorrectionLearner.shared.didPaste(finalText)
                             finalTrace.finish("paste")
-                            FloatingPillController.shared.show(state: .done)
+                            FloatingPillController.shared.show(
+                                    state: CorrectionLearner.shared.takeNotice(generation: self.recordingGeneration).map(PillState.notice) ?? .done
+                                )
                         } else {
                             FloatingPillController.shared.hide()
                         }
@@ -827,10 +929,12 @@ final class AppController: ObservableObject {
                     self.scheduleIdleRelease()
                 }
             } catch {
+                // notRecording: the microphone never started and captureFailed already said why.
+                let captureNeverStarted = (error as? AudioCaptureError) == .notRecording
                 await MainActor.run {
                     guard !Task.isCancelled else { return }
                     self.state.finish()
-                    self.state.status = "Error: \(error.localizedDescription)"
+                    if !captureNeverStarted { self.state.status = "Error: \(error.localizedDescription)" }
                     FloatingPillController.shared.hide()
                     self.scheduleIdleRelease()
                 }
@@ -840,17 +944,16 @@ final class AppController: ObservableObject {
 
     /// Registers (or re-registers) the global hotkey with the current key code.
     /// Safe to call multiple times - unregisters first.
-    /// Only blocked during active recording (user holding key); transcribing/rewriting
-    /// must not block because the tap may need re-creation after invalidation.
+    /// Deferred during active recording (user holding key) and applied when it ends;
+    /// transcribing/rewriting must not block because the tap may need re-creation after invalidation.
     func setupHotkey() {
-        guard !state.recording else { return }
-        guard AccessibilityService.hasPermission else {
+        guard !state.recording else { hotkeySetupPending = true; return }
+        hotkeySetupPending = false
+        guard PermissionService.isAccessibilityTrusted else {
             state.hotkeyActive = false
-            if !hasRequestedAccessibilityPermission {
-                hasRequestedAccessibilityPermission = true
-                AccessibilityService.requestPermission()
-                startPermissionPoller()
-            }
+            // A new grant may need its own restart, so an earlier attempt no longer counts.
+            MainActor.assumeIsolated { PermissionService.shared.clearRestartAttempt() }
+            startPermissionPoller()
             return
         }
 
@@ -860,7 +963,6 @@ final class AppController: ObservableObject {
         HotkeyService.shared.register(
             keyDown: { [weak self] in
                 guard let self else { return }
-                if state.transcribing { cancelTranscription() }
                 startRecording(hotkey: true, smart: false)
             },
             keyUp: { [weak self] in
@@ -869,12 +971,14 @@ final class AppController: ObservableObject {
             }
         )
 
-        if settings.smartHotkeyEnabled {
+        // Smart Mode's one switch arms its key, so setting Smart Mode up needs no second trip. A Smart key
+        // equal to the dictation key would never fire (the tap matches the dictation key first); Settings
+        // flags that pair instead.
+        if settings.llmEnabled && settings.smartHotkeyCode != settings.hotkeyCode {
             HotkeyService.shared.setSmartKeyCode(settings.smartHotkeyCode)
             HotkeyService.shared.registerSmart(
                 keyDown: { [weak self] in
                     guard let self else { return }
-                    if state.transcribing { cancelTranscription() }
                     startRecording(hotkey: true, smart: true)
                     prewarmRewrite()
                 },
@@ -886,6 +990,10 @@ final class AppController: ObservableObject {
         }
 
         state.hotkeyActive = HotkeyService.shared.isTapAlive
+        // tapCreate can keep failing after a grant until the process restarts. A grant the tap cannot
+        // use yet is offered a relaunch on the setup card, never another reset of a valid grant.
+        state.hotkeyNeedsRestart = !state.hotkeyActive
+        if state.hotkeyActive { MainActor.assumeIsolated { PermissionService.shared.clearRestartAttempt() } }
         permissionPoller?.invalidate()
         permissionPoller = nil
     }
@@ -893,34 +1001,14 @@ final class AppController: ObservableObject {
     private func startPermissionPoller() {
         guard permissionPoller == nil else { return }
         let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
-            guard AccessibilityService.hasPermission else { return }
+            guard PermissionService.isAccessibilityTrusted else { return }
             DispatchQueue.main.async {
-                self?.hasRequestedAccessibilityPermission = false
-                self?.setupHotkey()
-                // tapCreate fails for unsigned apps until the process restarts after
-                // the first-ever accessibility grant - prompt restart if tap is still dead
-                if self?.state.hotkeyActive == false {
-                    self?.promptRestartForAccessibility()
-                }
+                // setupHotkey skips during a recording; retry on the next tick instead of reading that as dead.
+                guard let self, !self.state.recording else { return }
+                self.setupHotkey()
             }
         }
         RunLoop.main.add(timer, forMode: .common)
         permissionPoller = timer
-    }
-
-    private func promptRestartForAccessibility() {
-        permissionPoller?.invalidate()
-        permissionPoller = nil
-        let alert = NSAlert()
-        alert.messageText = "Restart Required"
-        alert.informativeText = "TapTalk needs to restart to activate the global hotkey after accessibility permission is granted."
-        alert.addButton(withTitle: "Restart Now")
-        alert.addButton(withTitle: "Later")
-        if alert.runModal() == .alertFirstButtonReturn {
-            let url = URL(fileURLWithPath: Bundle.main.bundlePath)
-            let config = NSWorkspace.OpenConfiguration()
-            NSWorkspace.shared.openApplication(at: url, configuration: config)
-            NSApp.terminate(nil)
-        }
     }
 }

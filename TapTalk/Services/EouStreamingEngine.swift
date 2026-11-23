@@ -88,7 +88,7 @@ actor EouStreamingEngine: StreamingTranscriber {
     nonisolated static func warmUp() async {
         guard isInstalled() else { return }
         let mgr = StreamingEouAsrManager(chunkSize: .ms320)
-        _ = try? await mgr.loadModels()
+        _ = try? await mgr.loadModels(from: variantDirectory())
         await mgr.cleanup()
     }
 
@@ -105,7 +105,9 @@ actor EouStreamingEngine: StreamingTranscriber {
         guard Self.isInstalled() else { throw EngineError.notInstalled }
 
         let mgr = StreamingEouAsrManager(chunkSize: .ms320)
-        try await mgr.loadModels()
+        // loadModels(from:) reads only this folder; the parameterless form re-downloads missing or
+        // broken files, which must only happen inside a user-started download.
+        try await mgr.loadModels(from: Self.variantDirectory())
         self.manager = mgr
 
         let (out, outCont) = AsyncStream<StreamingUpdate>.makeStream()
@@ -116,6 +118,12 @@ actor EouStreamingEngine: StreamingTranscriber {
         // (no volatile tail), so confirmed = partial, volatile = "".
         await mgr.setPartialTranscriptCallback { [weak self] partial in
             Task { await self?.emitPartial(partial) }
+        }
+
+        // After a confirmed end of utterance the decoder stays silent until its state is rebuilt, so
+        // words after a pause would be lost. Rearm replays the audio since the pause and keeps the transcript.
+        await mgr.setEouCallback { [weak self] _ in
+            Task { await self?.rearmAfterPause() }
         }
 
         // Drain FIFO input -> manager.appendAudio + processBufferedAudio in arrival order.
@@ -139,24 +147,28 @@ actor EouStreamingEngine: StreamingTranscriber {
         await consumerTask?.value
         consumerTask = nil
         let final = try await mgr.finish()
+        manager = nil
         updateContinuation?.yield(StreamingUpdate(confirmed: final, volatile: "", isFinal: true))
         updateContinuation?.finish()
         await mgr.cleanup()
-        manager = nil
         return final
     }
 
     func cancel() async {
         inputContinuation.finish()
         consumerTask?.cancel(); consumerTask = nil
-        if let mgr = manager {
-            await mgr.cleanup()
-        }
-        updateContinuation?.finish()
+        let mgr = manager
         manager = nil
+        await mgr?.cleanup()
+        updateContinuation?.finish()
     }
 
     private func emitPartial(_ partial: String) {
         updateContinuation?.yield(StreamingUpdate(confirmed: partial, volatile: "", isFinal: false))
+    }
+
+    // finish() and cancel() drop the manager before cleanup, so a rearm arriving after that does nothing.
+    private func rearmAfterPause() async {
+        try? await manager?.rearm(keepTranscript: true)
     }
 }

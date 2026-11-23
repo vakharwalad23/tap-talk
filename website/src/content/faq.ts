@@ -62,7 +62,7 @@ export const faq: readonly FaqItem[] = [
 	{
 		question: "Does it collect any telemetry?",
 		answer:
-			"None. No analytics, no crash reporting, no phone-home. There are no network requests beyond cloud transcription when you explicitly enable it.",
+			"None. No analytics, no crash reporting. There are no network requests unless you turn on cloud transcription or update checks.",
 	},
 	{
 		question: "Is there a word or time limit?",
@@ -82,7 +82,7 @@ export const faq: readonly FaqItem[] = [
 	{
 		question: "Why do my Bluetooth headphones sound worse while I dictate?",
 		answer:
-			"While an app records from Bluetooth headphones, macOS switches them to a lower-quality headset mode. Turn on Use the built-in microphone in TapTalk Settings, under Microphone, and TapTalk records with your Mac's own microphone instead. Macs without one, such as Mac mini, Mac Studio and Mac Pro, do not show the option.",
+			"While an app records from Bluetooth headphones, macOS switches them to a lower-quality headset mode. TapTalk avoids this on its own: when Bluetooth headphones are your default input and the lid is open, it records with your Mac's built-in microphone instead. With the lid closed, or on a Mac without a built-in microphone such as Mac mini, Mac Studio and Mac Pro, it uses the input selected in System Settings, Sound.",
 	},
 	{
 		question: "How do I install it?",

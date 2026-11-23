@@ -108,13 +108,29 @@ final class HotkeyService {
         smartIsHeld = false
     }
 
+    // A release that lands while macOS has the tap disabled is never delivered, which left a
+    // recording running and, with isHeld stuck, kept the health check from ever repairing the tap.
+    // Called only once events may have been lost, so a held key ends there.
+    // ponytail: a key still held at that moment ends early; the physical state is not readable
+    // here (CGEventSource.keyState reports a held Right Cmd as released, measured 2026-11-19).
+    fileprivate func releaseHeldKeys() {
+        if isHeld {
+            isHeld = false
+            DispatchQueue.main.async { self.onKeyUp?() }
+        }
+        if smartIsHeld {
+            smartIsHeld = false
+            DispatchQueue.main.async { self.onSmartKeyUp?() }
+        }
+    }
+
     // Catches the "silent inert tap" failure mode where tapDisabledByTimeout never fires.
-    // Also recovers from taps disabled by system policy changes.
+    // Also recovers from taps disabled by system policy changes. A healthy tap is left alone,
+    // held key or not: its release is still coming.
     private func startHealthCheck() {
         healthTimer?.invalidate()
         let timer = Timer(timeInterval: 5.0, repeats: true) { [weak self] _ in
             guard let self, self.onKeyDown != nil else { return }
-            guard !self.isHeld, !self.smartIsHeld else { return }
 
             guard let tap = self.eventTap else {
                 self.startTap()
@@ -122,6 +138,7 @@ final class HotkeyService {
             }
 
             if !CGEvent.tapIsEnabled(tap: tap) {
+                self.releaseHeldKeys()
                 CGEvent.tapEnable(tap: tap, enable: true)
                 if !CGEvent.tapIsEnabled(tap: tap) {
                     self.startTap()
@@ -145,8 +162,7 @@ private func hotkeyCallback(
 
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         if let tap = service.eventTap {
-            service.isHeld = false
-            service.smartIsHeld = false
+            service.releaseHeldKeys()
             CGEvent.tapEnable(tap: tap, enable: true)
         }
         return Unmanaged.passUnretained(event)

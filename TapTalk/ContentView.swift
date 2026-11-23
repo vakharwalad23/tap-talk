@@ -1,12 +1,11 @@
 import SwiftUI
 
 enum NavItem: String, CaseIterable {
-    case record       = "Record"
-    case models       = "Models"
-    case settings     = "Settings"
-    case intelligence = "Intelligence"
-    case privacy      = "Privacy"
-    case about        = "About"
+    case record   = "Record"
+    case models   = "Models"
+    case words    = "Words"
+    case settings = "Settings"
+    case about    = "About"
 }
 
 struct ContentView: View {
@@ -28,12 +27,11 @@ struct ContentView: View {
     @ViewBuilder
     private var content: some View {
         switch nav.selection {
-        case .record:       RecordView()
-        case .models:       ModelsPage()
-        case .settings:     SettingsView()
-        case .intelligence: IntelligenceView()
-        case .privacy:      PrivacyView()
-        case .about:        AboutView()
+        case .record:   RecordView()
+        case .models:   ModelsView()
+        case .words:    WordsView()
+        case .settings: SettingsView()
+        case .about:    AboutView()
         }
     }
 
@@ -74,28 +72,5 @@ struct SidebarView: View {
                 )
         }
         .buttonStyle(.plain)
-    }
-}
-
-struct ModelsPage: View {
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Models")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(AppTheme.primary)
-                    Text("Run entirely on your device - no internet required.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppTheme.tertiary)
-                }
-
-                ModelDownloader()
-
-                Spacer()
-            }
-            .padding(24)
-        }
-        .background(AppTheme.windowBg)
     }
 }
