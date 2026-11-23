@@ -18,6 +18,8 @@ packages:
     path: TapTalk/Updates
   TapTalkLearning:
     path: TapTalk/Learning
+  TapTalkHotkeys:
+    path: TapTalk/Hotkeys
 
 targets:
   TapTalk:
@@ -30,6 +32,7 @@ targets:
       - package: TapTalkAudio
       - package: TapTalkUpdates
       - package: TapTalkLearning
+      - package: TapTalkHotkeys
     sources:
       - path: TapTalk
         excludes:
@@ -41,6 +44,7 @@ targets:
           - "Audio"
           - "Updates"
           - "Learning"
+          - "Hotkeys"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: talk.tap.app

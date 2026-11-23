@@ -6,6 +6,8 @@ audio, recognition, the rewrite, the hotkey, the paste, the interface.
 ```
 TapTalk/
   Audio/      TapTalkAudio package: capture, 16 kHz conversion, Silero VAD, trim, gain
+  Hotkeys/    TapTalkHotkeys package: the press rule that turns hotkey, key and click events into
+              start, stop and cancel for hold or toggle mode
   Learning/   TapTalkLearning package: compiled word rules, finding fixes, the learning state
   Services/   system interaction and orchestration
   Pages/      full screens (Record, Models, Words, Settings, About). Models is where a speech
@@ -194,9 +196,9 @@ a list already missed a browser installed on the development machine.
 ```bash
 make run      # rust -> bindings -> xcodegen -> xcodebuild -> launch
 make kill     # stop a running instance first; two instances fight over the event tap
-make test     # Rust tests and the TapTalkAudio, TapTalkUpdates and TapTalkLearning package tests
+make test     # Rust tests and the TapTalkAudio, TapTalkUpdates, TapTalkLearning and TapTalkHotkeys package tests
 ```
 
-`make test` runs the Rust tests and the `TapTalkAudio`, `TapTalkUpdates` and `TapTalkLearning` package tests. The rest of the app has no
+`make test` runs the Rust tests and the `TapTalkAudio`, `TapTalkUpdates`, `TapTalkLearning` and `TapTalkHotkeys` package tests. The rest of the app has no
 test target: its logic is prompt composition and enum dispatch, where exhaustive `switch` breakage
 at compile time is a stronger check than a test would be. `make build` failing is the signal.
