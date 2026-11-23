@@ -28,9 +28,12 @@ final class LiveInserter {
     // Snapshot of the user's clipboard at session start. Restored after the final paste so
     // the streaming text doesn't replace whatever the user had copied.
     private var savedClipboard: String?
-    // Scheduled restore. Cancelled (and performed synchronously) on a re-`begin()` so rapid
-    // back-to-back sessions can't capture the transient text as their saved clipboard.
+    // Scheduled restore. Run at once on a re-`begin()` and before a paused session's rest is pasted,
+    // so neither captures the transient text as the user's clipboard.
     private var pendingRestore: DispatchWorkItem?
+    private let restoreDelay: TimeInterval = 0.2
+    // Uptime of this session's last paste insert.
+    private var lastInsertTime: TimeInterval = 0
     // Pasteboard change count right after this session's last paste insert; nil before the first.
     private var lastInsertChangeCount: Int?
     // Set by the user's own key or click in a toggle recording: the caret may have moved, so the
@@ -54,14 +57,8 @@ final class LiveInserter {
     // The frontmost-app PID is stable per app.
     func begin() {
         pendingWork?.cancel(); pendingWork = nil
-        // Drain any pending clipboard restore from a prior session synchronously, so the
-        // snapshot below captures the user's actual clipboard - not the transient text the
-        // previous session pasted.
-        if let restore = pendingRestore {
-            restore.cancel()
-            restore.perform()
-            pendingRestore = nil
-        }
+        // The snapshot below must capture the user's clipboard, not the previous session's transient text.
+        drainPendingRestore()
         inserted = ""
         lastInsertChangeCount = nil
         isPaused = false
@@ -126,13 +123,17 @@ final class LiveInserter {
         guard !isPaused else { return }
         pendingWork?.cancel(); pendingWork = nil
         isPaused = true
-        restoreClipboardSoon(onlyOverOwnInsert: true)
+        // The key that paused may be the Cmd of a Cmd+V: give the clipboard back at once, unless a
+        // live-typing Cmd-V went out less than the restore delay ago and may still be unread.
+        let sinceInsert = ProcessInfo.processInfo.systemUptime - lastInsertTime
+        restoreClipboardSoon(onlyOverOwnInsert: true, after: max(0, restoreDelay - sinceInsert))
     }
 
     // Ends a paused session without touching the screen. Returns what is still to be pasted: the
     // final text after its common prefix with what was typed before the pause.
     func finishPaused(_ finalText: String) -> String {
         pendingWork?.cancel(); pendingWork = nil
+        drainPendingRestore()
         let rest = String(finalText.dropFirst(commonPrefixCount(inserted, finalText)))
         inserted = ""
         return rest
@@ -142,19 +143,28 @@ final class LiveInserter {
     // text on the user's pasteboard. Restore the original contents 200 ms after the final
     // Cmd-V completes (matches PasteService's delay pattern).
     // onlyOverOwnInsert: the user may have copied since (the shortcut was Cmd+C); their copy wins.
-    private func restoreClipboardSoon(onlyOverOwnInsert: Bool = false) {
-        let saved = savedClipboard
+    private func restoreClipboardSoon(onlyOverOwnInsert: Bool = false, after delay: TimeInterval? = nil) {
+        // Nothing saved: an earlier call already took the snapshot, and its pending restore stays.
+        guard let saved = savedClipboard else { return }
         savedClipboard = nil
         let ownInsert = lastInsertChangeCount
         let work = DispatchWorkItem {
             if onlyOverOwnInsert, ownInsert == nil || NSPasteboard.general.changeCount != ownInsert { return }
-            if let saved {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(saved, forType: .string)
-            }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(saved, forType: .string)
         }
+        let wait = delay ?? restoreDelay
+        guard wait > 0 else { work.perform(); return }
         pendingRestore = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait, execute: work)
+    }
+
+    // perform() before cancel(): a cancelled work item no longer runs, not even through perform().
+    private func drainPendingRestore() {
+        guard let restore = pendingRestore else { return }
+        restore.perform()
+        restore.cancel()
+        pendingRestore = nil
     }
 
     // MARK: Reconciliation
@@ -285,6 +295,7 @@ final class LiveInserter {
         board.setData(Data(), forType: .transient)
         board.setData(Data(), forType: .concealed)
         lastInsertChangeCount = board.changeCount
+        lastInsertTime = ProcessInfo.processInfo.systemUptime
 
         let vDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
         let vUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
