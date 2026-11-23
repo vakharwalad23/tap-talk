@@ -569,13 +569,15 @@ final class AppController: ObservableObject {
 
     func startRecording(hotkey: Bool, smart: Bool) {
         // A new press supersedes a dictation that is still transcribing or rewriting.
-        if state.transcribing || state.rewriting { cancelTranscription() }
+        let superseded = state.transcribing || state.rewriting
+        if superseded { cancelTranscription() }
         guard state.canRecord else { return }
         cancelIdleRelease()
         let liveSink = shouldStream(smart: smart) ? beginStreamingSession() : nil
         recordingGeneration &+= 1
         let generation = recordingGeneration
-        statusBeforeRecording = state.status
+        // A superseded dictation was cancelled; a shortcut must not bring back its "Transcribing...".
+        statusBeforeRecording = superseded ? "Cancelled" : state.status
         state.beginRecording(hotkey: hotkey, smart: smart)
         state.status = "Recording..."
         AppRecordingState.shared.isRecording = true
