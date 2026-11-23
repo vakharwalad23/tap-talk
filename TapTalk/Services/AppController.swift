@@ -999,7 +999,11 @@ final class AppController: ObservableObject {
     }
 
     private func handleHotkeyInput(_ input: GestureInput) {
-        switch gesture.handle(input, isRecording: state.recording) {
+        let action = gesture.handle(input, isRecording: state.recording)
+        if let action {
+            Logger(subsystem: "talk.tap.app", category: "hotkey").debug("\(String(describing: action), privacy: .public)")
+        }
+        switch action {
         case .start(let id):
             startRecording(hotkey: true, smart: id == .smart)
             if id == .smart { prewarmRewrite() }
