@@ -568,7 +568,6 @@ final class AppController: ObservableObject {
         let generation = recordingGeneration
         statusBeforeRecording = state.status
         state.beginRecording(hotkey: hotkey, smart: smart)
-        if settings.hotkeyMode == .toggle { displayAwake.hold() }
         state.status = "Recording..."
         AppRecordingState.shared.isRecording = true
         FloatingPillController.shared.show(state: .recording)
@@ -583,6 +582,8 @@ final class AppController: ObservableObject {
                 DispatchQueue.main.async { self?.captureFailed(error, generation: generation) }
             }
         }
+        // After the capture start is queued: the first assertion can take several ms.
+        if settings.hotkeyMode == .toggle { displayAwake.hold() }
     }
 
     // Unwinds a recording whose microphone never started. A key release that already moved it on
