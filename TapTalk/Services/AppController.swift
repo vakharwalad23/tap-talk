@@ -751,7 +751,15 @@ final class AppController: ObservableObject {
                     let processed = learnedRules.apply(dictionaryRules.apply(final))
                     await MainActor.run {
                         guard !Task.isCancelled else { return }
-                        let typed = self.liveInserter.commit(processed)
+                        let typed: Bool
+                        if self.liveInserter.isPaused {
+                            // The caret may have moved since the pause; only the untyped rest goes in, at the caret.
+                            let rest = self.liveInserter.finishPaused(processed)
+                            if !rest.isEmpty { PasteService.paste(rest) }
+                            typed = true
+                        } else {
+                            typed = self.liveInserter.commit(processed)
+                        }
                         // Tear down streaming flags first so the final-transcript card shows
                         // without a one-frame overlap with the streaming preview.
                         self.tearDownStreamingSession()
@@ -1001,7 +1009,9 @@ final class AppController: ObservableObject {
             cancelRecording()
         case .cancelShortcut:
             cancelRecording(silently: true)
-        case .pauseLiveTyping, nil:
+        case .pauseLiveTyping:
+            if streamingEngine != nil { liveInserter.pause() }
+        case nil:
             break
         }
     }

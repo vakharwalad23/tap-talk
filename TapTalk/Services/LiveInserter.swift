@@ -33,6 +33,9 @@ final class LiveInserter {
     private var pendingRestore: DispatchWorkItem?
     // Pasteboard change count right after this session's last paste insert; nil before the first.
     private var lastInsertChangeCount: Int?
+    // Set by the user's own key or click in a toggle recording: the caret may have moved, so the
+    // screen is no longer touched until the next session.
+    private(set) var isPaused = false
 
     // Coalesces rapid hypothesis updates so the path doesn't backspace+retype on every
     // micro-revision.
@@ -61,6 +64,7 @@ final class LiveInserter {
         }
         inserted = ""
         lastInsertChangeCount = nil
+        isPaused = false
         sessionPID = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
         savedClipboard = NSPasteboard.general.string(forType: .string)
         if let (element, _) = currentFocusedElement() {
@@ -73,6 +77,7 @@ final class LiveInserter {
 
     // Reconciles on-screen text with `confirmed + volatile`. Debounced.
     func update(confirmed: String, volatile: String) {
+        guard !isPaused else { return }
         guard !secureInputActive else { return }
         if focusChanged() { return }   // user switched apps; don't type into the new one
         let target = confirmed + volatile
@@ -103,7 +108,7 @@ final class LiveInserter {
     func cancel() {
         pendingWork?.cancel(); pendingWork = nil
         let count = inserted.count
-        if count > 0, !secureInputActive, !focusChanged() {
+        if count > 0, !isPaused, !secureInputActive, !focusChanged() {
             backspace(count)
         }
         inserted = ""
@@ -115,6 +120,22 @@ final class LiveInserter {
         pendingWork?.cancel(); pendingWork = nil
         inserted = ""
         restoreClipboardSoon(onlyOverOwnInsert: true)
+    }
+
+    func pause() {
+        guard !isPaused else { return }
+        pendingWork?.cancel(); pendingWork = nil
+        isPaused = true
+        restoreClipboardSoon(onlyOverOwnInsert: true)
+    }
+
+    // Ends a paused session without touching the screen. Returns what is still to be pasted: the
+    // final text after its common prefix with what was typed before the pause.
+    func finishPaused(_ finalText: String) -> String {
+        pendingWork?.cancel(); pendingWork = nil
+        let rest = String(finalText.dropFirst(commonPrefixCount(inserted, finalText)))
+        inserted = ""
+        return rest
     }
 
     // Pastes use the system clipboard, so each session's last insert leaves the engine's
