@@ -193,7 +193,7 @@ struct SetupCard: View {
     private var microphoneSubtitle: String {
         permissions.microphone == .denied
             ? "Turned off for TapTalk in System Settings"
-            : "Hears you only while you hold the hotkey"
+            : (settings.hotkeyMode == .toggle ? "Hears you only while a recording runs" : "Hears you only while you hold the hotkey")
     }
 
     @ViewBuilder

@@ -50,9 +50,10 @@ If live typing is on, the pipeline sends 16 kHz buffers to the EOU engine instea
 and a separate Parakeet EOU model types words into the focused app as you speak. Live typing and
 Smart Mode are mutually exclusive - a rewrite needs the whole transcript.
 
-**3. Key up** - `DictationRecorder.stop()` stops the IOProc, finishes the last ~32 ms of conversion
-and voice activity, trims to the speech span with six windows of padding, and applies gain to quiet
-speech. Everything else already happened while recording.
+**3. Stop** - on key up (hold to talk) or the next press (press to toggle),
+`DictationRecorder.stop()` stops the IOProc, finishes the last ~32 ms of conversion and voice
+activity, trims to the speech span with six windows of padding, and applies gain to quiet speech.
+Everything else already happened while recording.
 
 **4. Recognition** - `AppController` dispatches to the selected engine: `OrukeetEngine` (the default
 for English and European), `ParakeetEngine` (also English and European, and the base for optional
