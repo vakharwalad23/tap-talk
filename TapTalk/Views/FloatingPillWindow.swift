@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TapTalkLearning
 
 final class FloatingPillController {
     static let shared = FloatingPillController()
@@ -52,9 +53,9 @@ final class FloatingPillController {
 
     private static let smallWidth: CGFloat = 186
     private static let panelHeight: CGFloat = 56
-    // Checkmark 14, two 8 pt gaps, 14 pt capsule padding per side, 12 pt per side for the shadow, and
+    // Checkmark 14, two 8 pt gaps, the capsule padding per side, 12 pt per side for the shadow, and
     // 4 pt for the gap between NSString measurement and SwiftUI rendering.
-    private static let noticeChrome: CGFloat = 14 + 16 + 28 + 24 + 4
+    private static let noticeChrome: CGFloat = 14 + 16 + 2 * PillView.textPadding + 24 + 4
     // Past this a notice truncates rather than spanning the screen.
     private static let maxNoticeWidth: CGFloat = 640
 
@@ -63,6 +64,9 @@ final class FloatingPillController {
     private var widenedFrame: NSRect?
 
     private func apply(_ state: PillState) {
+        #if DEBUG
+        let state = Self.previewState ?? state
+        #endif
         let size = Self.panelSize(for: state)
         if let panel = window, panel.frame.size != size {
             let frame: NSRect
@@ -137,8 +141,32 @@ final class FloatingPillController {
         }
 
         positionWindow(panel, size: size)
+        #if DEBUG
+        Self.applyPreviewAppearance(to: panel)
+        #endif
         window = panel
     }
+
+    #if DEBUG
+    // Holds one state for screenshots: open TapTalk.app --args -TapTalkPillPreview notice
+    // -TapTalkPillAppearance NSAppearanceNameDarkAqua
+    private static let previewState: PillState? = {
+        switch UserDefaults.standard.string(forKey: "TapTalkPillPreview") {
+        case "recording":    return .recording
+        case "transcribing": return .transcribing
+        case "rewriting":    return .rewriting
+        case "done":         return .done
+        case "notice":       return .notice(.learned(LearnedRule(from: "tap talk", to: "TapTalk")))
+        case "notPasted":    return .notPasted
+        default:             return nil
+        }
+    }()
+
+    private static func applyPreviewAppearance(to panel: NSPanel) {
+        guard let name = UserDefaults.standard.string(forKey: "TapTalkPillAppearance") else { return }
+        panel.appearance = NSAppearance(named: NSAppearance.Name(rawValue: name))
+    }
+    #endif
 
     private func positionWindow(_ panel: NSPanel, size: NSSize) {
         guard let screen = NSScreen.main else { return }
