@@ -133,7 +133,8 @@ final class FloatingPillController {
         panel.hasShadow = false
         panel.ignoresMouseEvents = false
         panel.isMovableByWindowBackground = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        // Also over full-screen apps, where a toggle recording must stay visible and cancellable.
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
 
         let hv = PillHostingView(rootView: PillView(holder: holder))
         hv.wantsLayer = true
