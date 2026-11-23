@@ -33,6 +33,8 @@ public struct HotkeyGesture: Sendable {
     }
 
     public var mode: HotkeyMode
+    /// Set while the screen is locked: a modifier tapped to wake it must not start a recording there.
+    public var isScreenLocked = false
     private var phase: Phase = .idle
 
     public init(mode: HotkeyMode) {
@@ -48,6 +50,7 @@ public struct HotkeyGesture: Sendable {
             switch input {
             case .hotkeyDown(let id, let at):
                 if !isRecording {
+                    guard !isScreenLocked else { return nil }
                     phase = .pressing(id, since: at, paused: false)
                     return .start(id)
                 }

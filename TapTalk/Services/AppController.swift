@@ -31,6 +31,9 @@ final class AppController: ObservableObject {
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var sleepObserver: NSObjectProtocol?
     private var lockObserver: NSObjectProtocol?
+    private var unlockObserver: NSObjectProtocol?
+    // ponytail: starts false; launching while locked is not handled (login items start after login).
+    private var isScreenLocked = false
     private var recordingWatchdog: DispatchWorkItem?
     // Core Audio start can block for seconds while a Bluetooth device changes mode, and a blocked
     // main thread makes macOS disable the hotkey tap, losing the key release. Starts run here in
@@ -188,8 +191,14 @@ final class AppController: ObservableObject {
             forName: NSWorkspace.willSleepNotification, object: nil, queue: .main, using: endUnattended
         )
         lockObserver = DistributedNotificationCenter.default().addObserver(
-            forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main, using: endUnattended
-        )
+            forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main
+        ) { [weak self] note in
+            self?.setScreenLocked(true)
+            endUnattended(note)
+        }
+        unlockObserver = DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main
+        ) { [weak self] _ in self?.setScreenLocked(false) }
 
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
@@ -1029,6 +1038,7 @@ final class AppController: ObservableObject {
         let smartArmed = settings.llmEnabled && settings.smartHotkeyCode != settings.hotkeyCode
         HotkeyService.shared.setSmartKeyCode(smartArmed ? settings.smartHotkeyCode : nil)
         gesture = HotkeyGesture(mode: settings.hotkeyMode)
+        gesture.isScreenLocked = isScreenLocked
         HotkeyService.shared.register { [weak self] input in self?.handleHotkeyInput(input) }
 
         state.hotkeyActive = HotkeyService.shared.isTapAlive
@@ -1038,6 +1048,11 @@ final class AppController: ObservableObject {
         if state.hotkeyActive { MainActor.assumeIsolated { PermissionService.shared.clearRestartAttempt() } }
         permissionPoller?.invalidate()
         permissionPoller = nil
+    }
+
+    private func setScreenLocked(_ locked: Bool) {
+        isScreenLocked = locked
+        gesture.isScreenLocked = locked
     }
 
     private var tooShortStatus: String {

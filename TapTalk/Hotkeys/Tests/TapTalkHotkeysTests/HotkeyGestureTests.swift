@@ -104,6 +104,16 @@ final class HotkeyGestureTests: XCTestCase {
         XCTAssertNil(g.handle(.hotkeyDown(.dictation, at: 0), isRecording: true))
     }
 
+    // A modifier tapped to wake a locked screen must not start a recording behind the lock.
+    func testNoStartWhileScreenLocked() {
+        var g = HotkeyGesture(mode: .toggle)
+        g.isScreenLocked = true
+        XCTAssertNil(g.handle(.hotkeyDown(.dictation, at: 0), isRecording: false))
+        XCTAssertNil(g.handle(.hotkeyUp(.dictation), isRecording: false))
+        g.isScreenLocked = false
+        XCTAssertEqual(g.handle(.hotkeyDown(.dictation, at: 5), isRecording: false), .start(.dictation))
+    }
+
     func testOtherKeyDownWhilePressingIgnored() {
         var g = HotkeyGesture(mode: .hold)
         _ = g.handle(.hotkeyDown(.dictation, at: 0), isRecording: false)
