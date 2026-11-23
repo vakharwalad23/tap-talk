@@ -155,6 +155,15 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
   entry, then Cmd-V, then restore.
 - `LiveInserter` - live typing. Prefers an Accessibility range-replace, falls back to pasteboard,
   and permanently disables the AX path after a first failure rather than retrying per keystroke.
+  In a toggle recording it pauses at the user's first own key or click (the caret may have moved);
+  the rest of the text is pasted at the caret on stop.
+- `FloatingPillController` and `PillView` - the pill, in a borderless non-activating panel, on
+  frosted glass (`NSVisualEffectView`, behind-window) in every state. Recording shows a cross
+  (cancel), the elapsed time, level bars and a tick (finish); clicks act at once without taking
+  focus from the target app, and a click on the pill is never shortcut input. The render loop runs
+  only while recording or transcribing. A toggle recording keeps the display awake
+  (`DisplayAwakeAssertion`); a lock, sleep or the 600 s toggle limit transcribes without pasting
+  and the pill shows "Not pasted - open TapTalk" until clicked.
 - `FieldReader` - Accessibility reads of the focused text field for correction learning. A 250 ms
   messaging timeout, no secure fields or secure input, and fields over 20,000 characters are skipped.
 - `CorrectionLearner` - remembers the field and text of the last paste and reads that field once when

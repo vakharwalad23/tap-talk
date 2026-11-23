@@ -112,6 +112,12 @@ final class AppController: ObservableObject {
         }
         refresh()
         FloatingPillController.shared.hide()
+        // The tap reports clicks in top-left-origin global coordinates; AppKit frames start bottom-left
+        // on the primary display.
+        HotkeyService.shared.isExcludedClick = { point in
+            guard let primary = NSScreen.screens.first else { return false }
+            return FloatingPillController.shared.contains(screenPoint: CGPoint(x: point.x, y: primary.frame.maxY - point.y))
+        }
         setupAudioAndHotkey()
         observeBackendChanges()
         observeSystemEvents()

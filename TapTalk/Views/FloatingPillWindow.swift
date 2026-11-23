@@ -6,7 +6,7 @@ final class FloatingPillController {
     static let shared = FloatingPillController()
 
     private var window: NSPanel?
-    private var hostingView: NSHostingView<PillView>?
+    private var hostingView: PillHostingView?
     private let holder = PillStateHolder()
 
     private var autoHideWork: DispatchWorkItem?
@@ -86,6 +86,7 @@ final class FloatingPillController {
             panel.setFrame(frame, display: false)
             hostingView?.frame = NSRect(origin: .zero, size: size)
         }
+        if state == .recording, holder.state != .recording { holder.recordingStart = Date() }
         holder.state = state
     }
 
@@ -100,6 +101,13 @@ final class FloatingPillController {
     // Live mic RMS for the recording waveform. Cheap - read by the pill's render timer.
     func setLevel(_ rms: Float) {
         holder.level = rms
+    }
+
+    // ponytail: the whole panel, transparent margin included, counts as the pill; a click there is
+    // never a shortcut. AppKit coordinates.
+    func contains(screenPoint point: CGPoint) -> Bool {
+        guard let window, window.isVisible else { return false }
+        return window.frame.contains(point)
     }
 
     // Returns to idle - pill stays visible
@@ -127,7 +135,7 @@ final class FloatingPillController {
         panel.isMovableByWindowBackground = true
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
 
-        let hv = NSHostingView(rootView: PillView(holder: holder))
+        let hv = PillHostingView(rootView: PillView(holder: holder))
         hv.wantsLayer = true
         hv.layer?.backgroundColor = NSColor.clear.cgColor
 
@@ -174,4 +182,9 @@ final class FloatingPillController {
         let y = screen.visibleFrame.minY + 56
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: false)
     }
+}
+
+// The panel never becomes key; without first-mouse the tick or cross would need a focusing click.
+final class PillHostingView: NSHostingView<PillView> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }

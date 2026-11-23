@@ -19,6 +19,8 @@ final class PillStateHolder: ObservableObject {
     // Plain var (not @Published): updated ~30 Hz from the audio thread's main hop and
     // read by the 60 fps render timer, so it must not trigger a body re-eval per sample.
     var level: Float = 0
+    // Set when the pill turns to recording; read by the same render loop for the elapsed time.
+    var recordingStart = Date()
 }
 
 struct PillView: View {
@@ -67,11 +69,11 @@ struct PillView: View {
     private var activeContent: some View {
         switch pillState {
         case .recording:
-            Capsule()
-                .fill(Color(nsColor: .systemRed))
-                .frame(width: 16 + 104 * displayLevel, height: 3)
-                .frame(width: 120)
-                .padding(.horizontal, Self.textPadding)
+            PillRecordingRow(
+                elapsed: Date().timeIntervalSince(holder.recordingStart),
+                level: displayLevel,
+                phase: reduceMotion ? 0 : phase
+            )
 
         case .transcribing:
             ShimmerLine(phase: phase, isAnimated: !reduceMotion)
