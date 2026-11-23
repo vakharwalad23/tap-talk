@@ -5,11 +5,13 @@ import SwiftUI
 /// a hairline border and a soft shadow outside the capsule only, so the glass itself stays clear.
 struct PillGlass: View {
     @Environment(\.colorScheme) private var colorScheme
+    // Off for the idle bar: any pixel with alpha catches clicks, and a shadow would widen its hit area.
+    var hasShadow = true
 
     var body: some View {
         CapsuleBlur()
             .overlay(Capsule().strokeBorder(borderColor, lineWidth: 1))
-            .background(CapsuleShadow())
+            .background { if hasShadow { CapsuleShadow() } }
     }
 
     private var borderColor: Color {

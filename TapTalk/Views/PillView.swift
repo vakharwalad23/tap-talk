@@ -45,7 +45,7 @@ struct PillView: View {
             case .hidden:
                 EmptyView()
             case .idle:
-                PillGlass()
+                PillGlass(hasShadow: false)
                     .frame(width: 43, height: 5)
                     .transition(.opacity)
             default:
