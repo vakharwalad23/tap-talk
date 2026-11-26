@@ -44,6 +44,8 @@ const strokeIcons = {
 const fillIcons = {
 	star: "M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z",
 	bolt: "M13 2L4 14h6l-1 8 9-12h-6z",
+	sparkles:
+		"M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9zM18 13l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z",
 } as const;
 
 export type IconName = keyof typeof strokeIcons | keyof typeof fillIcons;
