@@ -34,9 +34,17 @@ export function SettingsPage() {
 					<KeyRow label="Dictation key" keyName="Right Cmd" />
 					<div className={app.divider} />
 					<KeyRow label="Smart key" keyName="Left Option" />
+					<div className={app.divider} />
+					<div className={app.row}>
+						<span className={app.rowLabel}>Key mode</span>
+						<span className={styles.segmented}>
+							<span className={styles.selected}>Hold to talk</span>
+							<span>Press to toggle</span>
+						</span>
+					</div>
 					<p className={app.hint}>
-						Hold the dictation key to type what you say. The Smart key works
-						while Smart Mode is on in Models.
+						Hold the dictation key to type what you say. Esc cancels. The Smart
+						key works while Smart Mode is on in Models.
 					</p>
 				</div>
 			</section>
