@@ -48,16 +48,10 @@ export const engineComparison: EngineComparison = {
 		},
 		{
 			label: "Speed (key-up-to-paste)",
-			orukeet: "~207 ms",
-			parakeet: "~215 ms",
-			lead: "orukeet",
-			note: "Same speed",
-		},
-		{
-			label: "Recognition step",
-			orukeet: "~112 ms",
-			parakeet: "~120 ms",
-			lead: "orukeet",
+			orukeet: "~104 ms",
+			parakeet: "~95 ms",
+			lead: "tie",
+			note: "Both about 0.1 s",
 		},
 		{
 			label: "Languages",
@@ -78,5 +72,6 @@ export const engineComparison: EngineComparison = {
 			lead: "orukeet",
 		},
 	],
-	footnote: "Latency measured on Apple M3 Pro, on-device.",
+	footnote:
+		"Median key-up-to-paste over 10 dictations each, measured on Apple M3 Pro, on-device.",
 };

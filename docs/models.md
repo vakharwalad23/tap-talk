@@ -194,6 +194,10 @@ them that feature. Nothing already installed is ever deleted by the upgrade.
   ~14 ms int8 gap and now edges ahead, so the app stands on both the accuracy result above and being
   as fast or a touch faster (see
   [`../.claude/rules/performance.md`](../.claude/rules/performance.md)).
+- Latency after FluidAudio 0.18.4 (2026-11-21, M3 Pro, Debug builds, the user's voice, warm medians
+  of 10 dictations): Parakeet ~95 ms key-up-to-paste and Orukeet ~117 ms in the same run; after the
+  later spelling warm-up fixes, a separate run put Orukeet at ~104 ms, and a 2026-11-23 run on the
+  toggle-mode build at 85 ms. The recognition step was not split out. The site shows ~104 vs ~95 ms.
 - An early 6-language, 60-clip sample looked tied; that sample missed the higher-error languages where
   Orukeet gains most. The full run above is definitive.
 
