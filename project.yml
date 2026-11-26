@@ -48,8 +48,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: talk.tap.app
-        MARKETING_VERSION: "0.6.0"
-        CURRENT_PROJECT_VERSION: "9"
+        MARKETING_VERSION: "0.7.0"
+        CURRENT_PROJECT_VERSION: "10"
         LIBRARY_SEARCH_PATHS:
           - "$(PROJECT_DIR)/core/target/release"
         HEADER_SEARCH_PATHS:
