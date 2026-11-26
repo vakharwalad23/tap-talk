@@ -1,6 +1,6 @@
 # TapTalk
 
-> TapTalk is a free, open-source (MIT), 100 percent on-device dictation app for macOS on Apple Silicon. Press a key, speak, release, and the transcript is pasted into any app. Speech recognition runs on the Apple Neural Engine; nothing is sent to a server unless the user explicitly enables the optional OpenAI cloud engine with their own key.
+> TapTalk is a free, open-source (MIT), 100 percent on-device dictation app for macOS on Apple Silicon. Hold a key and speak (or press it once to start and again to finish), and the transcript is pasted into any app. Speech recognition runs on the Apple Neural Engine; nothing is sent to a server unless the user explicitly enables the optional OpenAI cloud engine with their own key.
 
 ## Key facts
 
@@ -10,6 +10,7 @@
 - Install: brew install --cask vakharwalad23/tap/taptalk, or the .dmg from GitHub Releases.
 - Privacy: audio is processed in memory on-device and discarded. No telemetry, no analytics, no crash reporting. An optional daily update check asks GitHub for the latest version; it stays off until you say yes.
 - Speech models (downloaded at runtime, never bundled): Orukeet r3 (default for new installs; English and 24 European languages, auto-detected; about 15 percent fewer word errors than Parakeet across 25 FLEURS languages, and as fast on Apple M3 Pro; CC-BY-SA-4.0), NVIDIA Parakeet TDT 0.6B v3 (fallback, and the base for optional live typing; English and European, auto-detected), NVIDIA Nemotron 3.5 ASR Multilingual 0.6B (Hindi, Marathi, Urdu, Chinese, Japanese and more), NVIDIA Parakeet Realtime EOU 120M (optional live typing). Existing Parakeet users get a one-time in-app prompt to upgrade to Orukeet; Parakeet is always kept as the fallback and for live typing.
+- Key mode: Hold to talk (default) or Press to toggle, set in Settings. Esc or the cross on the floating pill cancels a recording; the tick finishes it. Using the dictation key in a shortcut (for example Right Cmd plus C) does not start a recording. If the Mac locks or sleeps mid-dictation, the text is kept in the app instead of being pasted.
 - Smart Mode: an optional second hotkey rewrites the transcript with a local LLM (Qwen 2.5 1.5B via llama.cpp) to remove filler, resolve spoken corrections, and match the app being typed into. Custom OpenAI-compatible endpoints (Ollama, LM Studio, OpenAI) are supported.
 - Hinglish: Hindi dictation can be output as Roman-script Hinglish, on-device.
 - Microphone: when Bluetooth headphones are the default input and the lid is open, TapTalk records with the Mac's built-in microphone, so the headphones keep high-quality playback while dictating.

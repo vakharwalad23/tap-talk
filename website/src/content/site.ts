@@ -16,7 +16,7 @@ export const site = {
 	authorName: "Dhruv Vakharwala",
 	authorUrl: "https://www.dhruvvakharwala.dev",
 	version,
-	lastUpdated: "2026-11-23",
+	lastUpdated: "2026-11-26",
 	title: "TapTalk - Free On-Device Dictation for Mac",
 	// Under 160 characters so search snippets show the whole sentence.
 	description:
@@ -37,7 +37,7 @@ export const featuredOn = [
 export const hero = {
 	eyebrow: "Free. Open source. 100 percent on-device.",
 	headline: "Don't type. Just talk.",
-	sub: "TapTalk turns speech into text in any Mac app. Hold a key, speak, release, and it is pasted where your cursor is. It runs entirely on your Mac's Neural Engine. No account, no subscription, no cloud.",
+	sub: "TapTalk turns speech into text in any Mac app. Hold a key and speak, or press it once to start and again to finish, and the text is pasted where your cursor is. It runs entirely on your Mac's Neural Engine. No account, no subscription, no cloud.",
 	makerNote:
 		"Built by one developer, in the open. It is not notarized by Apple yet, so on first launch use right-click then Open, or install with Homebrew, which handles it for you.",
 	demo: {

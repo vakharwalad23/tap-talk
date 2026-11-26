@@ -30,12 +30,12 @@ export const setupSteps: readonly SetupStep[] = [
 	},
 	{
 		title: "Dictate",
-		body: "Put your cursor anywhere you can type, hold Right Cmd, speak, and release. Your words are transcribed on the Neural Engine and pasted in. Watch the pill: red while listening, then green Pasted when it is done.",
+		body: "Put your cursor anywhere you can type, hold Right Cmd, speak, and release. Your words are transcribed on the Neural Engine and pasted in. Watch the pill: a red timer and live bars while it listens, then a green Pasted tick. Esc or the cross cancels. Rather not hold the key? In Settings, set Key mode to Press to toggle: press once to start and again to finish.",
 	},
 	{
 		title: "Turn on Smart Mode",
 		optional: true,
-		body: "On the Models page, switch on Smart Mode, pick Local (Qwen), and Download the on-device model (Qwen 2.5, about 1.06 GB, plus a small llama.cpp server fetched on first use). Turn on the modes you want. Now hold the Smart key (Left Option, change it in Settings) to transcribe and rewrite. Prefer your own model? Choose Custom Endpoint and point it at Ollama, LM Studio, or OpenAI.",
+		body: "On the Models page, switch on Smart Mode, pick Local (Qwen), and Download the on-device model (Qwen 2.5, about 1.06 GB, plus a small llama.cpp server fetched on first use). Turn on the modes you want. Now use the Smart key (Left Option, change it in Settings) instead of the dictation key to transcribe and rewrite. Prefer your own model? Choose Custom Endpoint and point it at Ollama, LM Studio, or OpenAI.",
 	},
 	{
 		title: "Turn on Live typing",

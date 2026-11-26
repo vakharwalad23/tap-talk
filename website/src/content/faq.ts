@@ -40,6 +40,11 @@ export const faq: readonly FaqItem[] = [
 			"Yes, in Mail, Slack, Notion, Xcode, the terminal, browsers, and more. It even works in Electron apps like VS Code and Discord through a paste fallback.",
 	},
 	{
+		question: "Do I have to hold the key down?",
+		answer:
+			"No. Hold to talk is the default, but in Settings you can set Key mode to Press to toggle: press the dictation key once to start and again to finish. Either way, Esc or the cross on the pill cancels, and the tick finishes.",
+	},
+	{
 		question: "Does it support Hindi and other languages?",
 		answer:
 			"Yes. English and European languages via Parakeet, and Hindi, Marathi, Urdu, Chinese, Japanese and more via Nemotron, all on-device, plus optional Roman-script Hinglish output.",
@@ -67,7 +72,7 @@ export const faq: readonly FaqItem[] = [
 	{
 		question: "Is there a word or time limit?",
 		answer:
-			"No word limits and no subscription. Single dictations are capped at 120 seconds as a safety limit.",
+			"No word limits and no subscription. As a safety limit, one dictation stops after 2 minutes when you hold the key, or 10 minutes in toggle mode, where the text waits in TapTalk instead of being pasted.",
 	},
 	{
 		question: "Is TapTalk notarized by Apple?",
@@ -77,7 +82,7 @@ export const faq: readonly FaqItem[] = [
 	{
 		question: "The hotkey stopped working after I updated. How do I fix it?",
 		answer:
-			"Because TapTalk is not notarized or signed with a stable identity yet, a new version can look like a different app to macOS, so it may ask for Microphone and Accessibility again. If the push-to-talk hotkey does not fire after an update, open System Settings, go to Privacy and Security then Accessibility, remove the old TapTalk entry from the list, relaunch TapTalk, and grant Accessibility again when asked. Do the same under Privacy and Security then Microphone if dictation cannot hear you.",
+			"Since version 0.6.0, every release is signed with the same certificate, so updates keep both permissions. The first update from a version before 0.6.0 asks once more: open TapTalk and click Allow on the setup card. If the hotkey still does not fire, open System Settings, go to Privacy and Security then Accessibility, remove the old TapTalk entry from the list, relaunch TapTalk, and grant Accessibility again when asked. Do the same under Privacy and Security then Microphone if dictation cannot hear you.",
 	},
 	{
 		question: "Why do my Bluetooth headphones sound worse while I dictate?",

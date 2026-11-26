@@ -11,7 +11,7 @@ export interface RewriteMode {
 export const intelligence = {
 	title: "It does not just transcribe. It writes it the way you would.",
 	intro:
-		"Hold the Smart key instead of the normal one and TapTalk runs a local language model over your transcript, cleaning it up and shaping it to fit wherever you are typing. It runs on your Mac by default (Qwen 2.5 1.5B via llama.cpp), or you can point it at your own endpoint.",
+		"Use the Smart key instead of the normal one and TapTalk runs a local language model over your transcript, cleaning it up and shaping it to fit wherever you are typing. It runs on your Mac by default (Qwen 2.5 1.5B via llama.cpp), or you can point it at your own endpoint.",
 	backends:
 		"Fully local by default (runs offline on the Metal GPU), or bring your own: Ollama, LM Studio, or OpenAI.",
 	precedenceNote:

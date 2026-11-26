@@ -13,8 +13,16 @@ export const featureGroups: readonly FeatureGroup[] = [
 		title: "Dictation",
 		items: [
 			{
-				title: "Global push-to-talk",
-				body: "Hold a hotkey anywhere in macOS, even with every window closed. Rebindable, default Right Cmd.",
+				title: "Hold or press to toggle",
+				body: "Hold a hotkey anywhere in macOS, even with every window closed, or set Key mode to Press to toggle: press once to start, again to finish. Rebindable, default Right Cmd.",
+			},
+			{
+				title: "Cancel or finish from the pill",
+				body: "While you speak, the pill shows a timer and your voice as live bars. Click the cross or press Esc to cancel, click the tick to finish.",
+			},
+			{
+				title: "Shortcuts stay shortcuts",
+				body: "Use the dictation key in a shortcut, like Right Cmd plus C, and TapTalk stays out of the way instead of starting a recording.",
 			},
 			{
 				title: "Paste into any app",
@@ -22,11 +30,15 @@ export const featureGroups: readonly FeatureGroup[] = [
 			},
 			{
 				title: "Live typing (optional)",
-				body: "Watch words appear in the field as you speak, under a second, with a confirmed plus volatile preview. Streams locally. Live typing is not available with every model: it works with Parakeet only, while Orukeet, Nemotron and Cloud type the text after you release the key.",
+				body: "Watch words appear in the field as you speak, under a second, with a confirmed plus volatile preview. Streams locally. Live typing is not available with every model: it works with Parakeet only, while Orukeet, Nemotron and Cloud type the text when you finish.",
 			},
 			{
 				title: "Too short? It says so",
-				body: "Tap the key by accident and TapTalk tells you to hold longer. It never invents a transcript from silence.",
+				body: "Tap the key by accident and the pill says Too short. TapTalk never invents a transcript from silence.",
+			},
+			{
+				title: "Safe when you step away",
+				body: "If your Mac locks or sleeps mid-dictation, the text waits in TapTalk instead of being pasted into an unattended window. In toggle mode, typing or clicking pauses live typing.",
 			},
 			{
 				title: "Headphones keep their sound",
