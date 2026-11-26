@@ -5,11 +5,19 @@ import app from "./app.module.css";
 
 // Copy from the app's About page, with punctuation kept ASCII for the web.
 const rows = [
-	{ label: "Engines", value: "NVIDIA Parakeet TDT, Nemotron 3.5 ASR" },
+	{
+		label: "Engines",
+		value: "Orukeet r3, NVIDIA Parakeet TDT, Nemotron 3.5 ASR",
+	},
 	{ label: "Runtime", value: "Core ML / Neural Engine via FluidAudio" },
 	{ label: "Rewrite", value: "Qwen 2.5 1.5B, llama.cpp" },
 	{ label: "Audio", value: "AVAudioEngine, Silero VAD on Core ML" },
 	{ label: "Platform", value: "macOS 14+, Apple Silicon" },
+	{
+		label: "Orukeet",
+		value:
+			"CC-BY-SA-4.0, modified Parakeet TDT v3. See NOTICE in the model bundle.",
+	},
 ] as const;
 
 export function AboutPage() {
@@ -20,7 +28,9 @@ export function AboutPage() {
 			</div>
 			<div>
 				<div className={styles.name}>TapTalk</div>
-				<div className={app.secondary}>Version {site.version} (3)</div>
+				<div className={app.secondary}>
+					Version {site.version} ({site.build})
+				</div>
 			</div>
 			<p className={styles.blurb}>
 				Local speech-to-text for macOS. Hold a hotkey, speak, release, and your
