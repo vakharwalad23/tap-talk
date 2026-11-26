@@ -222,7 +222,7 @@ struct ParakeetCard: View {
             SettingRow("Live typing (stream as you speak)") {
                 Toggle("", isOn: $settings.streamingEnabled).labelsHidden()
             }
-            Text("Types words live into the focused app as Parakeet recognizes them. Off while you hold the Smart key.")
+            Text("Types words live into the focused app as Parakeet recognizes them. Off for Smart key recordings.")
                 .font(.system(size: 11))
                 .foregroundStyle(AppTheme.tertiary)
                 .fixedSize(horizontal: false, vertical: true)

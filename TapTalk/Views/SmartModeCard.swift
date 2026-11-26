@@ -43,7 +43,7 @@ struct SmartModeCard: View {
                     localBackendSection
                 }
                 Divider().background(AppTheme.divider)
-                Text("Hold \(AppTheme.keyLabel(for: settings.smartHotkeyCode)) to rewrite. Change the key in Settings.")
+                Text("\(settings.hotkeyMode == .toggle ? "Press" : "Hold") \(AppTheme.keyLabel(for: settings.smartHotkeyCode)) to rewrite. Change the key in Settings.")
                     .font(.system(size: 11))
                     .foregroundStyle(AppTheme.secondary)
             }

@@ -41,7 +41,7 @@ export const flowNodes: readonly FlowNode[] = [
 		title: "Trim and boost",
 		summary: "Silero VAD, AGC, 16 kHz",
 		detail:
-			"Silero voice-activity detection runs on Core ML while you speak, so the silence is already trimmed when you let go. Automatic gain lifts quiet speech. Resampled to 16 kHz for the model.",
+			"Silero voice-activity detection runs on Core ML while you speak, so the silence is already trimmed when you finish. Automatic gain lifts quiet speech. Resampled to 16 kHz for the model.",
 		layer: "audio",
 	},
 	{

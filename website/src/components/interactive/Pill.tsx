@@ -1,14 +1,8 @@
 import { type RefObject, useEffect, useRef } from "react";
 import { cx } from "#/components/ui/cx";
 import { Icon } from "#/components/ui/Icon";
-import {
-	drawHelix,
-	LEVEL_GAIN,
-	pillColors,
-	pillGeometry,
-	syntheticLevel,
-} from "./helix";
 import styles from "./Pill.module.css";
+import { LEVEL_GAIN, syntheticLevel } from "./pillLevel";
 
 export type PillState =
 	| "idle"
@@ -24,97 +18,133 @@ interface PillProps {
 	readonly className?: string;
 }
 
-const PHASE_STEP: Record<PillState, number> = {
-	idle: 0,
-	done: 0,
-	recording: 0.13,
-	transcribing: 0.24,
-	rewriting: 0.24,
-};
+// Web pixels per app point, as in Pill.module.css.
+const POINT = 1.6;
+// PillRecordingRow.swift: center bars swing further than the edges, so speech reads as a waveform.
+const BAR_PROFILE = Array.from(
+	{ length: 11 },
+	(_, i) => 0.45 + 0.55 * Math.sin((i / 10) * Math.PI),
+);
+const BAR_KEYS = BAR_PROFILE.map((_, i) => `bar-${i}`);
 
-function helixSize(state: PillState) {
-	return state === "rewriting" ? pillGeometry.helixSmall : pillGeometry.helix;
+function clock(seconds: number): string {
+	const s = Math.max(0, Math.floor(seconds));
+	return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export function Pill({ state, levelRef, className }: PillProps) {
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const animated =
-		state === "recording" || state === "transcribing" || state === "rewriting";
+interface RecordingRowProps {
+	readonly levelRef?: RefObject<number>;
+}
+
+// Bars and timer are written straight to the DOM each frame so React never re-renders at 60 fps.
+function RecordingRow({ levelRef }: RecordingRowProps) {
+	const barsRef = useRef<HTMLSpanElement>(null);
+	const clockRef = useRef<HTMLSpanElement>(null);
 
 	useEffect(() => {
-		const canvas = canvasRef.current;
-		if (!animated || canvas === null) return;
-		const ctx = canvas.getContext("2d");
-		if (ctx === null) return;
-
-		const { w, h } = helixSize(state);
-		const dpr = window.devicePixelRatio || 1;
-		canvas.width = Math.round(w * dpr);
-		canvas.height = Math.round(h * dpr);
-		ctx.scale(dpr, dpr);
-
-		let phase = 0;
-		let displayLevel = 0;
-		let last = performance.now();
+		const clockEl = clockRef.current;
+		const bars = barsRef.current?.querySelectorAll<HTMLSpanElement>("span");
+		if (clockEl === null || bars === undefined) return;
+		const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		const start = performance.now();
+		let last = start;
+		let level = 0;
+		let shown = "";
 		let frame = 0;
-		const start = last;
 
 		const tick = (now: number) => {
 			const dt = Math.min(3, (now - last) / (1000 / 60));
 			last = now;
-			phase += PHASE_STEP[state] * dt;
-
-			let amplitude = 0.4;
-			if (state === "recording") {
-				const raw = levelRef?.current ?? syntheticLevel((now - start) / 1000);
-				const target = Math.min(1, Math.max(0, raw * LEVEL_GAIN));
-				displayLevel += (target - displayLevel) * 0.25 * dt;
-				amplitude = 0.6 + 0.4 * displayLevel;
+			const seconds = (now - start) / 1000;
+			const raw = levelRef?.current ?? syntheticLevel(seconds);
+			const target = Math.min(1, Math.max(0, raw * LEVEL_GAIN));
+			level += (target - level) * 0.25 * dt;
+			const phase = still ? 0 : seconds;
+			bars.forEach((bar, i) => {
+				const sway = 0.7 + 0.3 * Math.sin(phase * 9 + i * 1.3);
+				const points = 2.5 + 15 * level * (BAR_PROFILE[i] ?? 1) * sway;
+				bar.style.height = `${points * POINT}px`;
+			});
+			const text = clock(seconds);
+			if (text !== shown) {
+				clockEl.textContent = text;
+				shown = text;
 			}
-			drawHelix(ctx, w, h, phase, amplitude, pillColors[state]);
 			frame = requestAnimationFrame(tick);
 		};
 		frame = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(frame);
-	}, [state, animated, levelRef]);
+	}, [levelRef]);
 
-	if (state === "idle") {
-		return (
-			<div
-				className={cx(styles.frame, className)}
-				role="img"
-				aria-label="TapTalk pill, idle"
-			>
-				<div className={styles.idleBar} />
-			</div>
-		);
+	return (
+		<>
+			<span className={cx(styles.button, styles.cancel)}>
+				<Icon name="x" size={15} strokeWidth={3.4} />
+			</span>
+			<span ref={clockRef} className={styles.clock}>
+				0:00
+			</span>
+			<span ref={barsRef} className={styles.bars}>
+				{BAR_KEYS.map((key) => (
+					<span key={key} />
+				))}
+			</span>
+			<span className={cx(styles.button, styles.finish)}>
+				<Icon name="check" size={19} strokeWidth={3.4} />
+			</span>
+		</>
+	);
+}
+
+function PillContent({ state, levelRef }: PillProps) {
+	switch (state) {
+		case "recording":
+			return <RecordingRow levelRef={levelRef} />;
+		case "transcribing":
+			return <span className={styles.shimmer} />;
+		case "rewriting":
+			return (
+				<>
+					<Icon name="sparkles" size={20} className={styles.smart} />
+					Rewriting
+				</>
+			);
+		case "done":
+			return (
+				<>
+					<Icon
+						name="check"
+						size={20}
+						strokeWidth={3.4}
+						className={styles.ok}
+					/>
+					Pasted
+				</>
+			);
+		case "idle":
+			return null;
 	}
+}
 
-	const { w, h } = helixSize(state);
+// Mirrors PillView.swift: a frosted capsule that follows the light or dark appearance.
+export function Pill({ state, levelRef, className }: PillProps) {
 	return (
 		<div
 			className={cx(styles.frame, className)}
 			role="img"
 			aria-label={`TapTalk pill, ${state}`}
 		>
-			<div className={cx(styles.capsule, styles[state])}>
-				{animated ? (
-					<canvas
-						ref={canvasRef}
-						className={styles.canvas}
-						style={{ width: w, height: h }}
-					/>
-				) : null}
-				{state === "rewriting" ? (
-					<span className={styles.label}>Rewriting</span>
-				) : null}
-				{state === "done" ? (
-					<>
-						<Icon name="check" size={13 * 1.6} className={styles.check} />
-						<span className={styles.doneLabel}>Pasted</span>
-					</>
-				) : null}
-			</div>
+			{state === "idle" ? (
+				<div className={cx(styles.glass, styles.idleBar)} />
+			) : (
+				// Keyed by state so each change replays the pop, like the app's scale and fade transition.
+				<div
+					key={state}
+					className={cx(styles.glass, styles.capsule, styles[state])}
+				>
+					<PillContent state={state} levelRef={levelRef} />
+				</div>
+			)}
 		</div>
 	);
 }

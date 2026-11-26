@@ -15,8 +15,10 @@ struct TapTalkApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("TapTalk", systemImage: recordingState.isRecording ? "waveform.badge.mic" : "waveform") {
+        MenuBarExtra {
             MenuBarView()
+        } label: {
+            MenuBarLabel(isRecording: recordingState.isRecording)
         }
         .menuBarExtraStyle(.window)
 
@@ -46,5 +48,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Without this, AppKit's default (true) terminates the process on last-window-close and tears down the CGEvent tap.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+}
+
+// The status item lives for the whole run, so its label hands the scene's openWindow to AppKit-hosted
+// views such as the pill; openWindow read inside an NSHostingView outside a scene does nothing.
+private struct MenuBarLabel: View {
+    @Environment(\.openWindow) private var openWindow
+    let isRecording: Bool
+
+    var body: some View {
+        Image(systemName: isRecording ? "waveform.badge.mic" : "waveform")
+            .accessibilityLabel("TapTalk")
+            .onAppear { MainWindowOpener.shared.action = openWindow }
+    }
+}
+
+final class MainWindowOpener {
+    static let shared = MainWindowOpener()
+    var action: OpenWindowAction?
+    private init() {}
+
+    func open() {
+        action?(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

@@ -1,11 +1,12 @@
 import AppKit
 import SwiftUI
+import TapTalkLearning
 
 final class FloatingPillController {
     static let shared = FloatingPillController()
 
     private var window: NSPanel?
-    private var hostingView: NSHostingView<PillView>?
+    private var hostingView: PillHostingView?
     private let holder = PillStateHolder()
 
     private var autoHideWork: DispatchWorkItem?
@@ -38,19 +39,23 @@ final class FloatingPillController {
     // A notice is sized to its text; every other state fits the small panel, which keeps the
     // click-catching area at the bottom of the screen as small as it was.
     private static func panelSize(for state: PillState) -> NSSize {
-        guard case .notice(let event) = state else { return NSSize(width: smallWidth, height: panelHeight) }
         let font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        let text = (PillView.noticeText(event) as NSString).size(withAttributes: [.font: font]).width
-        let undo = ("Undo" as NSString).size(withAttributes: [.font: font]).width
-        let width = ceil(text + undo + noticeChrome)
+        func measure(_ text: String) -> CGFloat { (text as NSString).size(withAttributes: [.font: font]).width }
+        let content: CGFloat
+        switch state {
+        case .notice(let event): content = measure(PillView.noticeText(event)) + measure("Undo")
+        case .notPasted:         content = measure(PillView.notPastedText)
+        default:                 return NSSize(width: smallWidth, height: panelHeight)
+        }
+        let width = ceil(content + noticeChrome)
         return NSSize(width: min(max(width, smallWidth), maxNoticeWidth), height: panelHeight)
     }
 
     private static let smallWidth: CGFloat = 186
     private static let panelHeight: CGFloat = 56
-    // Checkmark 14, two 8 pt gaps, 14 pt capsule padding per side, 12 pt per side for the shadow, and
+    // Checkmark 14, two 8 pt gaps, the capsule padding per side, 12 pt per side for the shadow, and
     // 4 pt for the gap between NSString measurement and SwiftUI rendering.
-    private static let noticeChrome: CGFloat = 14 + 16 + 28 + 24 + 4
+    private static let noticeChrome: CGFloat = 14 + 16 + 2 * PillView.textPadding + 24 + 4
     // Past this a notice truncates rather than spanning the screen.
     private static let maxNoticeWidth: CGFloat = 640
 
@@ -59,6 +64,9 @@ final class FloatingPillController {
     private var widenedFrame: NSRect?
 
     private func apply(_ state: PillState) {
+        #if DEBUG
+        let state = Self.previewState ?? state
+        #endif
         let size = Self.panelSize(for: state)
         if let panel = window, panel.frame.size != size {
             let frame: NSRect
@@ -68,7 +76,7 @@ final class FloatingPillController {
             } else {
                 frame = Self.resized(panel.frame, to: size, within: (panel.screen ?? NSScreen.main)?.visibleFrame)
             }
-            if case .notice = state {
+            if size.width != Self.smallWidth {
                 if restingFrame == nil { restingFrame = panel.frame }
                 widenedFrame = frame
             } else {
@@ -78,6 +86,7 @@ final class FloatingPillController {
             panel.setFrame(frame, display: false)
             hostingView?.frame = NSRect(origin: .zero, size: size)
         }
+        if state == .recording, holder.state != .recording { holder.recordingStart = Date() }
         holder.state = state
     }
 
@@ -92,6 +101,13 @@ final class FloatingPillController {
     // Live mic RMS for the recording waveform. Cheap - read by the pill's render timer.
     func setLevel(_ rms: Float) {
         holder.level = rms
+    }
+
+    // ponytail: the whole panel, transparent margin included, counts as the pill; a click there is
+    // never a shortcut. AppKit coordinates.
+    func contains(screenPoint point: CGPoint) -> Bool {
+        guard let window, window.isVisible else { return false }
+        return window.frame.contains(point)
     }
 
     // Returns to idle - pill stays visible
@@ -117,9 +133,10 @@ final class FloatingPillController {
         panel.hasShadow = false
         panel.ignoresMouseEvents = false
         panel.isMovableByWindowBackground = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        // Also over full-screen apps, where a toggle recording must stay visible and cancellable.
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
 
-        let hv = NSHostingView(rootView: PillView(holder: holder))
+        let hv = PillHostingView(rootView: PillView(holder: holder))
         hv.wantsLayer = true
         hv.layer?.backgroundColor = NSColor.clear.cgColor
 
@@ -133,8 +150,32 @@ final class FloatingPillController {
         }
 
         positionWindow(panel, size: size)
+        #if DEBUG
+        Self.applyPreviewAppearance(to: panel)
+        #endif
         window = panel
     }
+
+    #if DEBUG
+    // Holds one state for screenshots: open TapTalk.app --args -TapTalkPillPreview notice
+    // -TapTalkPillAppearance NSAppearanceNameDarkAqua
+    private static let previewState: PillState? = {
+        switch UserDefaults.standard.string(forKey: "TapTalkPillPreview") {
+        case "recording":    return .recording
+        case "transcribing": return .transcribing
+        case "rewriting":    return .rewriting
+        case "done":         return .done
+        case "notice":       return .notice(.learned(LearnedRule(from: "tap talk", to: "TapTalk")))
+        case "notPasted":    return .notPasted
+        default:             return nil
+        }
+    }()
+
+    private static func applyPreviewAppearance(to panel: NSPanel) {
+        guard let name = UserDefaults.standard.string(forKey: "TapTalkPillAppearance") else { return }
+        panel.appearance = NSAppearance(named: NSAppearance.Name(rawValue: name))
+    }
+    #endif
 
     private func positionWindow(_ panel: NSPanel, size: NSSize) {
         guard let screen = NSScreen.main else { return }
@@ -142,4 +183,9 @@ final class FloatingPillController {
         let y = screen.visibleFrame.minY + 56
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: false)
     }
+}
+
+// The panel never becomes key; without first-mouse the tick or cross would need a focusing click.
+final class PillHostingView: NSHostingView<PillView> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }

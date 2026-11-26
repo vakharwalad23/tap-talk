@@ -79,7 +79,7 @@ struct SetupCard: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 13))
                     .foregroundStyle(AppTheme.success)
-                Text("Ready - hold \(AppTheme.keyLabel(for: settings.hotkeyCode)) and speak")
+                Text("Ready - \(settings.hotkeyMode == .toggle ? "press" : "hold") \(AppTheme.keyLabel(for: settings.hotkeyCode)) and speak")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(AppTheme.primary)
                 Spacer(minLength: 8)
@@ -193,7 +193,7 @@ struct SetupCard: View {
     private var microphoneSubtitle: String {
         permissions.microphone == .denied
             ? "Turned off for TapTalk in System Settings"
-            : "Hears you only while you hold the hotkey"
+            : (settings.hotkeyMode == .toggle ? "Hears you only while a recording runs" : "Hears you only while you hold the hotkey")
     }
 
     @ViewBuilder

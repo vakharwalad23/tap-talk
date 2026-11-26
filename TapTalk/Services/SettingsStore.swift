@@ -1,6 +1,7 @@
 import Foundation
 import ServiceManagement
 import TapTalkLearning
+import TapTalkHotkeys
 
 enum TranscriptionEngine: String {
     case local
@@ -197,6 +198,10 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(Int(smartHotkeyCode), forKey: "smartHotkeyCode") }
     }
 
+    @Published var hotkeyMode: HotkeyMode {
+        didSet { UserDefaults.standard.set(hotkeyMode.rawValue, forKey: "hotkeyMode") }
+    }
+
     @Published var dictionarySegments: [DictionarySegment] {
         didSet {
             persistDictionarySegments(dictionarySegments)
@@ -256,6 +261,7 @@ final class SettingsStore: ObservableObject {
 
         let rawSmartCode = UserDefaults.standard.integer(forKey: "smartHotkeyCode")
         smartHotkeyCode = rawSmartCode > 0 ? UInt16(rawSmartCode) : UInt16(0x3A) // kVK_Option
+        hotkeyMode = HotkeyMode(rawValue: UserDefaults.standard.string(forKey: "hotkeyMode") ?? "") ?? .hold
 
         let rawConsent = UserDefaults.standard.string(forKey: "updateCheckConsent") ?? "notAsked"
         updateCheckConsent = UpdateCheckConsent(rawValue: rawConsent) ?? .notAsked

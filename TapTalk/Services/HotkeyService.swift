@@ -1,22 +1,26 @@
 import Cocoa
 import Carbon.HIToolbox
+import TapTalkHotkeys
 
+/// Owns the listen-only event tap. Reports hotkey, key and mouse presses as `GestureInput`;
+/// what they mean is decided by `HotkeyGesture` in the caller. Nothing is stored.
 final class HotkeyService {
     static let shared = HotkeyService()
 
     fileprivate var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    fileprivate var onKeyDown: (() -> Void)?
-    fileprivate var onKeyUp: (() -> Void)?
+    fileprivate var onInput: ((GestureInput) -> Void)?
     private var healthTimer: Timer?
 
     private(set) var keyCode: UInt16 = UInt16(kVK_RightCommand)
-    fileprivate(set) var isHeld = false
+    fileprivate var isHeld = false
 
-    private(set) var smartKeyCode: UInt16 = UInt16(kVK_Option)
-    fileprivate(set) var smartIsHeld = false
-    fileprivate var onSmartKeyDown: (() -> Void)?
-    fileprivate var onSmartKeyUp: (() -> Void)?
+    // nil while the Smart key is off; its modifier then counts as any other key.
+    private(set) var smartKeyCode: UInt16?
+    fileprivate var smartIsHeld = false
+
+    /// A click inside the pill is not other input: its tick must finish, not cancel, a held press.
+    var isExcludedClick: ((CGPoint) -> Bool)?
 
     var isTapAlive: Bool {
         guard let tap = eventTap else { return false }
@@ -25,9 +29,8 @@ final class HotkeyService {
 
     private init() {}
 
-    func register(keyDown: @escaping () -> Void, keyUp: @escaping () -> Void) {
-        onKeyDown = keyDown
-        onKeyUp = keyUp
+    func register(onInput: @escaping (GestureInput) -> Void) {
+        self.onInput = onInput
         startTap()
         startHealthCheck()
     }
@@ -36,8 +39,7 @@ final class HotkeyService {
         healthTimer?.invalidate()
         healthTimer = nil
         stopTap()
-        onKeyDown = nil
-        onKeyUp = nil
+        onInput = nil
     }
 
     func setKeyCode(_ code: UInt16) {
@@ -45,20 +47,9 @@ final class HotkeyService {
         keyCode = code
     }
 
-    func setSmartKeyCode(_ code: UInt16) {
+    func setSmartKeyCode(_ code: UInt16?) {
         smartIsHeld = false
         smartKeyCode = code
-    }
-
-    func registerSmart(keyDown: @escaping () -> Void, keyUp: @escaping () -> Void) {
-        onSmartKeyDown = keyDown
-        onSmartKeyUp = keyUp
-    }
-
-    func unregisterSmart() {
-        smartIsHeld = false
-        onSmartKeyDown = nil
-        onSmartKeyUp = nil
     }
 
     static func flagMask(for keyCode: UInt16) -> CGEventFlags {
@@ -75,7 +66,10 @@ final class HotkeyService {
     private func startTap() -> Bool {
         stopTap()
 
-        let mask: CGEventMask = 1 << CGEventType.flagsChanged.rawValue
+        // Key and mouse presses tell a shortcut (Right Cmd+C, Option-click) from a press of the
+        // hotkey, and carry Escape. Listen-only, so nothing is delayed or swallowed.
+        let types: [CGEventType] = [.flagsChanged, .keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown]
+        let mask = types.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
 
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -116,12 +110,33 @@ final class HotkeyService {
     fileprivate func releaseHeldKeys() {
         if isHeld {
             isHeld = false
-            DispatchQueue.main.async { self.onKeyUp?() }
+            deliver(.hotkeyUp(.dictation))
         }
         if smartIsHeld {
             smartIsHeld = false
-            DispatchQueue.main.async { self.onSmartKeyUp?() }
+            deliver(.hotkeyUp(.smart))
         }
+    }
+
+    // Hops off the tap callback so a slow handler can never make macOS disable the tap.
+    fileprivate func deliver(_ input: GestureInput) {
+        DispatchQueue.main.async { self.onInput?(input) }
+    }
+
+    fileprivate func flagsInput(keyCode code: UInt16, flags: CGEventFlags, at time: TimeInterval) -> GestureInput? {
+        if code == keyCode {
+            let isDown = flags.contains(Self.flagMask(for: code))
+            guard isDown != isHeld else { return nil }
+            isHeld = isDown
+            return isDown ? .hotkeyDown(.dictation, at: time) : .hotkeyUp(.dictation)
+        }
+        if let smart = smartKeyCode, code == smart {
+            let isDown = flags.contains(Self.flagMask(for: code))
+            guard isDown != smartIsHeld else { return nil }
+            smartIsHeld = isDown
+            return isDown ? .hotkeyDown(.smart, at: time) : .hotkeyUp(.smart)
+        }
+        return .otherInput(at: time)
     }
 
     // Catches the "silent inert tap" failure mode where tapDisabledByTimeout never fires.
@@ -130,7 +145,7 @@ final class HotkeyService {
     private func startHealthCheck() {
         healthTimer?.invalidate()
         let timer = Timer(timeInterval: 5.0, repeats: true) { [weak self] _ in
-            guard let self, self.onKeyDown != nil else { return }
+            guard let self, self.onInput != nil else { return }
 
             guard let tap = self.eventTap else {
                 self.startTap()
@@ -168,31 +183,34 @@ private func hotkeyCallback(
         return Unmanaged.passUnretained(event)
     }
 
-    if type == .flagsChanged {
-        let eventKeyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-
-        if eventKeyCode == service.keyCode {
-            let mask = HotkeyService.flagMask(for: service.keyCode)
-            let isDown = event.flags.contains(mask)
-            if isDown && !service.isHeld {
-                service.isHeld = true
-                DispatchQueue.main.async { service.onKeyDown?() }
-            } else if !isDown && service.isHeld {
-                service.isHeld = false
-                DispatchQueue.main.async { service.onKeyUp?() }
-            }
-        } else if eventKeyCode == service.smartKeyCode, service.onSmartKeyDown != nil {
-            let mask = HotkeyService.flagMask(for: service.smartKeyCode)
-            let isDown = event.flags.contains(mask)
-            if isDown && !service.smartIsHeld {
-                service.smartIsHeld = true
-                DispatchQueue.main.async { service.onSmartKeyDown?() }
-            } else if !isDown && service.smartIsHeld {
-                service.smartIsHeld = false
-                DispatchQueue.main.async { service.onSmartKeyUp?() }
-            }
-        }
+    // The paste and live typing post from this process; they are never the user's input.
+    if event.getIntegerValueField(.eventSourceUnixProcessID) == Int64(getpid()) {
+        return Unmanaged.passUnretained(event)
     }
 
+    // Uptime at delivery, not event.timestamp, whose unit differs between machines; only
+    // differences between two events are used.
+    let now = ProcessInfo.processInfo.systemUptime
+    let input: GestureInput?
+    switch type {
+    case .flagsChanged:
+        let code = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+        input = service.flagsInput(keyCode: code, flags: event.flags, at: now)
+    case .keyDown:
+        // A key held from before the press repeats; only a new press is input.
+        if event.getIntegerValueField(.keyboardEventAutorepeat) != 0 {
+            input = nil
+        } else if event.getIntegerValueField(.keyboardEventKeycode) == Int64(kVK_Escape) {
+            input = .escape
+        } else {
+            input = .otherInput(at: now)
+        }
+    case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+        input = service.isExcludedClick?(event.location) == true ? nil : .otherInput(at: now)
+    default:
+        input = nil
+    }
+
+    if let input { service.deliver(input) }
     return Unmanaged.passUnretained(event)
 }

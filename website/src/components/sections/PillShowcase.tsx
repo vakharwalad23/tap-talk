@@ -21,16 +21,16 @@ const legend: ReadonlyArray<{ state: PillState; label: string; hint: string }> =
 		{
 			state: "recording",
 			label: "Recording",
-			hint: "red, reacts to your voice",
+			hint: "timer and level bars; cross cancels, tick finishes",
 		},
 		{
 			state: "transcribing",
 			label: "Transcribing",
-			hint: "white, on the Neural Engine",
+			hint: "a quick shimmer, on the Neural Engine",
 		},
 		{ state: "rewriting", label: "Rewriting", hint: "purple, Smart Mode only" },
-		{ state: "done", label: "Pasted", hint: "green, then it rests" },
-		{ state: "idle", label: "Idle", hint: "a thin resting line" },
+		{ state: "done", label: "Pasted", hint: "green tick, then it rests" },
+		{ state: "idle", label: "Idle", hint: "a thin glass line" },
 	];
 
 const micLabel: Record<MicStatus, string> = {
@@ -43,9 +43,8 @@ const micLabel: Record<MicStatus, string> = {
 const micHint: Record<MicStatus, string> = {
 	off: "Your audio stays in this tab. Nothing is sent or recorded.",
 	asking: "Allow the microphone when your browser asks.",
-	listening: "Listening. Say something and watch the helix move.",
-	hearing:
-		"That is your voice moving the helix. Still nothing leaves this tab.",
+	listening: "Listening. Say something and watch the bars move.",
+	hearing: "That is your voice moving the bars. Still nothing leaves this tab.",
 };
 
 export function PillShowcase() {
@@ -91,7 +90,7 @@ export function PillShowcase() {
 				<SectionHeading
 					eyebrow="The pill"
 					title="The pill tells you everything, and nothing leaves your Mac."
-					lede="A small floating pill is the whole interface while you dictate. It changes color and shape for each state. Here it is, running live, on this page."
+					lede="A small frosted-glass pill is the whole interface while you dictate. It shows a timer and your voice while it listens, with a cross to cancel and a tick to finish. Here it is, running live, on this page."
 					id="pill-title"
 				/>
 				<div className={styles.stage} data-reveal>

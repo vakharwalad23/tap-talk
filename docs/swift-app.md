@@ -6,6 +6,8 @@ audio, recognition, the rewrite, the hotkey, the paste, the interface.
 ```
 TapTalk/
   Audio/      TapTalkAudio package: capture, 16 kHz conversion, Silero VAD, trim, gain
+  Hotkeys/    TapTalkHotkeys package: the press rule that turns hotkey, key and click events into
+              start, stop and cancel for hold or toggle mode
   Learning/   TapTalkLearning package: compiled word rules, finding fixes, the learning state
   Services/   system interaction and orchestration
   Pages/      full screens (Record, Models, Words, Settings, About). Models is where a speech
@@ -142,13 +144,26 @@ the pin re-provisions rather than silently keeping whatever "latest" was on the 
 
 ## Input and output
 
-- `HotkeyService` - one `CGEvent` tap, two independently registered modifier hotkeys. Only
-  `.flagsChanged` is observed, so hotkeys must be modifiers. A health check re-enables a tap macOS
-  has silently disabled.
+- `HotkeyService` - one listen-only `CGEvent` tap, two modifier hotkeys. It sees modifier changes,
+  key presses and mouse button presses, reports them as `GestureInput` and stores nothing; events
+  this process posted (the paste, live typing) are skipped by source PID. Hotkeys must be modifiers.
+  `HotkeyGesture` (TapTalkHotkeys) turns the inputs into start, stop and cancel for hold or toggle
+  mode: other input within 1 s of the starting press makes it a shortcut, cancelled silently;
+  Escape cancels any recording. A health check re-enables a tap macOS has silently disabled, and a
+  key held when the tap was disabled is reported released.
 - `PasteService` - pasteboard write marked `transient`/`concealed` so clipboard managers skip the
   entry, then Cmd-V, then restore.
 - `LiveInserter` - live typing. Prefers an Accessibility range-replace, falls back to pasteboard,
   and permanently disables the AX path after a first failure rather than retrying per keystroke.
+  In a toggle recording it pauses at the user's first own key or click (the caret may have moved);
+  the rest of the text is pasted at the caret on stop.
+- `FloatingPillController` and `PillView` - the pill, in a borderless non-activating panel, on
+  frosted glass (`NSVisualEffectView`, behind-window) in every state. Recording shows a cross
+  (cancel), the elapsed time, level bars and a tick (finish); clicks act at once without taking
+  focus from the target app, and a click on the pill is never shortcut input. The render loop runs
+  only while recording or transcribing. A toggle recording keeps the display awake
+  (`DisplayAwakeAssertion`); a lock, sleep or the 600 s toggle limit transcribes without pasting
+  and the pill shows "Not pasted - open TapTalk" until clicked.
 - `FieldReader` - Accessibility reads of the focused text field for correction learning. A 250 ms
   messaging timeout, no secure fields or secure input, and fields over 20,000 characters are skipped.
 - `CorrectionLearner` - remembers the field and text of the last paste and reads that field once when
@@ -194,9 +209,9 @@ a list already missed a browser installed on the development machine.
 ```bash
 make run      # rust -> bindings -> xcodegen -> xcodebuild -> launch
 make kill     # stop a running instance first; two instances fight over the event tap
-make test     # Rust tests and the TapTalkAudio, TapTalkUpdates and TapTalkLearning package tests
+make test     # Rust tests and the TapTalkAudio, TapTalkUpdates, TapTalkLearning and TapTalkHotkeys package tests
 ```
 
-`make test` runs the Rust tests and the `TapTalkAudio`, `TapTalkUpdates` and `TapTalkLearning` package tests. The rest of the app has no
+`make test` runs the Rust tests and the `TapTalkAudio`, `TapTalkUpdates`, `TapTalkLearning` and `TapTalkHotkeys` package tests. The rest of the app has no
 test target: its logic is prompt composition and enum dispatch, where exhaustive `switch` breakage
 at compile time is a stronger check than a test would be. `make build` failing is the signal.
